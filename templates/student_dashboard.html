@@ -1,0 +1,349 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Student Dashboard - Vision AI</title>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+
+        body {
+            font-family: 'Poppins', sans-serif;
+            min-height: 100vh;
+            background: linear-gradient(135deg, #4e54c8 0%, #7b4fa6 50%, #c471ed 100%);
+            padding: 2rem 1rem;
+        }
+
+        .dashboard-wrapper {
+            max-width: 900px;
+            margin: 0 auto;
+            animation: fadeUp 0.8s ease;
+        }
+
+        @keyframes fadeUp {
+            from { opacity: 0; transform: translateY(30px); }
+            to   { opacity: 1; transform: translateY(0); }
+        }
+
+        /* Top navbar */
+        .navbar {
+            background: rgba(255,255,255,0.15);
+            backdrop-filter: blur(10px);
+            border-radius: 20px;
+            padding: 1rem 1.8rem;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 1.8rem;
+            border: 1px solid rgba(255,255,255,0.2);
+        }
+
+        .navbar-brand {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            color: white;
+            font-weight: 800;
+            font-size: 1.2rem;
+        }
+
+        .navbar-brand .icon {
+            width: 42px; height: 42px;
+            background: rgba(255,255,255,0.2);
+            border-radius: 12px;
+            display: flex; align-items: center; justify-content: center;
+            font-size: 1.2rem;
+        }
+
+        .logout-btn {
+            background: rgba(255,255,255,0.2);
+            color: white;
+            border: 1px solid rgba(255,255,255,0.3);
+            border-radius: 12px;
+            padding: 8px 20px;
+            font-family: 'Poppins', sans-serif;
+            font-size: 0.85rem;
+            font-weight: 600;
+            cursor: pointer;
+            text-decoration: none;
+            transition: all 0.3s;
+            display: flex; align-items: center; gap: 6px;
+        }
+        .logout-btn:hover { background: rgba(255,255,255,0.3); }
+
+        /* Welcome card */
+        .welcome-card {
+            background: rgba(255,255,255,0.97);
+            border-radius: 24px;
+            padding: 2rem 2.2rem;
+            margin-bottom: 1.5rem;
+            display: flex;
+            align-items: center;
+            gap: 1.5rem;
+            box-shadow: 0 20px 60px rgba(20,20,80,0.2);
+        }
+
+        .avatar {
+            width: 80px; height: 80px;
+            border-radius: 20px;
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            display: flex; align-items: center; justify-content: center;
+            font-size: 2.2rem;
+            box-shadow: 0 10px 30px rgba(102,126,234,0.4);
+            flex-shrink: 0;
+            overflow: hidden;
+        }
+
+        .avatar img {
+            width: 100%; height: 100%;
+            object-fit: cover;
+            border-radius: 20px;
+        }
+
+        .welcome-text h2 {
+            font-size: 1.5rem;
+            font-weight: 800;
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .welcome-text p {
+            color: #999;
+            font-size: 0.85rem;
+            margin-top: 2px;
+        }
+
+        .info-pills {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            margin-top: 10px;
+        }
+
+        .pill {
+            background: linear-gradient(135deg, rgba(102,126,234,0.1), rgba(118,75,162,0.1));
+            color: #5a3fa6;
+            border: 1px solid rgba(90,63,166,0.2);
+            border-radius: 50px;
+            padding: 4px 14px;
+            font-size: 0.78rem;
+            font-weight: 600;
+            display: flex; align-items: center; gap: 5px;
+        }
+
+        /* Stat cards */
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 1rem;
+            margin-bottom: 1.5rem;
+        }
+
+        .stat-card {
+            background: rgba(255,255,255,0.97);
+            border-radius: 20px;
+            padding: 1.5rem;
+            text-align: center;
+            box-shadow: 0 10px 40px rgba(20,20,80,0.15);
+        }
+
+        .stat-icon {
+            width: 50px; height: 50px;
+            border-radius: 14px;
+            display: flex; align-items: center; justify-content: center;
+            font-size: 1.4rem;
+            margin: 0 auto 0.8rem;
+        }
+
+        .stat-card h3 {
+            font-size: 2rem;
+            font-weight: 800;
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .stat-card p {
+            font-size: 0.8rem;
+            color: #999;
+            margin-top: 2px;
+        }
+
+        /* Attendance table */
+        .table-card {
+            background: rgba(255,255,255,0.97);
+            border-radius: 24px;
+            padding: 1.8rem 2rem;
+            box-shadow: 0 20px 60px rgba(20,20,80,0.2);
+        }
+
+        .table-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 1.2rem;
+        }
+
+        .table-header h3 {
+            font-size: 1.1rem;
+            font-weight: 700;
+            color: #333;
+            display: flex; align-items: center; gap: 8px;
+        }
+
+        .table-header h3 i { color: #667eea; }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 0.88rem;
+        }
+
+        thead tr {
+            background: linear-gradient(135deg, rgba(102,126,234,0.08), rgba(118,75,162,0.08));
+        }
+
+        thead th {
+            padding: 12px 16px;
+            text-align: left;
+            font-weight: 600;
+            color: #5a3fa6;
+            font-size: 0.8rem;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        tbody tr {
+            border-bottom: 1px solid #f0f0f5;
+            transition: background 0.2s;
+        }
+
+        tbody tr:hover { background: rgba(102,126,234,0.04); }
+
+        tbody td {
+            padding: 12px 16px;
+            color: #555;
+        }
+
+        .subject-badge {
+            background: linear-gradient(135deg, rgba(102,126,234,0.1), rgba(118,75,162,0.1));
+            color: #5a3fa6;
+            border-radius: 8px;
+            padding: 3px 10px;
+            font-size: 0.78rem;
+            font-weight: 600;
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 3rem;
+            color: #bbb;
+        }
+
+        .empty-state i { font-size: 3rem; margin-bottom: 1rem; }
+        .empty-state p { font-size: 0.9rem; }
+
+        @media (max-width: 600px) {
+            .stats-grid { grid-template-columns: 1fr 1fr; }
+            .welcome-card { flex-direction: column; text-align: center; }
+            .info-pills { justify-content: center; }
+        }
+    </style>
+</head>
+<body>
+    <div class="dashboard-wrapper">
+
+        <!-- Navbar -->
+        <div class="navbar">
+            <div class="navbar-brand">
+                <div class="icon">👁️</div>
+                Vision AI
+            </div>
+            <a href="/logout" class="logout-btn">
+                <i class="fas fa-sign-out-alt"></i> Logout
+            </a>
+        </div>
+
+        <!-- Welcome Card -->
+        <div class="welcome-card">
+            <div class="avatar">
+                {% if student['face_image'] %}
+                <img src="{{ url_for('static', filename=student['face_image'].replace('static/', '')) }}" alt="Face">
+                {% else %}
+                🎓
+                {% endif %}
+            </div>
+            <div class="welcome-text">
+                <h2>Welcome, {{ student['name'] }}!</h2>
+                <p>Here's your attendance overview</p>
+                <div class="info-pills">
+                    <span class="pill"><i class="fas fa-id-card"></i> {{ student['roll'] }}</span>
+                    <span class="pill"><i class="fas fa-envelope"></i> {{ student['email'] }}</span>
+                    <span class="pill"><i class="fas fa-phone"></i> {{ student['phone'] }}</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Stats -->
+        <div class="stats-grid">
+            <div class="stat-card">
+                <div class="stat-icon" style="background: linear-gradient(135deg,rgba(102,126,234,0.15),rgba(118,75,162,0.15));">📋</div>
+                <h3>{{ total }}</h3>
+                <p>Total Classes</p>
+            </div>
+            <div class="stat-card">
+                <div class="stat-icon" style="background: rgba(40,167,69,0.12);">✅</div>
+                <h3>{{ total }}</h3>
+                <p>Present</p>
+            </div>
+            <div class="stat-card">
+                <div class="stat-icon" style="background: rgba(102,126,234,0.12);">📅</div>
+                <h3>
+                    {% if total > 0 %}100%{% else %}0%{% endif %}
+                </h3>
+                <p>Attendance %</p>
+            </div>
+        </div>
+
+        <!-- Attendance Table -->
+        <div class="table-card">
+            <div class="table-header">
+                <h3><i class="fas fa-calendar-check"></i> Attendance Records</h3>
+            </div>
+            {% if attendance %}
+            <table>
+                <thead>
+                    <tr>
+                        <th>#</th>
+                        <th>Subject</th>
+                        <th>Date</th>
+                        <th>Time</th>
+                        <th>Marked By</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for a in attendance %}
+                    <tr>
+                        <td>{{ loop.index }}</td>
+                        <td><span class="subject-badge">{{ a['subject'] }}</span></td>
+                        <td>{{ a['date'] }}</td>
+                        <td>{{ a['time'] }}</td>
+                        <td>{{ a['marked_by'] }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+            {% else %}
+            <div class="empty-state">
+                <i class="fas fa-calendar-times"></i>
+                <p>No attendance records yet.</p>
+            </div>
+            {% endif %}
+        </div>
+
+    </div>
+</body>
+</html>

@@ -1,0 +1,17 @@
+<table class="table">
+    <tr>
+        <th>Name</th>
+        <th>Subject</th>
+        <th>Date</th>
+        <th>Status</th>
+    </tr>
+
+    {% for row in data %}
+    <tr>
+        <td>{{ row[0] }}</td>
+        <td>{{ row[1] }}</td>
+        <td>{{ row[2] }}</td>
+        <td>{{ row[3] }}</td>
+    </tr>
+    {% endfor %}
+</table>

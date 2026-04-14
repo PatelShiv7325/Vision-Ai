@@ -1,0 +1,5 @@
+flask
+opencv-contrib-python
+numpy
+bcrypt
+Pillow

@@ -1,0 +1,607 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Student Registration - Vision AI</title>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+
+        body {
+            font-family: 'Poppins', sans-serif;
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: linear-gradient(135deg, #4e54c8 0%, #7b4fa6 50%, #c471ed 100%);
+            overflow-x: hidden;
+            position: relative;
+            padding: 2rem 0;
+        }
+
+        body::before, body::after {
+            content: '';
+            position: absolute;
+            border-radius: 50%;
+            opacity: 0.12;
+            animation: float 6s ease-in-out infinite;
+        }
+        body::before {
+            width: 420px; height: 420px;
+            background: #fff;
+            top: -120px; left: -100px;
+        }
+        body::after {
+            width: 320px; height: 320px;
+            background: #fff;
+            bottom: -100px; right: -80px;
+            animation-delay: 3s;
+        }
+
+        @keyframes float {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(20px); }
+        }
+
+        @keyframes fadeUp {
+            from { opacity: 0; transform: translateY(40px); }
+            to   { opacity: 1; transform: translateY(0); }
+        }
+
+        .register-card {
+            background: rgba(255,255,255,0.97);
+            border-radius: 30px;
+            padding: 2.8rem 2.8rem;
+            max-width: 500px;
+            width: 92%;
+            box-shadow: 0 30px 80px rgba(20,20,80,0.25);
+            animation: fadeUp 0.8s ease-in-out;
+            position: relative;
+            z-index: 1;
+            text-align: center;
+        }
+
+        .logo-icon {
+            width: 68px;
+            height: 68px;
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            border-radius: 18px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0 auto 1rem;
+            font-size: 1.8rem;
+            box-shadow: 0 10px 30px rgba(102,126,234,0.4);
+        }
+
+        .badge {
+            display: inline-block;
+            background: linear-gradient(135deg, rgba(102,126,234,0.12), rgba(118,75,162,0.12));
+            color: #6f73ff;
+            font-size: 0.72rem;
+            font-weight: 600;
+            letter-spacing: 1.5px;
+            text-transform: uppercase;
+            padding: 5px 16px;
+            border-radius: 50px;
+            margin-bottom: 0.8rem;
+            border: 1px solid rgba(111,115,255,0.25);
+        }
+
+        .register-card h2 {
+            font-size: 1.85rem;
+            font-weight: 800;
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            margin-bottom: 0.4rem;
+        }
+
+        .subtitle {
+            color: #999;
+            font-size: 0.85rem;
+            margin-bottom: 0.5rem;
+            line-height: 1.5;
+        }
+
+        .divider {
+            width: 50px;
+            height: 4px;
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            border-radius: 2px;
+            margin: 0.8rem auto 1.8rem;
+        }
+
+        .alert-error {
+            background: rgba(220,53,69,0.08);
+            color: #dc3545;
+            border: 1px solid rgba(220,53,69,0.2);
+            border-radius: 12px;
+            padding: 0.8rem 1rem;
+            font-size: 0.85rem;
+            margin-bottom: 1.2rem;
+            text-align: left;
+        }
+
+        .form-group {
+            margin-bottom: 1.1rem;
+            text-align: left;
+        }
+
+        .form-group label {
+            display: block;
+            font-size: 0.82rem;
+            font-weight: 600;
+            color: #555;
+            margin-bottom: 5px;
+        }
+
+        .form-group label i {
+            color: #667eea;
+            margin-right: 6px;
+        }
+
+        .input-wrapper {
+            position: relative;
+        }
+
+        .input-wrapper .icon {
+            position: absolute;
+            left: 15px;
+            top: 50%;
+            transform: translateY(-50%);
+            color: #667eea;
+            font-size: 0.9rem;
+        }
+
+        .input-wrapper input {
+            width: 100%;
+            height: 50px;
+            padding: 0 45px;
+            border: 2px solid #e8eaf0;
+            border-radius: 14px;
+            font-size: 0.9rem;
+            font-family: 'Poppins', sans-serif;
+            background: #f8f9fe;
+            transition: all 0.3s ease;
+            box-sizing: border-box;
+            color: #333;
+        }
+
+        .input-wrapper input:focus {
+            border-color: #667eea;
+            background: #fff;
+            outline: none;
+            box-shadow: 0 0 0 4px rgba(102,126,234,0.1);
+            transform: translateY(-1px);
+        }
+
+        .input-wrapper input.valid   { border-color: #28a745; background: #f6fff8; }
+        .input-wrapper input.invalid { border-color: #dc3545; background: #fff8f8; }
+
+        .toggle-password {
+            position: absolute;
+            right: 15px;
+            top: 50%;
+            transform: translateY(-50%);
+            color: #aaa;
+            cursor: pointer;
+            font-size: 0.9rem;
+            transition: color 0.3s;
+        }
+        .toggle-password:hover { color: #667eea; }
+
+        .password-help {
+            font-size: 0.75rem;
+            color: #999;
+            margin-top: 5px;
+            padding-left: 4px;
+        }
+
+        /* Two column grid for name + roll */
+        .form-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 1rem;
+        }
+
+        .btn-register {
+            width: 100%;
+            padding: 16px;
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            color: white;
+            border: none;
+            border-radius: 14px;
+            font-size: 1rem;
+            font-weight: 700;
+            font-family: 'Poppins', sans-serif;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 8px 24px rgba(102,126,234,0.35);
+            position: relative;
+            overflow: hidden;
+            margin-top: 0.6rem;
+            z-index: 10;
+            display: block !important;
+            visibility: visible !important;
+        }
+
+        .btn-register::after {
+            content: '';
+            position: absolute;
+            top: 0; left: -100%;
+            width: 100%; height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.18), transparent);
+            transition: left 0.5s ease;
+        }
+
+        .btn-register:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 14px 32px rgba(102,126,234,0.45);
+        }
+        .btn-register:hover::after { left: 100%; }
+        .btn-register:active { transform: translateY(-1px); }
+
+        .links {
+            margin-top: 1.5rem;
+            font-size: 0.84rem;
+            color: #999;
+        }
+        .links p { margin-bottom: 0.4rem; }
+        .links a {
+            color: #667eea;
+            font-weight: 600;
+            text-decoration: none;
+            transition: color 0.3s;
+        }
+        .links a:hover { color: #4a4fc4; }
+
+        .back-home {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            margin-top: 0.4rem;
+            font-size: 0.82rem;
+            color: #aaa;
+            text-decoration: none;
+            transition: color 0.3s;
+        }
+        .back-home:hover { color: #667eea; }
+
+        /* Camera Modal */
+        .camera-modal {
+            display: none;
+            position: fixed;
+            top: 0; left: 0;
+            width: 100%; height: 100%;
+            background: rgba(0,0,0,0.85);
+            justify-content: center;
+            align-items: center;
+            z-index: 999;
+        }
+
+        .camera-box {
+            background: white;
+            padding: 2.5rem;
+            border-radius: 24px;
+            text-align: center;
+            box-shadow: 0 25px 80px rgba(0,0,0,0.4);
+            animation: fadeUp 0.4s ease;
+            max-width: 500px;
+            width: 90%;
+        }
+
+        .camera-box h3 {
+            font-size: 1.4rem;
+            font-weight: 700;
+            color: #333;
+            margin-bottom: 1rem;
+        }
+
+        .video-container {
+            position: relative;
+            width: 320px;
+            height: 240px;
+            margin: 0 auto 1.5rem;
+            border-radius: 16px;
+            overflow: hidden;
+            background: #000;
+            border: 3px solid #e8eaf0;
+        }
+
+        video {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            border-radius: 13px;
+        }
+
+        .camera-btns {
+            display: flex;
+            gap: 1rem;
+            justify-content: center;
+            margin-top: 1.5rem;
+        }
+
+        .camera-btns .btn-register {
+            width: auto;
+            padding: 12px 28px;
+            font-size: 0.9rem;
+            margin-top: 0;
+        }
+
+        .btn-capture {
+            background: linear-gradient(135deg, #28a745, #20c997) !important;
+        }
+
+        .btn-capture:disabled {
+            background: linear-gradient(135deg, #aaa, #888) !important;
+            cursor: not-allowed;
+            opacity: 0.6;
+        }
+
+        .btn-cancel {
+            background: linear-gradient(135deg, #6c757d, #5a6268) !important;
+            box-shadow: none !important;
+        }
+
+        @media (max-width: 520px) {
+            .register-card { padding: 2rem 1.5rem; }
+            .register-card h2 { font-size: 1.5rem; }
+            .form-row { grid-template-columns: 1fr; }
+        }
+    </style>
+</head>
+<body>
+    <div class="register-card">
+        <div class="logo-icon">👁️</div>
+        <div class="badge">Student Portal</div>
+        <h2>Student Registration</h2>
+        <p class="subtitle">Create your account and register your face for attendance</p>
+        <div class="divider"></div>
+
+        {% if error %}
+        <div class="alert-error"><i class="fas fa-exclamation-circle"></i> {{ error }}</div>
+        {% endif %}
+
+        <form method="POST" id="registerForm">
+            <input type="hidden" name="face_image" id="face_image">
+
+            <div class="form-row">
+                <div class="form-group">
+                    <label><i class="fas fa-user"></i>Full Name</label>
+                    <div class="input-wrapper">
+                        <i class="fas fa-user icon"></i>
+                        <input type="text" id="name" name="name" placeholder="Your full name" required>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label><i class="fas fa-id-card"></i>Roll Number</label>
+                    <div class="input-wrapper">
+                        <i class="fas fa-id-card icon"></i>
+                        <input type="text" id="roll" name="roll" placeholder="Roll number" required>
+                    </div>
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label><i class="fas fa-phone"></i>Phone Number</label>
+                <div class="input-wrapper">
+                    <i class="fas fa-phone icon"></i>
+                    <input type="text" id="phone" name="phone" placeholder="Enter your phone number" required>
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label><i class="fas fa-envelope"></i>Email Address</label>
+                    <div class="input-wrapper">
+                        <i class="fas fa-envelope icon"></i>
+                        <input type="email" id="email" name="email" placeholder="Enter your email" required>
+                    </div>
+            </div>
+
+            <div class="form-group">
+                <label><i class="fas fa-lock"></i>Password</label>
+                    <div class="input-wrapper">
+                        <i class="fas fa-lock icon"></i>
+                        <input type="password" id="password" name="password" placeholder="Create a strong password" required>
+                        <i class="fas fa-eye toggle-password" id="togglePassword"></i>
+                    </div>
+                <small id="passwordHelp" class="password-help">
+                    Min 8 chars with uppercase, lowercase, number & special character.
+                </small>
+            </div>
+
+                        
+            <button type="button" class="btn-register" onclick="openCamera()" style="background: linear-gradient(135deg, #667eea, #764ba2) !important; color: white !important; padding: 16px 32px !important; border: none !important; border-radius: 12px !important; font-size: 16px !important; font-weight: bold !important; cursor: pointer !important; box-shadow: 0 8px 24px rgba(102,126,234,0.35) !important; width: 100% !important; margin-top: 20px !important; display: block !important; visibility: visible !important; position: relative !important; z-index: 1000 !important;">
+                <i class="fas fa-camera" style="margin-right:10px;"></i>Register & Capture Face
+            </button>
+        </form>
+
+        <div class="links">
+            <p>Already have an account? <a href="/student-login">Login here</a></p>
+            <a href="/" class="back-home"><i class="fas fa-arrow-left"></i> Back to Home</a>
+        </div>
+    </div>
+
+    <!-- Camera Modal -->
+    <div id="cameraModal" class="camera-modal">
+        <div class="camera-box">
+            <h3>📸 Capture Your Face</h3>
+            
+            <div class="video-container">
+                <video id="video" autoplay></video>
+            </div>
+
+            <div class="camera-btns">
+                <button onclick="captureAndSubmit()" class="btn-register btn-capture" id="captureBtn">
+                    <i class="fas fa-camera"></i> Capture Face
+                </button>
+                <button onclick="closeCamera()" class="btn-register btn-cancel">
+                    <i class="fas fa-times"></i> Cancel
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        document.getElementById('togglePassword').addEventListener('click', function () {
+            const pwd = document.getElementById('password');
+            const type = pwd.getAttribute('type') === 'password' ? 'text' : 'password';
+            pwd.setAttribute('type', type);
+            this.classList.toggle('fa-eye');
+            this.classList.toggle('fa-eye-slash');
+        });
+
+        document.getElementById("email").addEventListener("input", function () {
+            const pattern = /^[^ ]+@[^ ]+\.[a-z]{2,3}$/;
+            this.classList.toggle("valid", pattern.test(this.value));
+            this.classList.toggle("invalid", !pattern.test(this.value));
+        });
+
+        document.getElementById("phone").addEventListener("input", function () {
+            const valid = /^\d{10}$/.test(this.value);
+            this.classList.toggle("valid", valid);
+            this.classList.toggle("invalid", !valid);
+        });
+
+        document.getElementById("password").addEventListener("input", function () {
+            const val = this.value;
+            const valid = val.length >= 8 &&
+                /[A-Z]/.test(val) && /[a-z]/.test(val) &&
+                /[0-9]/.test(val) && /[^A-Za-z0-9]/.test(val);
+            this.classList.toggle("valid", valid);
+            this.classList.toggle("invalid", !valid);
+            document.getElementById("passwordHelp").innerText =
+                valid ? "✅ Strong password!" : "❌ Weak — add uppercase, number & special char.";
+            document.getElementById("passwordHelp").style.color = valid ? "#28a745" : "#dc3545";
+        });
+
+        let stream;
+        let isFaceCaptured = false;
+
+        function openCamera() {
+            console.log("Opening camera...");
+            
+            const modal = document.getElementById("cameraModal");
+            if (modal) {
+                modal.style.display = "flex";
+                console.log("Camera modal opened successfully");
+            } else {
+                alert("Error: Camera modal not found!");
+                return;
+            }
+            
+            // Check if browser supports camera
+            if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+                alert("Camera API not supported in this browser!");
+                return;
+            }
+            
+            // Simple camera access
+            navigator.mediaDevices.getUserMedia({ 
+                video: { 
+                    width: { ideal: 640 },
+                    height: { ideal: 480 },
+                    facingMode: 'user'
+                } 
+            }).then(s => {
+                stream = s;
+                const video = document.getElementById("video");
+                if (video) {
+                    video.srcObject = stream;
+                    console.log("Camera stream started successfully");
+                } else {
+                    alert("Video element not found!");
+                }
+            }).catch(err => {
+                console.error("Camera error:", err);
+                alert("Camera access denied: " + err.message);
+            });
+        }
+
+        function closeCamera() {
+            const modal = document.getElementById("cameraModal");
+            if (modal) {
+                modal.style.display = "none";
+            }
+            if (stream) {
+                stream.getTracks().forEach(t => t.stop());
+            }
+        }
+
+        function captureAndSubmit() {
+            console.log("Capturing face...");
+            
+            // Get form values
+            const roll = document.getElementById("roll").value;
+            const email = document.getElementById("email").value;
+            
+            // Validation
+            if (!roll || !email) {
+                alert("Please fill in all required fields first.");
+                return;
+            }
+
+            // Get video element
+            const video = document.getElementById("video");
+            if (!video) {
+                alert("Video element not found!");
+                return;
+            }
+            
+            if (!video.videoWidth || !video.videoHeight) {
+                alert("Camera not ready. Please wait for video to load.");
+                return;
+            }
+
+            try {
+                // Create canvas to capture image
+                const canvas = document.createElement("canvas");
+                canvas.width = video.videoWidth;
+                canvas.height = video.videoHeight;
+                const ctx = canvas.getContext("2d");
+                
+                // Draw video frame to canvas
+                ctx.drawImage(video, 0, 0);
+                
+                // Add timestamp
+                ctx.fillStyle = "rgba(40, 167, 69, 0.8)";
+                ctx.font = "bold 12px Arial";
+                ctx.fillText(`Roll: ${roll} | ${new Date().toLocaleString()}`, 10, canvas.height - 10);
+                
+                // Convert to base64 and set to hidden input
+                const imageData = canvas.toDataURL("image/jpeg", 0.9);
+                document.getElementById("face_image").value = imageData;
+                
+                // Mark face as captured
+                isFaceCaptured = true;
+                
+                console.log("Face captured successfully");
+                
+                // Close camera and submit
+                closeCamera();
+                
+                // Show success message
+                alert("Face captured successfully! Submitting registration...");
+                
+                // Submit form
+                try {
+                    document.getElementById("registerForm").submit();
+                } catch (submitError) {
+                    console.error("Form submission error:", submitError);
+                    alert("Error submitting form: " + submitError.message);
+                }
+                
+            } catch (error) {
+                console.error("Error capturing face:", error);
+                alert("Error capturing face: " + error.message);
+            }
+        }
+    </script>
+</body>
+</html>

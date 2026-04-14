@@ -1,0 +1,591 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Faculty Dashboard - Vision AI</title>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+
+        body {
+            font-family: 'Poppins', sans-serif;
+            min-height: 100vh;
+            background: linear-gradient(135deg, #1a1a4e 0%, #4a2080 50%, #7b4fa6 100%);
+            padding: 2rem 1rem;
+        }
+
+        .dashboard-wrapper {
+            max-width: 1000px;
+            margin: 0 auto;
+            animation: fadeUp 0.8s ease;
+        }
+
+        @keyframes fadeUp {
+            from { opacity: 0; transform: translateY(30px); }
+            to   { opacity: 1; transform: translateY(0); }
+        }
+
+        .navbar {
+            background: rgba(255,255,255,0.12);
+            backdrop-filter: blur(10px);
+            border-radius: 20px;
+            padding: 1rem 1.8rem;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 1.8rem;
+            border: 1px solid rgba(255,255,255,0.18);
+        }
+
+        .navbar-brand {
+            display: flex; align-items: center; gap: 10px;
+            color: white; font-weight: 800; font-size: 1.2rem;
+        }
+
+        .navbar-brand .icon {
+            width: 42px; height: 42px;
+            background: rgba(255,255,255,0.18);
+            border-radius: 12px;
+            display: flex; align-items: center; justify-content: center;
+            font-size: 1.2rem;
+        }
+
+        .logout-btn {
+            background: rgba(255,255,255,0.18);
+            color: white;
+            border: 1px solid rgba(255,255,255,0.25);
+            border-radius: 12px;
+            padding: 8px 20px;
+            font-family: 'Poppins', sans-serif;
+            font-size: 0.85rem;
+            font-weight: 600;
+            cursor: pointer;
+            text-decoration: none;
+            transition: all 0.3s;
+            display: flex; align-items: center; gap: 6px;
+        }
+        .logout-btn:hover { background: rgba(255,255,255,0.28); }
+
+        .welcome-card {
+            background: rgba(255,255,255,0.97);
+            border-radius: 24px;
+            padding: 2rem 2.2rem;
+            margin-bottom: 1.5rem;
+            display: flex;
+            align-items: center;
+            gap: 1.5rem;
+            box-shadow: 0 20px 60px rgba(10,10,60,0.25);
+        }
+
+        .avatar {
+            width: 75px; height: 75px;
+            border-radius: 18px;
+            background: linear-gradient(135deg, #3a1a7e, #7b4fa6);
+            display: flex; align-items: center; justify-content: center;
+            font-size: 2rem;
+            box-shadow: 0 10px 30px rgba(58,26,126,0.4);
+            flex-shrink: 0;
+        }
+
+        .welcome-text h2 {
+            font-size: 1.5rem;
+            font-weight: 800;
+            background: linear-gradient(135deg, #3a1a7e, #7b4fa6);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .welcome-text p { color: #999; font-size: 0.85rem; margin-top: 2px; }
+
+        .info-pills {
+            display: flex; flex-wrap: wrap; gap: 8px; margin-top: 10px;
+        }
+
+        .pill {
+            background: linear-gradient(135deg, rgba(58,26,126,0.08), rgba(123,79,166,0.08));
+            color: #5a3fa6;
+            border: 1px solid rgba(90,63,166,0.2);
+            border-radius: 50px;
+            padding: 4px 14px;
+            font-size: 0.78rem;
+            font-weight: 600;
+            display: flex; align-items: center; gap: 5px;
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 1rem;
+            margin-bottom: 1.5rem;
+        }
+
+        .stat-card {
+            background: rgba(255,255,255,0.97);
+            border-radius: 20px;
+            padding: 1.5rem;
+            text-align: center;
+            box-shadow: 0 10px 40px rgba(10,10,60,0.18);
+        }
+
+        .stat-icon {
+            width: 50px; height: 50px;
+            border-radius: 14px;
+            display: flex; align-items: center; justify-content: center;
+            font-size: 1.4rem;
+            margin: 0 auto 0.8rem;
+        }
+
+        .stat-card h3 {
+            font-size: 2rem;
+            font-weight: 800;
+            background: linear-gradient(135deg, #3a1a7e, #7b4fa6);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .stat-card p { font-size: 0.8rem; color: #999; margin-top: 2px; }
+
+        /* Mark Attendance Form */
+        .mark-card {
+            background: rgba(255,255,255,0.97);
+            border-radius: 24px;
+            padding: 1.8rem 2rem;
+            margin-bottom: 1.5rem;
+            box-shadow: 0 20px 60px rgba(10,10,60,0.2);
+        }
+
+        .section-title {
+            font-size: 1rem;
+            font-weight: 700;
+            color: #333;
+            display: flex; align-items: center; gap: 8px;
+            margin-bottom: 1.2rem;
+        }
+
+        .section-title i { color: #5a3fa6; }
+
+        .mark-form {
+            display: grid;
+            grid-template-columns: 1fr 1fr auto;
+            gap: 1rem;
+            align-items: end;
+        }
+
+        .form-group label {
+            display: block;
+            font-size: 0.8rem;
+            font-weight: 600;
+            color: #555;
+            margin-bottom: 5px;
+        }
+
+        .form-group select,
+        .form-group input {
+            width: 100%;
+            height: 48px;
+            padding: 0 14px;
+            border: 2px solid #e8eaf0;
+            border-radius: 12px;
+            font-size: 0.88rem;
+            font-family: 'Poppins', sans-serif;
+            background: #f8f9fe;
+            color: #333;
+            transition: all 0.3s;
+        }
+
+        .form-group select:focus,
+        .form-group input:focus {
+            border-color: #5a3fa6;
+            outline: none;
+            box-shadow: 0 0 0 3px rgba(90,63,166,0.1);
+        }
+
+        .btn-mark {
+            height: 48px;
+            padding: 0 24px;
+            background: linear-gradient(135deg, #3a1a7e, #7b4fa6);
+            color: white;
+            border: none;
+            border-radius: 12px;
+            font-size: 0.9rem;
+            font-weight: 700;
+            font-family: 'Poppins', sans-serif;
+            cursor: pointer;
+            transition: all 0.3s;
+            box-shadow: 0 6px 20px rgba(58,26,126,0.3);
+            white-space: nowrap;
+        }
+
+        .btn-mark:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 28px rgba(58,26,126,0.4);
+        }
+
+        /* Tables */
+        .table-card {
+            background: rgba(255,255,255,0.97);
+            border-radius: 24px;
+            padding: 1.8rem 2rem;
+            margin-bottom: 1.5rem;
+            box-shadow: 0 20px 60px rgba(10,10,60,0.2);
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 0.86rem;
+        }
+
+        thead tr {
+            background: linear-gradient(135deg, rgba(58,26,126,0.08), rgba(123,79,166,0.08));
+        }
+
+        thead th {
+            padding: 12px 14px;
+            text-align: left;
+            font-weight: 600;
+            color: #5a3fa6;
+            font-size: 0.78rem;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        tbody tr {
+            border-bottom: 1px solid #f0f0f5;
+            transition: background 0.2s;
+        }
+
+        tbody tr:hover { background: rgba(58,26,126,0.03); }
+
+        tbody td { padding: 11px 14px; color: #555; }
+
+        .badge-purple {
+            background: linear-gradient(135deg, rgba(58,26,126,0.1), rgba(123,79,166,0.1));
+            color: #5a3fa6;
+            border-radius: 8px;
+            padding: 3px 10px;
+            font-size: 0.76rem;
+            font-weight: 600;
+        }
+
+        .empty-state {
+            text-align: center; padding: 2.5rem; color: #bbb;
+        }
+        .empty-state i { font-size: 2.5rem; margin-bottom: 0.8rem; }
+        .empty-state p { font-size: 0.88rem; }
+
+        @media (max-width: 650px) {
+            .stats-grid { grid-template-columns: 1fr 1fr; }
+            .mark-form { grid-template-columns: 1fr; }
+            .welcome-card { flex-direction: column; text-align: center; }
+            .info-pills { justify-content: center; }
+        }
+    </style>
+</head>
+<body>
+    <div class="dashboard-wrapper">
+
+        <!-- Navbar -->
+        <div class="navbar">
+            <div class="navbar-brand">
+                <div class="icon">👁️</div>
+                Vision AI — Faculty
+            </div>
+            <a href="/logout" class="logout-btn">
+                <i class="fas fa-sign-out-alt"></i> Logout
+            </a>
+        </div>
+
+        <!-- Welcome -->
+        <div class="welcome-card">
+            <div class="avatar">👨‍🏫</div>
+            <div class="welcome-text">
+                <h2>Welcome, {{ faculty['name'] }}!</h2>
+                <p>Manage attendance and student records</p>
+                <div class="info-pills">
+                    <span class="pill"><i class="fas fa-id-badge"></i> {{ faculty['faculty_id'] }}</span>
+                    <span class="pill"><i class="fas fa-building"></i> {{ faculty['department'] }}</span>
+                    <span class="pill"><i class="fas fa-envelope"></i> {{ faculty['email'] }}</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Stats -->
+        <div class="stats-grid">
+            <div class="stat-card">
+                <div class="stat-icon" style="background:rgba(58,26,126,0.1);">🎓</div>
+                <h3>{{ total_students }}</h3>
+                <p>Total Students</p>
+            </div>
+            <div class="stat-card">
+                <div class="stat-icon" style="background:rgba(40,167,69,0.1);">✅</div>
+                <h3>{{ total_attendance }}</h3>
+                <p>Total Attendance</p>
+            </div>
+            <div class="stat-card">
+                <div class="stat-icon" style="background:rgba(255,193,7,0.1);">📅</div>
+                <h3>{{ attendance|length }}</h3>
+                <p>Recent Records</p>
+            </div>
+        </div>
+
+        <!-- Mark Attendance -->
+        <div class="mark-card">
+            <div class="section-title">
+                <i class="fas fa-calendar-plus"></i> Mark Attendance
+            </div>
+            <form method="POST" action="/mark-attendance" class="mark-form">
+                <div class="form-group">
+                    <label>Select Student</label>
+                    <select name="roll" required>
+                        <option value="">-- Select Student --</option>
+                        {% for s in students %}
+                        <option value="{{ s['roll'] }}">{{ s['name'] }} ({{ s['roll'] }})</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Subject</label>
+                    <input type="text" name="subject" placeholder="e.g. Mathematics" required>
+                </div>
+                <button type="submit" class="btn-mark">
+                    <i class="fas fa-check"></i> Mark
+                </button>
+            </form>
+        </div>
+
+        <!-- Take Attendance -->
+        <div class="mark-card">
+            <div class="section-title">
+                <i class="fas fa-camera"></i> Take Attendance
+            </div>
+            <div class="camera-section">
+                <div class="form-group">
+                    <label>Subject</label>
+                    <input type="text" id="class-subject" placeholder="e.g. Mathematics" required>
+                </div>
+                <div class="camera-controls">
+                    <button id="start-camera" class="btn-mark" style="background: linear-gradient(135deg, #28a745, #20c997);">
+                        <i class="fas fa-video"></i> Start Camera
+                    </button>
+                    <button id="capture-attendance" class="btn-mark" style="background: linear-gradient(135deg, #007bff, #6610f2); display: none;">
+                        <i class="fas fa-camera"></i> Take Attendance
+                    </button>
+                </div>
+                <div id="camera-container" style="display: none; margin-top: 1rem;">
+                    <video id="video" width="100%" height="300" style="border-radius: 12px; background: #000;"></video>
+                    <canvas id="canvas" style="display: none;"></canvas>
+                </div>
+                <div id="processing-status" style="display: none; margin-top: 1rem; padding: 1rem; background: rgba(255,193,7,0.1); border-radius: 12px; text-align: center;">
+                    <i class="fas fa-spinner fa-spin"></i> Processing attendance...
+                </div>
+                <div id="attendance-results" style="display: none; margin-top: 1rem;">
+                    <h4 style="margin-bottom: 0.5rem; color: #5a3fa6;">Attendance Results:</h4>
+                    <div id="present-list" style="margin-bottom: 0.5rem;"></div>
+                    <div id="absent-list"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Students Table -->
+        <div class="table-card">
+            <div class="section-title">
+                <i class="fas fa-users"></i> Registered Students
+            </div>
+            {% if students %}
+            <table>
+                <thead>
+                    <tr>
+                        <th>#</th>
+                        <th>Name</th>
+                        <th>Roll</th>
+                        <th>Email</th>
+                        <th>Phone</th>
+                        <th>Face</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for s in students %}
+                    <tr>
+                        <td>{{ loop.index }}</td>
+                        <td><strong>{{ s['name'] }}</strong></td>
+                        <td><span class="badge-purple">{{ s['roll'] }}</span></td>
+                        <td>{{ s['email'] }}</td>
+                        <td>{{ s['phone'] }}</td>
+                        <td>{% if s['face_image'] %}✅{% else %}❌{% endif %}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+            {% else %}
+            <div class="empty-state">
+                <i class="fas fa-user-slash"></i>
+                <p>No students registered yet.</p>
+            </div>
+            {% endif %}
+        </div>
+
+        <!-- Attendance Table -->
+        <div class="table-card">
+            <div class="section-title">
+                <i class="fas fa-calendar-check"></i> Recent Attendance
+            </div>
+            {% if attendance %}
+            <table>
+                <thead>
+                    <tr>
+                        <th>#</th>
+                        <th>Student</th>
+                        <th>Roll</th>
+                        <th>Subject</th>
+                        <th>Date</th>
+                        <th>Time</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for a in attendance %}
+                    <tr>
+                        <td>{{ loop.index }}</td>
+                        <td><strong>{{ a['student_name'] }}</strong></td>
+                        <td><span class="badge-purple">{{ a['student_roll'] }}</span></td>
+                        <td>{{ a['subject'] }}</td>
+                        <td>{{ a['date'] }}</td>
+                        <td>{{ a['time'] }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+            {% else %}
+            <div class="empty-state">
+                <i class="fas fa-calendar-times"></i>
+                <p>No attendance marked yet.</p>
+            </div>
+            {% endif %}
+        </div>
+
+    </div>
+
+    <script>
+        let stream = null;
+        let video = document.getElementById('video');
+        let canvas = document.getElementById('canvas');
+        let startCameraBtn = document.getElementById('start-camera');
+        let captureBtn = document.getElementById('capture-attendance');
+        let cameraContainer = document.getElementById('camera-container');
+        let processingStatus = document.getElementById('processing-status');
+        let attendanceResults = document.getElementById('attendance-results');
+        let presentList = document.getElementById('present-list');
+        let absentList = document.getElementById('absent-list');
+
+        startCameraBtn.addEventListener('click', async function() {
+            try {
+                stream = await navigator.mediaDevices.getUserMedia({ 
+                    video: { 
+                        width: { ideal: 1280 },
+                        height: { ideal: 720 },
+                        facingMode: 'environment'
+                    } 
+                });
+                video.srcObject = stream;
+                cameraContainer.style.display = 'block';
+                captureBtn.style.display = 'inline-block';
+                startCameraBtn.style.display = 'none';
+            } catch (err) {
+                console.error('Error accessing camera:', err);
+                alert('Unable to access camera. Please ensure you have granted camera permissions.');
+            }
+        });
+
+        captureBtn.addEventListener('click', async function() {
+            const subject = document.getElementById('class-subject').value.trim();
+            if (!subject) {
+                alert('Please enter a subject name');
+                return;
+            }
+
+            // Capture image from video
+            canvas.width = video.videoWidth;
+            canvas.height = video.videoHeight;
+            const context = canvas.getContext('2d');
+            context.drawImage(video, 0, 0);
+            
+            const imageData = canvas.toDataURL('image/jpeg', 0.8);
+            
+            // Stop camera
+            if (stream) {
+                stream.getTracks().forEach(track => track.stop());
+            }
+            
+            // Show processing status
+            processingStatus.style.display = 'block';
+            captureBtn.style.display = 'none';
+            cameraContainer.style.display = 'none';
+            
+            // Send image to server for face recognition
+            try {
+                const response = await fetch('/process-attendance', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        image: imageData,
+                        subject: subject
+                    })
+                });
+                
+                const result = await response.json();
+                
+                if (result.success) {
+                    displayAttendanceResults(result.present_students, result.absent_students);
+                } else {
+                    alert('Error processing attendance: ' + result.error);
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                alert('Error processing attendance. Please try again.');
+            } finally {
+                processingStatus.style.display = 'none';
+                // Reset camera controls
+                startCameraBtn.style.display = 'inline-block';
+                cameraContainer.style.display = 'none';
+            }
+        });
+
+        function displayAttendanceResults(present, absent) {
+            attendanceResults.style.display = 'block';
+            
+            // Display present students
+            presentList.innerHTML = '<h5 style="color: #28a745;">Present Students (' + present.length + '):</h5>';
+            if (present.length > 0) {
+                presentList.innerHTML += '<div style="display: flex; flex-wrap: wrap; gap: 0.5rem;">';
+                present.forEach(student => {
+                    presentList.innerHTML += '<span class="badge-purple" style="background: rgba(40,167,69,0.1); color: #28a745;">' + student.name + ' (' + student.roll + ')</span>';
+                });
+                presentList.innerHTML += '</div>';
+            } else {
+                presentList.innerHTML += '<p style="color: #999;">No students detected</p>';
+            }
+            
+            // Display absent students
+            absentList.innerHTML = '<h5 style="color: #dc3545;">Absent Students (' + absent.length + '):</h5>';
+            if (absent.length > 0) {
+                absentList.innerHTML += '<div style="display: flex; flex-wrap: wrap; gap: 0.5rem;">';
+                absent.forEach(student => {
+                    absentList.innerHTML += '<span class="badge-purple" style="background: rgba(220,53,69,0.1); color: #dc3545;">' + student.name + ' (' + student.roll + ')</span>';
+                });
+                absentList.innerHTML += '</div>';
+            } else {
+                absentList.innerHTML += '<p style="color: #999;">All students present!</p>';
+            }
+            
+            // Refresh page after 3 seconds to show updated attendance
+            setTimeout(() => {
+                window.location.reload();
+            }, 3000);
+        }
+    </script>
+</body>
+</html> 

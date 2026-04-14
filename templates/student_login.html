@@ -1,0 +1,390 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Student Login - Vision AI</title>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+
+        body {
+            font-family: 'Poppins', sans-serif;
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: linear-gradient(135deg, #4e54c8 0%, #7b4fa6 50%, #c471ed 100%);
+            overflow: hidden;
+            position: relative;
+        }
+
+        body::before, body::after {
+            content: '';
+            position: absolute;
+            border-radius: 50%;
+            opacity: 0.12;
+            animation: float 6s ease-in-out infinite;
+        }
+        body::before {
+            width: 420px; height: 420px;
+            background: #fff;
+            top: -120px; left: -100px;
+        }
+        body::after {
+            width: 320px; height: 320px;
+            background: #fff;
+            bottom: -100px; right: -80px;
+            animation-delay: 3s;
+        }
+
+        @keyframes float {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(20px); }
+        }
+
+        @keyframes fadeUp {
+            from { opacity: 0; transform: translateY(40px); }
+            to   { opacity: 1; transform: translateY(0); }
+        }
+
+        .login-card {
+            background: rgba(255,255,255,0.97);
+            border-radius: 30px;
+            padding: 3rem 2.8rem;
+            max-width: 480px;
+            width: 92%;
+            box-shadow: 0 30px 80px rgba(20,20,80,0.25);
+            animation: fadeUp 0.8s ease-in-out;
+            position: relative;
+            z-index: 1;
+            text-align: center;
+        }
+
+        .logo-icon {
+            width: 68px;
+            height: 68px;
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            border-radius: 18px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0 auto 1rem;
+            font-size: 1.8rem;
+            box-shadow: 0 10px 30px rgba(102,126,234,0.4);
+        }
+
+        .badge {
+            display: inline-block;
+            background: linear-gradient(135deg, rgba(102,126,234,0.12), rgba(118,75,162,0.12));
+            color: #6f73ff;
+            font-size: 0.72rem;
+            font-weight: 600;
+            letter-spacing: 1.5px;
+            text-transform: uppercase;
+            padding: 5px 16px;
+            border-radius: 50px;
+            margin-bottom: 0.8rem;
+            border: 1px solid rgba(111,115,255,0.25);
+        }
+
+        .login-card h2 {
+            font-size: 1.9rem;
+            font-weight: 800;
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            margin-bottom: 0.4rem;
+        }
+
+        .login-card .subtitle {
+            color: #999;
+            font-size: 0.88rem;
+            margin-bottom: 0.5rem;
+        }
+
+        .divider {
+            width: 50px;
+            height: 4px;
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            border-radius: 2px;
+            margin: 0.8rem auto 1.8rem;
+        }
+
+        .alert-error {
+            background: rgba(220,53,69,0.08);
+            color: #dc3545;
+            border: 1px solid rgba(220,53,69,0.2);
+            border-radius: 12px;
+            padding: 0.8rem 1rem;
+            font-size: 0.88rem;
+            margin-bottom: 1.2rem;
+        }
+
+        .form-group {
+            margin-bottom: 1.2rem;
+            text-align: left;
+        }
+
+        .form-group label {
+            display: block;
+            font-size: 0.83rem;
+            font-weight: 600;
+            color: #555;
+            margin-bottom: 6px;
+        }
+
+        .input-wrapper { position: relative; }
+
+        .input-wrapper .icon {
+            position: absolute;
+            left: 15px;
+            top: 50%;
+            transform: translateY(-50%);
+            color: #667eea;
+            font-size: 0.95rem;
+        }
+
+        .input-wrapper input {
+            width: 100%;
+            height: 52px;
+            padding: 0 45px;
+            border: 2px solid #e8eaf0;
+            border-radius: 14px;
+            font-size: 0.93rem;
+            font-family: 'Poppins', sans-serif;
+            background: #f8f9fe;
+            transition: all 0.3s ease;
+            box-sizing: border-box;
+            color: #333;
+        }
+
+        .input-wrapper input:focus {
+            border-color: #667eea;
+            background: #fff;
+            outline: none;
+            box-shadow: 0 0 0 4px rgba(102,126,234,0.1);
+            transform: translateY(-1px);
+        }
+
+        .input-wrapper input.valid   { border-color: #28a745; }
+        .input-wrapper input.invalid { border-color: #dc3545; }
+
+        .toggle-password {
+            position: absolute;
+            right: 15px;
+            top: 50%;
+            transform: translateY(-50%);
+            color: #aaa;
+            cursor: pointer;
+            font-size: 0.95rem;
+            transition: color 0.3s;
+            z-index: 2;
+        }
+        .toggle-password:hover { color: #667eea; }
+
+        /* ✅ NEW: Forgot password link */
+        .forgot-row {
+            text-align: right;
+            margin-top: 6px;
+        }
+
+        .forgot-row a {
+            font-size: 0.78rem;
+            font-weight: 600;
+            color: #667eea;
+            text-decoration: none;
+            transition: color 0.3s;
+        }
+        .forgot-row a:hover { color: #4a4fc4; text-decoration: underline; }
+
+        .btn-login {
+            width: 100%;
+            padding: 14px;
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            color: white;
+            border: none;
+            border-radius: 14px;
+            font-size: 1rem;
+            font-weight: 700;
+            font-family: 'Poppins', sans-serif;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 8px 24px rgba(102,126,234,0.35);
+            position: relative;
+            overflow: hidden;
+            margin-top: 0.5rem;
+        }
+
+        .btn-login::after {
+            content: '';
+            position: absolute;
+            top: 0; left: -100%;
+            width: 100%; height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.18), transparent);
+            transition: left 0.5s ease;
+        }
+
+        .btn-login:hover { transform: translateY(-3px); box-shadow: 0 14px 32px rgba(102,126,234,0.45); }
+        .btn-login:hover::after { left: 100%; }
+        .btn-login:active { transform: translateY(-1px); }
+
+        .links {
+            margin-top: 1.5rem;
+            font-size: 0.85rem;
+            color: #999;
+        }
+
+        .links p { margin-bottom: 0.4rem; }
+
+        .links a {
+            color: #667eea;
+            font-weight: 600;
+            text-decoration: none;
+            transition: color 0.3s;
+        }
+        .links a:hover { color: #4a4fc4; }
+
+        .back-home {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            margin-top: 0.4rem;
+            font-size: 0.82rem;
+            color: #aaa;
+            text-decoration: none;
+            transition: color 0.3s;
+        }
+        .back-home:hover { color: #667eea; }
+
+        /* Camera Modal */
+        .camera-modal {
+            display: none;
+            position: fixed;
+            top: 0; left: 0;
+            width: 100%; height: 100%;
+            background: rgba(0,0,0,0.7);
+            justify-content: center;
+            align-items: center;
+            z-index: 999;
+        }
+        .camera-box {
+            background: white;
+            padding: 2rem;
+            border-radius: 20px;
+            text-align: center;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+        }
+        .camera-box h3 { margin-bottom: 1rem; color: #333; font-weight: 700; }
+        video { width: 300px; border-radius: 12px; margin-bottom: 1rem; }
+        .camera-btns { display: flex; gap: 0.8rem; justify-content: center; }
+        .camera-btns .btn-login { width: auto; padding: 10px 24px; font-size: 0.9rem; }
+
+        @media (max-width: 520px) {
+            .login-card { padding: 2rem 1.5rem; }
+            .login-card h2 { font-size: 1.5rem; }
+        }
+    </style>
+</head>
+<body>
+    <div class="login-card">
+        <div class="logo-icon">👁️</div>
+        <div class="badge">Student Portal</div>
+        <h2>Student Login</h2>
+        <p class="subtitle">Access your dashboard and attendance tools</p>
+        <div class="divider"></div>
+
+        {% if error %}
+        <div class="alert-error"><i class="fas fa-exclamation-circle"></i> {{ error }}</div>
+        {% endif %}
+
+        <form method="POST">
+            <div class="form-group">
+                <label for="email"><i class="fas fa-envelope" style="color:#667eea; margin-right:6px;"></i>Email Address</label>
+                <div class="input-wrapper">
+                    <i class="fas fa-envelope icon"></i>
+                    <input type="email" id="email" name="email" placeholder="Enter your email" required>
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label for="password"><i class="fas fa-lock" style="color:#667eea; margin-right:6px;"></i>Password</label>
+                <div class="input-wrapper">
+                    <i class="fas fa-lock icon"></i>
+                    <input type="password" id="password" name="password" placeholder="Enter your password" required>
+                    <i class="fas fa-eye toggle-password" id="togglePassword"></i>
+                </div>
+                <!-- ✅ NEW: Forgot password link -->
+                <div class="forgot-row">
+                    <a href="/forgot-password?role=student">
+                        <i class="fas fa-key" style="margin-right:4px;"></i>Forgot Password?
+                    </a>
+                </div>
+            </div>
+
+            <button type="submit" class="btn-login">
+                <i class="fas fa-sign-in-alt" style="margin-right:8px;"></i>Login
+            </button>
+        </form>
+
+        <div class="links">
+            <p>Don't have an account? <a href="/student-register">Register here</a></p>
+            <a href="/" class="back-home"><i class="fas fa-arrow-left"></i> Back to Home</a>
+        </div>
+    </div>
+
+    <!-- Camera Modal -->
+    <div id="cameraModal" class="camera-modal">
+        <div class="camera-box">
+            <h3>📸 Capture Face</h3>
+            <video id="video" autoplay></video>
+            <div class="camera-btns">
+                <button onclick="captureAndSubmit()" class="btn-login">Capture</button>
+                <button onclick="closeCamera()" class="btn-login" style="background: linear-gradient(135deg,#aaa,#888);">Cancel</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        document.getElementById('togglePassword').addEventListener('click', function () {
+            const password = document.getElementById('password');
+            const type = password.getAttribute('type') === 'password' ? 'text' : 'password';
+            password.setAttribute('type', type);
+            this.classList.toggle('fa-eye');
+            this.classList.toggle('fa-eye-slash');
+        });
+
+        document.getElementById("email").addEventListener("input", function () {
+            const pattern = /^[^ ]+@[^ ]+\.[a-z]{2,3}$/;
+            this.classList.toggle("valid", pattern.test(this.value));
+            this.classList.toggle("invalid", !pattern.test(this.value));
+        });
+
+        document.getElementById("password").addEventListener("input", function () {
+            const valid = this.value.length >= 8;
+            this.classList.toggle("valid", valid);
+            this.classList.toggle("invalid", !valid);
+        });
+
+        let stream;
+        function openCamera() {
+            document.getElementById("cameraModal").style.display = "flex";
+            navigator.mediaDevices.getUserMedia({ video: true }).then(s => {
+                stream = s;
+                document.getElementById("video").srcObject = stream;
+            });
+        }
+        function closeCamera() {
+            document.getElementById("cameraModal").style.display = "none";
+            if (stream) stream.getTracks().forEach(t => t.stop());
+        }
+        function captureAndSubmit() {
+            closeCamera();
+            document.querySelector("form").submit();
+        }
+    </script>
+</body>
+</html>
