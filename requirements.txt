@@ -3,3 +3,4 @@ opencv-contrib-python
 numpy
 bcrypt
 Pillow
+gunicorn
