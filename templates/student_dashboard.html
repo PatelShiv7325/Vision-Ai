@@ -4,346 +4,1204 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Student Dashboard - Vision AI</title>
-    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600;700;800&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
         * { box-sizing: border-box; margin: 0; padding: 0; }
 
+        :root {
+            --bg-base:        #1a1a1f;
+            --bg-sidebar:     #1e1e24;
+            --bg-card:        #26262e;
+            --bg-card-hover:  #2c2c36;
+            --bg-input:       #1e1e24;
+            --border:         #2e2e38;
+            --border-active:  #3a3a48;
+            --accent-blue:    #6366f1;
+            --accent-green:   #22c55e;
+            --accent-red:     #ef4444;
+            --accent-yellow:  #f59e0b;
+            --text-primary:   #e8e8f0;
+            --text-secondary: #9090a8;
+            --text-muted:     #5a5a70;
+            --active-bg:      #2a2a38;
+            --active-border:  #6366f1;
+            --pill-bg:        #2e2e3e;
+        }
+
         body {
-            font-family: 'Poppins', sans-serif;
+            font-family: 'Inter', sans-serif;
+            background: var(--bg-base);
+            color: var(--text-primary);
+            display: flex;
             min-height: 100vh;
-            background: linear-gradient(135deg, #4e54c8 0%, #7b4fa6 50%, #c471ed 100%);
-            padding: 2rem 1rem;
+            font-size: 14px;
         }
 
-        .dashboard-wrapper {
-            max-width: 900px;
-            margin: 0 auto;
-            animation: fadeUp 0.8s ease;
+        /* ── SIDEBAR ── */
+        .sidebar {
+            width: 260px;
+            min-height: 100vh;
+            background: var(--bg-sidebar);
+            border-right: 1px solid var(--border);
+            display: flex;
+            flex-direction: column;
+            flex-shrink: 0;
+            position: fixed;
+            top: 0; left: 0;
+            height: 100vh;
+            z-index: 100;
+            overflow-y: auto;
         }
 
-        @keyframes fadeUp {
-            from { opacity: 0; transform: translateY(30px); }
-            to   { opacity: 1; transform: translateY(0); }
+        .sidebar-logo {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 24px 20px 20px;
+            border-bottom: 1px solid var(--border);
         }
 
-        /* Top navbar */
-        .navbar {
-            background: rgba(255,255,255,0.15);
-            backdrop-filter: blur(10px);
-            border-radius: 20px;
-            padding: 1rem 1.8rem;
+        .logo-icon {
+            width: 38px; height: 38px;
+            background: var(--accent-blue);
+            border-radius: 10px;
+            display: flex; align-items: center; justify-content: center;
+            font-size: 18px;
+        }
+
+        .logo-text .name { font-weight: 700; font-size: 15px; color: var(--text-primary); }
+        .logo-text .sub  { font-size: 11px; color: var(--text-secondary); }
+
+        .nav-section-label {
+            font-size: 10px;
+            font-weight: 600;
+            letter-spacing: 1.2px;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            padding: 20px 20px 6px;
+        }
+
+        .nav-item {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 10px 16px;
+            margin: 2px 10px;
+            border-radius: 10px;
+            text-decoration: none;
+            color: var(--text-secondary);
+            font-weight: 500;
+            font-size: 13.5px;
+            transition: all 0.2s;
+            cursor: pointer;
+            border: 1.5px solid transparent;
+            background: none;
+            width: calc(100% - 20px);
+            text-align: left;
+        }
+
+        .nav-item:hover {
+            background: var(--bg-card);
+            color: var(--text-primary);
+        }
+
+        .nav-item.active {
+            background: var(--active-bg);
+            border-color: var(--active-border);
+            color: #fff;
+        }
+
+        .nav-icon {
+            width: 32px; height: 32px;
+            border-radius: 8px;
+            background: var(--bg-card);
+            display: flex; align-items: center; justify-content: center;
+            font-size: 13px;
+            flex-shrink: 0;
+            color: var(--text-secondary);
+        }
+
+        .nav-item.active .nav-icon { background: rgba(99,102,241,0.2); color: var(--accent-blue); }
+        .nav-item:hover .nav-icon  { color: var(--text-primary); }
+
+        .nav-badge {
+            margin-left: auto;
+            background: var(--accent-blue);
+            color: #fff;
+            border-radius: 50px;
+            padding: 1px 8px;
+            font-size: 11px;
+            font-weight: 600;
+        }
+
+        .nav-divider { height: 1px; background: var(--border); margin: 12px 16px; }
+
+        .nav-item.logout { color: #ef4444; }
+        .nav-item.logout:hover { background: rgba(239,68,68,0.1); color: #ef4444; }
+        .nav-item.logout .nav-icon { background: rgba(239,68,68,0.12); color: #ef4444; }
+
+        .sidebar-footer {
+            margin-top: auto;
+            padding: 16px 20px;
+            border-top: 1px solid var(--border);
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .user-avatar {
+            width: 38px; height: 38px;
+            border-radius: 10px;
+            background: linear-gradient(135deg, #6366f1, #8b5cf6);
+            display: flex; align-items: center; justify-content: center;
+            font-size: 14px;
+            font-weight: 700;
+            color: #fff;
+        }
+
+        .user-info .uname { font-size: 13px; font-weight: 600; color: var(--text-primary); line-height: 1.2; }
+        .user-info .urole { font-size: 11px; color: var(--text-secondary); margin-top: 2px; }
+
+        /* ── MAIN ── */
+        .main {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            margin-left: 260px;
+            overflow-x: hidden;
+        }
+
+        .top-header {
             display: flex;
             align-items: center;
             justify-content: space-between;
-            margin-bottom: 1.8rem;
-            border: 1px solid rgba(255,255,255,0.2);
+            padding: 20px 28px;
+            border-bottom: 1px solid var(--border);
+            position: sticky;
+            top: 0;
+            background: var(--bg-base);
+            z-index: 50;
         }
 
-        .navbar-brand {
-            display: flex;
-            align-items: center;
-            gap: 10px;
-            color: white;
-            font-weight: 800;
-            font-size: 1.2rem;
-        }
+        .header-left h1 { font-size: 22px; font-weight: 700; }
+        .header-left p  { font-size: 12px; color: var(--text-secondary); margin-top: 2px; }
 
-        .navbar-brand .icon {
-            width: 42px; height: 42px;
-            background: rgba(255,255,255,0.2);
-            border-radius: 12px;
-            display: flex; align-items: center; justify-content: center;
-            font-size: 1.2rem;
-        }
+        .header-actions { display: flex; gap: 10px; }
 
-        .logout-btn {
-            background: rgba(255,255,255,0.2);
-            color: white;
-            border: 1px solid rgba(255,255,255,0.3);
-            border-radius: 12px;
-            padding: 8px 20px;
-            font-family: 'Poppins', sans-serif;
-            font-size: 0.85rem;
+        .btn {
+            display: flex; align-items: center; gap: 7px;
+            padding: 9px 18px;
+            border-radius: 10px;
+            font-size: 13px;
             font-weight: 600;
+            font-family: 'Inter', sans-serif;
             cursor: pointer;
+            transition: all 0.2s;
+            border: 1.5px solid var(--border);
+            background: var(--bg-card);
+            color: var(--text-primary);
             text-decoration: none;
-            transition: all 0.3s;
-            display: flex; align-items: center; gap: 6px;
         }
-        .logout-btn:hover { background: rgba(255,255,255,0.3); }
 
-        /* Welcome card */
-        .welcome-card {
-            background: rgba(255,255,255,0.97);
-            border-radius: 24px;
-            padding: 2rem 2.2rem;
-            margin-bottom: 1.5rem;
+        .btn:hover { background: var(--bg-card-hover); border-color: var(--border-active); }
+
+        .btn-primary {
+            background: var(--accent-blue);
+            border-color: var(--accent-blue);
+            color: #fff;
+        }
+        .btn-primary:hover { background: #5254cc; border-color: #5254cc; }
+
+        /* ── PAGES ── */
+        .content { padding: 24px 28px; flex: 1; overflow-y: auto; }
+        .page { display: none; }
+        .page.active { display: block; }
+
+        /* ── PROFILE CARD ── */
+        .profile-card {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 16px;
+            padding: 22px 24px;
+            margin-bottom: 18px;
             display: flex;
             align-items: center;
-            gap: 1.5rem;
-            box-shadow: 0 20px 60px rgba(20,20,80,0.2);
+            gap: 20px;
+            justify-content: space-between;
         }
 
-        .avatar {
-            width: 80px; height: 80px;
-            border-radius: 20px;
-            background: linear-gradient(135deg, #667eea, #764ba2);
+        .profile-left { display: flex; align-items: center; gap: 20px; }
+
+        .avatar-circle {
+            width: 64px; height: 64px;
+            border-radius: 14px;
+            background: linear-gradient(135deg, #6366f1, #8b5cf6);
             display: flex; align-items: center; justify-content: center;
-            font-size: 2.2rem;
-            box-shadow: 0 10px 30px rgba(102,126,234,0.4);
+            font-size: 22px;
+            font-weight: 700;
+            color: #fff;
             flex-shrink: 0;
             overflow: hidden;
         }
 
-        .avatar img {
-            width: 100%; height: 100%;
-            object-fit: cover;
-            border-radius: 20px;
-        }
+        .avatar-circle img { width: 100%; height: 100%; object-fit: cover; }
 
-        .welcome-text h2 {
-            font-size: 1.5rem;
-            font-weight: 800;
-            background: linear-gradient(135deg, #667eea, #764ba2);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-        }
+        .profile-name { font-size: 18px; font-weight: 700; margin-bottom: 3px; }
+        .profile-meta { font-size: 12px; color: var(--text-secondary); margin-bottom: 10px; }
+        .profile-tags { display: flex; flex-wrap: wrap; gap: 7px; }
 
-        .welcome-text p {
-            color: #999;
-            font-size: 0.85rem;
-            margin-top: 2px;
-        }
-
-        .info-pills {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 8px;
-            margin-top: 10px;
-        }
-
-        .pill {
-            background: linear-gradient(135deg, rgba(102,126,234,0.1), rgba(118,75,162,0.1));
-            color: #5a3fa6;
-            border: 1px solid rgba(90,63,166,0.2);
-            border-radius: 50px;
-            padding: 4px 14px;
-            font-size: 0.78rem;
+        .tag {
+            background: var(--pill-bg);
+            border: 1px solid var(--border-active);
+            border-radius: 6px;
+            padding: 3px 10px;
+            font-size: 11.5px;
             font-weight: 600;
-            display: flex; align-items: center; gap: 5px;
+            color: var(--text-primary);
         }
 
-        /* Stat cards */
-        .stats-grid {
+        .tag.green  { background: rgba(34,197,94,0.12);  border-color: rgba(34,197,94,0.25);  color: var(--accent-green); }
+        .tag.purple { background: rgba(99,102,241,0.12); border-color: rgba(99,102,241,0.3);  color: var(--accent-blue); }
+
+        .attendance-pct { text-align: right; }
+        .pct-num   { font-size: 38px; font-weight: 700; color: var(--accent-blue); line-height: 1; }
+        .pct-label { font-size: 12px; color: var(--text-secondary); margin-top: 3px; }
+        .pct-bar   { height: 5px; border-radius: 3px; background: var(--border); margin-top: 8px; overflow: hidden; width: 120px; }
+        .pct-bar-fill { height: 100%; border-radius: 3px; background: var(--accent-blue); }
+
+        /* ── STAT CARDS ── */
+        .stats-row {
             display: grid;
-            grid-template-columns: repeat(3, 1fr);
-            gap: 1rem;
-            margin-bottom: 1.5rem;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 14px;
+            margin-bottom: 18px;
         }
 
         .stat-card {
-            background: rgba(255,255,255,0.97);
-            border-radius: 20px;
-            padding: 1.5rem;
-            text-align: center;
-            box-shadow: 0 10px 40px rgba(20,20,80,0.15);
-        }
-
-        .stat-icon {
-            width: 50px; height: 50px;
+            background: var(--bg-card);
+            border: 1px solid var(--border);
             border-radius: 14px;
+            padding: 18px 20px;
+        }
+
+        .stat-label {
+            font-size: 11.5px;
+            color: var(--text-secondary);
+            font-weight: 500;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            margin-bottom: 10px;
+        }
+
+        .stat-dot { width: 7px; height: 7px; border-radius: 50%; flex-shrink: 0; }
+        .dot-blue   { background: var(--accent-blue); }
+        .dot-green  { background: var(--accent-green); }
+        .dot-red    { background: var(--accent-red); }
+        .dot-yellow { background: var(--accent-yellow); }
+
+        .stat-num { font-size: 32px; font-weight: 700; color: var(--text-primary); margin-bottom: 4px; }
+        .stat-sub { font-size: 11.5px; color: var(--text-secondary); }
+        .stat-bar { height: 4px; border-radius: 2px; background: var(--border); margin-top: 10px; overflow: hidden; }
+        .stat-bar-fill { height: 100%; border-radius: 2px; background: var(--accent-green); }
+
+        /* ── BOTTOM ROW ── */
+        .bottom-row { display: grid; grid-template-columns: 1fr 1fr; gap: 18px; }
+
+        .section-card {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 16px;
+            padding: 22px 24px;
+        }
+
+        .section-header {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 16px;
+        }
+
+        .section-icon {
+            width: 36px; height: 36px;
+            border-radius: 10px;
+            background: rgba(99,102,241,0.15);
             display: flex; align-items: center; justify-content: center;
-            font-size: 1.4rem;
-            margin: 0 auto 0.8rem;
+            color: var(--accent-blue);
+            font-size: 15px;
         }
 
-        .stat-card h3 {
-            font-size: 2rem;
-            font-weight: 800;
-            background: linear-gradient(135deg, #667eea, #764ba2);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-        }
+        .section-icon.green  { background: rgba(34,197,94,0.12);  color: var(--accent-green); }
+        .section-icon.yellow { background: rgba(245,158,11,0.12); color: var(--accent-yellow); }
 
-        .stat-card p {
-            font-size: 0.8rem;
-            color: #999;
-            margin-top: 2px;
-        }
+        .section-title-text { font-size: 15px; font-weight: 600; }
 
-        /* Attendance table */
-        .table-card {
-            background: rgba(255,255,255,0.97);
-            border-radius: 24px;
-            padding: 1.8rem 2rem;
-            box-shadow: 0 20px 60px rgba(20,20,80,0.2);
-        }
-
-        .table-header {
+        .subject-row {
             display: flex;
             align-items: center;
             justify-content: space-between;
-            margin-bottom: 1.2rem;
+            padding: 10px 0;
+            border-bottom: 1px solid var(--border);
+            font-size: 13.5px;
         }
+        .subject-row:last-child { border-bottom: none; }
+        .subject-name  { color: var(--text-primary); font-weight: 500; }
+        .subject-count { color: var(--text-secondary); font-size: 12.5px; margin: 0 12px; }
+        .subject-pct   { font-weight: 700; font-size: 13.5px; min-width: 40px; text-align: right; }
+        .pct-high   { color: var(--accent-green); }
+        .pct-medium { color: var(--accent-yellow); }
+        .pct-low    { color: var(--accent-red); }
 
-        .table-header h3 {
-            font-size: 1.1rem;
-            font-weight: 700;
-            color: #333;
-            display: flex; align-items: center; gap: 8px;
+        .class-row {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 10px 0;
+            border-bottom: 1px solid var(--border);
+            font-size: 13px;
         }
+        .class-row:last-child { border-bottom: none; }
+        .class-name { font-weight: 600; color: var(--text-primary); }
+        .class-time { font-size: 12px; color: var(--accent-blue); }
+        .class-date { font-size: 11.5px; color: var(--text-secondary); }
 
-        .table-header h3 i { color: #667eea; }
-
-        table {
-            width: 100%;
-            border-collapse: collapse;
-            font-size: 0.88rem;
-        }
-
-        thead tr {
-            background: linear-gradient(135deg, rgba(102,126,234,0.08), rgba(118,75,162,0.08));
-        }
-
-        thead th {
-            padding: 12px 16px;
-            text-align: left;
+        .low-alert {
+            background: rgba(239,68,68,0.12);
+            color: var(--accent-red);
+            border-radius: 6px;
+            padding: 3px 9px;
+            font-size: 11px;
             font-weight: 600;
-            color: #5a3fa6;
-            font-size: 0.8rem;
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
+            display: flex; align-items: center; gap: 4px;
         }
 
-        tbody tr {
-            border-bottom: 1px solid #f0f0f5;
+        /* ── TABLE ── */
+        .table-wrap { overflow-x: auto; margin-top: 18px; }
+        table { width: 100%; border-collapse: collapse; }
+        thead th {
+            padding: 10px 14px;
+            text-align: left;
+            font-size: 11px;
+            font-weight: 600;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 0.8px;
+            border-bottom: 1px solid var(--border);
+        }
+        tbody tr { border-bottom: 1px solid var(--border); transition: background 0.15s; }
+        tbody tr:last-child { border-bottom: none; }
+        tbody tr:hover { background: var(--bg-card-hover); }
+        tbody td { padding: 13px 14px; font-size: 13.5px; color: var(--text-primary); vertical-align: middle; }
+
+        .roll-badge {
+            background: var(--pill-bg);
+            color: var(--accent-blue);
+            border-radius: 6px;
+            padding: 3px 10px;
+            font-size: 12px;
+            font-weight: 600;
+            display: inline-block;
+        }
+
+        .status-present {
+            background: rgba(34,197,94,0.12);
+            color: var(--accent-green);
+            border-radius: 6px;
+            padding: 3px 10px;
+            font-size: 12px;
+            font-weight: 600;
+        }
+
+        .status-absent {
+            background: rgba(239,68,68,0.12);
+            color: var(--accent-red);
+            border-radius: 6px;
+            padding: 3px 10px;
+            font-size: 12px;
+            font-weight: 600;
+        }
+
+        /* ── PROFILE PAGE ── */
+        .profile-page-card {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 16px;
+            padding: 30px;
+            max-width: 600px;
+        }
+
+        .profile-page-avatar {
+            width: 80px; height: 80px;
+            border-radius: 16px;
+            background: linear-gradient(135deg, #6366f1, #8b5cf6);
+            display: flex; align-items: center; justify-content: center;
+            font-size: 28px; font-weight: 700; color: #fff;
+            margin-bottom: 20px;
+            overflow: hidden;
+        }
+
+        .profile-page-avatar img { width: 100%; height: 100%; object-fit: cover; }
+
+        .form-group { margin-bottom: 16px; }
+        .form-label { font-size: 12px; font-weight: 600; color: var(--text-secondary); margin-bottom: 6px; display: block; text-transform: uppercase; letter-spacing: 0.5px; }
+        .form-value { font-size: 14px; color: var(--text-primary); font-weight: 500; padding: 10px 14px; background: var(--bg-base); border: 1px solid var(--border); border-radius: 8px; }
+        .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+
+        /* ── SETTINGS PAGE ── */
+        .settings-group { margin-bottom: 24px; }
+        .settings-group-title { font-size: 13px; font-weight: 700; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 0.8px; margin-bottom: 12px; }
+
+        .setting-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 14px 18px;
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            margin-bottom: 8px;
+        }
+
+        .setting-label { font-size: 14px; font-weight: 500; }
+        .setting-desc  { font-size: 12px; color: var(--text-secondary); margin-top: 2px; }
+
+        .toggle-switch {
+            position: relative;
+            width: 44px; height: 24px;
+            flex-shrink: 0;
+        }
+        .toggle-switch input { display: none; }
+        .toggle-slider {
+            position: absolute;
+            inset: 0;
+            background: var(--border);
+            border-radius: 24px;
+            cursor: pointer;
             transition: background 0.2s;
         }
-
-        tbody tr:hover { background: rgba(102,126,234,0.04); }
-
-        tbody td {
-            padding: 12px 16px;
-            color: #555;
+        .toggle-slider::after {
+            content: '';
+            position: absolute;
+            top: 3px; left: 3px;
+            width: 18px; height: 18px;
+            border-radius: 50%;
+            background: #fff;
+            transition: left 0.2s;
         }
+        .toggle-switch input:checked + .toggle-slider { background: var(--accent-blue); }
+        .toggle-switch input:checked + .toggle-slider::after { left: 23px; }
 
-        .subject-badge {
-            background: linear-gradient(135deg, rgba(102,126,234,0.1), rgba(118,75,162,0.1));
-            color: #5a3fa6;
-            border-radius: 8px;
-            padding: 3px 10px;
-            font-size: 0.78rem;
-            font-weight: 600;
-        }
-
-        .empty-state {
+        /* ── FACE RECOGNITION PAGE ── */
+        .face-area {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 40px 20px;
             text-align: center;
-            padding: 3rem;
-            color: #bbb;
         }
+        .face-frame {
+            width: 220px; height: 220px;
+            border: 2px dashed var(--accent-blue);
+            border-radius: 20px;
+            display: flex; align-items: center; justify-content: center;
+            position: relative;
+            margin-bottom: 24px;
+            overflow: hidden;
+            background: rgba(99,102,241,0.05);
+        }
+        .face-frame i { font-size: 60px; color: rgba(99,102,241,0.3); }
+        .scan-line {
+            position: absolute;
+            left: 0; right: 0;
+            height: 2px;
+            background: linear-gradient(90deg, transparent, var(--accent-blue), transparent);
+            animation: scan 2s linear infinite;
+        }
+        @keyframes scan { 0% { top: 0; } 100% { top: 100%; } }
+        .face-title { font-size: 18px; font-weight: 700; margin-bottom: 8px; }
+        .face-desc  { font-size: 13px; color: var(--text-secondary); max-width: 360px; margin-bottom: 24px; }
 
-        .empty-state i { font-size: 3rem; margin-bottom: 1rem; }
-        .empty-state p { font-size: 0.9rem; }
+        /* ── REPORTS PAGE ── */
+        .report-row {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 14px 18px;
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            margin-bottom: 10px;
+            transition: all 0.2s;
+        }
+        .report-row:hover { border-color: var(--border-active); background: var(--bg-card-hover); }
+        .report-icon { width: 40px; height: 40px; border-radius: 10px; background: rgba(99,102,241,0.15); display: flex; align-items: center; justify-content: center; color: var(--accent-blue); font-size: 16px; margin-right: 14px; flex-shrink: 0; }
+        .report-name { font-size: 14px; font-weight: 600; }
+        .report-date { font-size: 12px; color: var(--text-secondary); margin-top: 2px; }
+        .report-left { display: flex; align-items: center; }
 
-        @media (max-width: 600px) {
-            .stats-grid { grid-template-columns: 1fr 1fr; }
-            .welcome-card { flex-direction: column; text-align: center; }
-            .info-pills { justify-content: center; }
+        /* ── SUBJECTS PAGE ── */
+        .subject-card {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 18px 20px;
+            margin-bottom: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            transition: all 0.2s;
+        }
+        .subject-card:hover { border-color: var(--border-active); }
+        .subject-card-icon { width: 42px; height: 42px; border-radius: 10px; display: flex; align-items: center; justify-content: center; font-size: 18px; margin-right: 14px; flex-shrink: 0; }
+        .subject-card-left { display: flex; align-items: center; }
+        .subject-card-name { font-size: 15px; font-weight: 600; }
+        .subject-card-code { font-size: 12px; color: var(--text-secondary); margin-top: 2px; }
+
+        /* ── EMPTY STATE ── */
+        .empty-state { text-align: center; padding: 40px; color: var(--text-muted); }
+        .empty-state i { font-size: 2.5rem; margin-bottom: 10px; display: block; }
+        .empty-state p { font-size: 13px; }
+
+        /* ── TOAST ── */
+        .toast {
+            position: fixed;
+            bottom: 24px; right: 28px;
+            background: var(--bg-card);
+            border: 1px solid var(--accent-blue);
+            color: var(--text-primary);
+            padding: 12px 20px;
+            border-radius: 10px;
+            font-size: 13px;
+            font-weight: 500;
+            z-index: 9999;
+            display: none;
+            align-items: center;
+            gap: 8px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.4);
+            animation: slideUp 0.2s ease;
+        }
+        .toast.show { display: flex; }
+        @keyframes slideUp { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+
+        /* ── MODAL ── */
+        .modal-overlay {
+            position: fixed;
+            inset: 0;
+            background: rgba(0,0,0,0.6);
+            z-index: 200;
+            display: none;
+            align-items: center;
+            justify-content: center;
+        }
+        .modal-overlay.show { display: flex; }
+        .modal-box {
+            background: var(--bg-sidebar);
+            border: 1px solid var(--border-active);
+            border-radius: 16px;
+            padding: 28px;
+            width: 380px;
+            text-align: center;
+        }
+        .modal-icon { font-size: 2.5rem; color: var(--accent-red); margin-bottom: 14px; }
+        .modal-title { font-size: 18px; font-weight: 700; margin-bottom: 8px; }
+        .modal-desc  { font-size: 13px; color: var(--text-secondary); margin-bottom: 22px; }
+        .modal-actions { display: flex; gap: 10px; justify-content: center; }
+
+        @media (max-width: 900px) {
+            .stats-row  { grid-template-columns: repeat(2, 1fr); }
+            .bottom-row { grid-template-columns: 1fr; }
+            .profile-card { flex-direction: column; align-items: flex-start; }
+            .sidebar { transform: translateX(-100%); transition: transform 0.3s; }
+            .sidebar.open { transform: translateX(0); }
+            .main { margin-left: 0; }
         }
     </style>
 </head>
 <body>
-    <div class="dashboard-wrapper">
 
-        <!-- Navbar -->
-        <div class="navbar">
-            <div class="navbar-brand">
-                <div class="icon">👁️</div>
-                Vision AI
-            </div>
-            <a href="/logout" class="logout-btn">
-                <i class="fas fa-sign-out-alt"></i> Logout
-            </a>
+<!-- ── TOAST ── -->
+<div class="toast" id="toast"><i class="fas fa-check-circle" style="color:var(--accent-green)"></i> <span id="toast-msg"></span></div>
+
+<!-- ── LOGOUT MODAL ── -->
+<div class="modal-overlay" id="logout-modal">
+    <div class="modal-box">
+        <div class="modal-icon"><i class="fas fa-sign-out-alt"></i></div>
+        <div class="modal-title">Confirm Logout</div>
+        <div class="modal-desc">Are you sure you want to logout from your account?</div>
+        <div class="modal-actions">
+            <button class="btn" onclick="closeLogoutModal()">Cancel</button>
+            <a href="/logout" class="btn" style="background:var(--accent-red);border-color:var(--accent-red);color:#fff;">Yes, Logout</a>
         </div>
+    </div>
+</div>
 
-        <!-- Welcome Card -->
-        <div class="welcome-card">
-            <div class="avatar">
-                {% if student['face_image'] %}
-                <img src="{{ url_for('static', filename=student['face_image'].replace('static/', '')) }}" alt="Face">
+<!-- ─────────────────── SIDEBAR ─────────────────── -->
+<aside class="sidebar" id="sidebar">
+    <div class="sidebar-logo">
+        <div class="logo-icon">👁️</div>
+        <div class="logo-text">
+            <div class="name">Vision AI</div>
+            <div class="sub">Student Portal</div>
+        </div>
+    </div>
+
+    <div class="nav-section-label">Main</div>
+
+    <button class="nav-item active" onclick="showPage('dashboard', this)">
+        <div class="nav-icon"><i class="fas fa-th-large"></i></div>
+        Dashboard
+    </button>
+
+    <button class="nav-item" onclick="showPage('profile', this)">
+        <div class="nav-icon"><i class="fas fa-user"></i></div>
+        My Profile
+    </button>
+
+    <button class="nav-item" onclick="showPage('attendance', this)">
+        <div class="nav-icon"><i class="fas fa-calendar-check"></i></div>
+        Attendance
+        <span class="nav-badge" id="attendance-badge">{{ attendance|length if attendance else 0 }}</span>
+    </button>
+
+    <div class="nav-section-label">Academics</div>
+
+    <button class="nav-item" onclick="showPage('reports', this)">
+        <div class="nav-icon"><i class="fas fa-chart-line"></i></div>
+        Reports
+    </button>
+
+    <button class="nav-item" onclick="showPage('subjects', this)">
+        <div class="nav-icon"><i class="fas fa-book"></i></div>
+        Subjects
+    </button>
+
+    <div class="nav-section-label">Tools</div>
+
+    <button class="nav-item" onclick="showPage('face', this)">
+        <div class="nav-icon"><i class="fas fa-camera"></i></div>
+        Face Recognition
+    </button>
+
+    <button class="nav-item" onclick="showPage('settings', this)">
+        <div class="nav-icon"><i class="fas fa-cog"></i></div>
+        Settings
+    </button>
+
+    <div class="nav-divider"></div>
+
+    <button class="nav-item logout" onclick="openLogoutModal()">
+        <div class="nav-icon"><i class="fas fa-sign-out-alt"></i></div>
+        Logout
+    </button>
+
+    <div class="sidebar-footer">
+        <div class="user-avatar">{{ student['name'][:2].upper() if student['name'] else 'ST' }}</div>
+        <div class="user-info">
+            <div class="uname">{{ student['name'] if student['name'] else 'Student Name' }}</div>
+            <div class="urole">{{ student['roll'] if student['roll'] else 'Roll Number' }}</div>
+        </div>
+    </div>
+</aside>
+
+<!-- ─────────────────── MAIN ─────────────────── -->
+<div class="main">
+
+    <!-- Top Header -->
+    <div class="top-header">
+        <div class="header-left">
+            <h1 id="page-heading">My Dashboard</h1>
+            <p id="page-date">Thursday, 16 April 2026</p>
+        </div>
+        <div class="header-actions">
+            <button class="btn" onclick="downloadReport()">
+                <i class="fas fa-download"></i> Download Report
+            </button>
+            <button class="btn btn-primary" onclick="viewAllRecords()">
+                <i class="fas fa-eye"></i> View All Records
+            </button>
+        </div>
+    </div>
+
+    <div class="content">
+
+        <!-- ══════════════ DASHBOARD PAGE ══════════════ -->
+        <div class="page active" id="page-dashboard">
+
+            <div class="profile-card">
+                <div class="profile-left">
+                    <div class="avatar-circle">
+                        {% if student['face_image'] %}
+                            <img src="{{ url_for('static', filename=student['face_image']) }}" alt="Face">
+                        {% else %}
+                            {{ student['name'][:2].upper() if student['name'] else 'ST' }}
+                        {% endif %}
+                    </div>
+                    <div>
+                        <div class="profile-name">{{ student['name'] if student['name'] else 'Student Name' }}</div>
+                        <div class="profile-meta">
+                            {{ student['email'] if student['email'] else '' }}
+                            {% if student['phone'] %} · {{ student['phone'] }}{% endif %}
+                        </div>
+                        <div class="profile-tags">
+                            <span class="tag purple">Roll: {{ student['roll'] if student['roll'] else 'N/A' }}</span>
+                            {% if student['department'] %}<span class="tag">{{ student['department'] }}</span>{% endif %}
+                            {% if student['face_image'] %}
+                                <span class="tag green"><i class="fas fa-circle" style="font-size:7px;"></i> Face Enrolled</span>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+                <div class="attendance-pct">
+                    <div class="pct-num">{{ percent }}%</div>
+                    <div class="pct-label">Overall Attendance</div>
+                    <div class="pct-bar"><div class="pct-bar-fill" style="width:{{ percent }}%"></div></div>
+                </div>
+            </div>
+
+            <div class="stats-row">
+                <div class="stat-card">
+                    <div class="stat-label"><span class="stat-dot dot-blue"></span> Total Classes</div>
+                    <div class="stat-num">{{ total }}</div>
+                    <div class="stat-sub">This semester</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-label"><span class="stat-dot dot-green"></span> Present</div>
+                    <div class="stat-num">{{ present }}</div>
+                    <div class="stat-bar"><div class="stat-bar-fill" style="width:{{ percent }}%"></div></div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-label"><span class="stat-dot dot-red"></span> Absent</div>
+                    <div class="stat-num">{{ total - present }}</div>
+                    <div class="stat-sub">Across all subjects</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-label"><span class="stat-dot dot-yellow"></span> Subjects</div>
+                    <div class="stat-num">{{ attendance | map(attribute='subject') | unique | list | length }}</div>
+                    <div class="stat-sub">This semester</div>
+                </div>
+            </div>
+
+            <div class="bottom-row">
+                <div class="section-card">
+                    <div class="section-header">
+                        <div class="section-icon green"><i class="fas fa-chart-line"></i></div>
+                        <div class="section-title-text">Subject-wise Attendance</div>
+                    </div>
+                    {% if attendance %}
+                        {% for subject, count in attendance | groupby('subject') %}
+                            {% set sub_count = count | list | length %}
+                            {% set sub_pct = ((sub_count / total) * 100) | round(0) | int if total > 0 else 0 %}
+                            {% set pct_class = 'pct-high' if sub_pct >= 85 else ('pct-medium' if sub_pct >= 75 else 'pct-low') %}
+                            <div class="subject-row">
+                                <span class="subject-name">{{ subject }}</span>
+                                <span class="subject-count">{{ sub_count }} classes</span>
+                                <span class="subject-pct {{ pct_class }}">{{ sub_pct }}%</span>
+                            </div>
+                        {% endfor %}
+                    {% else %}
+                        <div class="empty-state"><i class="fas fa-book-open"></i><p>No subject data available.</p></div>
+                    {% endif %}
+                </div>
+
+                <div class="section-card">
+                    <div class="section-header">
+                        <div class="section-icon yellow"><i class="fas fa-calendar"></i></div>
+                        <div class="section-title-text">Upcoming Classes</div>
+                    </div>
+                    <div class="class-row">
+                        <div><div class="class-name">Data Structures</div><div class="class-time">2:00 PM · <span style="color:var(--accent-green);">Today</span></div></div>
+                    </div>
+                    <div class="class-row">
+                        <div><div class="class-name">Mathematics</div><div class="class-time">9:00 AM · <span class="class-date">Tomorrow</span></div></div>
+                    </div>
+                    <div class="class-row">
+                        <div><div class="class-name">OS Concepts</div><div class="class-time">11:00 AM · <span class="class-date">Fri</span></div></div>
+                    </div>
+                    <div class="class-row">
+                        <div><div class="class-name">Computer Networks</div><div class="class-time">2:00 PM · <span class="class-date">Fri</span></div></div>
+                        <span class="low-alert"><i class="fas fa-triangle-exclamation"></i> Low Attendance</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="section-card" style="margin-top:18px;">
+                <div class="section-header">
+                    <div class="section-icon"><i class="fas fa-calendar-check"></i></div>
+                    <div class="section-title-text">Recent Attendance</div>
+                </div>
+                {% if attendance %}
+                <div class="table-wrap">
+                    <table>
+                        <thead>
+                            <tr><th>#</th><th>Subject</th><th>Date</th><th>Time</th><th>Marked By</th></tr>
+                        </thead>
+                        <tbody>
+                            {% for a in attendance %}
+                            <tr>
+                                <td>{{ loop.index }}</td>
+                                <td><span class="roll-badge">{{ a.subject }}</span></td>
+                                <td>{{ a.date }}</td>
+                                <td>{{ a.time }}</td>
+                                <td>{{ a.marked_by }}</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
                 {% else %}
-                🎓
+                <div class="empty-state"><i class="fas fa-calendar-times"></i><p>No attendance records yet.</p></div>
                 {% endif %}
             </div>
-            <div class="welcome-text">
-                <h2>Welcome, {{ student['name'] }}!</h2>
-                <p>Here's your attendance overview</p>
-                <div class="info-pills">
-                    <span class="pill"><i class="fas fa-id-card"></i> {{ student['roll'] }}</span>
-                    <span class="pill"><i class="fas fa-envelope"></i> {{ student['email'] }}</span>
-                    <span class="pill"><i class="fas fa-phone"></i> {{ student['phone'] }}</span>
+        </div>
+
+        <!-- ══════════════ MY PROFILE PAGE ══════════════ -->
+        <div class="page" id="page-profile">
+            <div class="profile-page-card">
+                <div class="profile-page-avatar">
+                    {% if student['face_image'] %}
+                        <img src="{{ url_for('static', filename=student['face_image']) }}" alt="Face">
+                    {% else %}
+                        {{ student['name'][:2].upper() if student['name'] else 'ST' }}
+                    {% endif %}
+                </div>
+                <div class="form-grid">
+                    <div class="form-group">
+                        <div class="form-label">Full Name</div>
+                        <div class="form-value">{{ student['name'] if student['name'] else '—' }}</div>
+                    </div>
+                    <div class="form-group">
+                        <div class="form-label">Roll Number</div>
+                        <div class="form-value">{{ student['roll'] if student['roll'] else '—' }}</div>
+                    </div>
+                    <div class="form-group">
+                        <div class="form-label">Email</div>
+                        <div class="form-value">{{ student['email'] if student['email'] else '—' }}</div>
+                    </div>
+                    <div class="form-group">
+                        <div class="form-label">Phone</div>
+                        <div class="form-value">{{ student['phone'] if student['phone'] else '—' }}</div>
+                    </div>
+                    <div class="form-group">
+                        <div class="form-label">Department</div>
+                        <div class="form-value">{{ student['department'] if student['department'] else '—' }}</div>
+                    </div>
+                    <div class="form-group">
+                        <div class="form-label">Face Status</div>
+                        <div class="form-value">{{ 'Enrolled ✓' if student['face_image'] else 'Not Enrolled' }}</div>
+                    </div>
+                </div>
+                <div style="margin-top:20px;">
+                    <a href="/student-profile-edit" class="btn btn-primary"><i class="fas fa-edit"></i> Edit Profile</a>
                 </div>
             </div>
         </div>
 
-        <!-- Stats -->
-        <div class="stats-grid">
-            <div class="stat-card">
-                <div class="stat-icon" style="background: linear-gradient(135deg,rgba(102,126,234,0.15),rgba(118,75,162,0.15));">📋</div>
-                <h3>{{ total }}</h3>
-                <p>Total Classes</p>
+        <!-- ══════════════ ATTENDANCE PAGE ══════════════ -->
+        <div class="page" id="page-attendance">
+            <div class="stats-row">
+                <div class="stat-card">
+                    <div class="stat-label"><span class="stat-dot dot-blue"></span> Total Classes</div>
+                    <div class="stat-num">{{ total }}</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-label"><span class="stat-dot dot-green"></span> Present</div>
+                    <div class="stat-num">{{ present }}</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-label"><span class="stat-dot dot-red"></span> Absent</div>
+                    <div class="stat-num">{{ total - present }}</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-label"><span class="stat-dot dot-yellow"></span> Percentage</div>
+                    <div class="stat-num">{{ percent }}%</div>
+                </div>
             </div>
-            <div class="stat-card">
-                <div class="stat-icon" style="background: rgba(40,167,69,0.12);">✅</div>
-                <h3>{{ total }}</h3>
-                <p>Present</p>
-            </div>
-            <div class="stat-card">
-                <div class="stat-icon" style="background: rgba(102,126,234,0.12);">📅</div>
-                <h3>
-                    {% if total > 0 %}100%{% else %}0%{% endif %}
-                </h3>
-                <p>Attendance %</p>
+            <div class="section-card">
+                <div class="section-header">
+                    <div class="section-icon"><i class="fas fa-calendar-check"></i></div>
+                    <div class="section-title-text">Full Attendance Log</div>
+                </div>
+                {% if attendance %}
+                <div class="table-wrap">
+                    <table>
+                        <thead>
+                            <tr><th>#</th><th>Subject</th><th>Date</th><th>Time</th><th>Status</th><th>Marked By</th></tr>
+                        </thead>
+                        <tbody>
+                            {% for a in attendance %}
+                            <tr>
+                                <td>{{ loop.index }}</td>
+                                <td><span class="roll-badge">{{ a.subject }}</span></td>
+                                <td>{{ a.date }}</td>
+                                <td>{{ a.time }}</td>
+                                <td><span class="status-present">Present</span></td>
+                                <td>{{ a.marked_by }}</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                {% else %}
+                <div class="empty-state"><i class="fas fa-calendar-times"></i><p>No attendance records yet.</p></div>
+                {% endif %}
             </div>
         </div>
 
-        <!-- Attendance Table -->
-        <div class="table-card">
-            <div class="table-header">
-                <h3><i class="fas fa-calendar-check"></i> Attendance Records</h3>
+        <!-- ══════════════ REPORTS PAGE ══════════════ -->
+        <div class="page" id="page-reports">
+            <div class="section-card">
+                <div class="section-header">
+                    <div class="section-icon"><i class="fas fa-chart-line"></i></div>
+                    <div class="section-title-text">Available Reports</div>
+                </div>
+                <div class="report-row">
+                    <div class="report-left">
+                        <div class="report-icon"><i class="fas fa-file-pdf"></i></div>
+                        <div>
+                            <div class="report-name">Monthly Attendance Report</div>
+                            <div class="report-date">April 2026 · PDF</div>
+                        </div>
+                    </div>
+                    <button class="btn" onclick="showToast('Monthly report downloaded!')"><i class="fas fa-download"></i> Download</button>
+                </div>
+                <div class="report-row">
+                    <div class="report-left">
+                        <div class="report-icon" style="background:rgba(34,197,94,0.12);color:var(--accent-green)"><i class="fas fa-file-excel"></i></div>
+                        <div>
+                            <div class="report-name">Subject-wise Attendance</div>
+                            <div class="report-date">Semester 2026 · Excel</div>
+                        </div>
+                    </div>
+                    <button class="btn" onclick="showToast('Subject report downloaded!')"><i class="fas fa-download"></i> Download</button>
+                </div>
+                <div class="report-row">
+                    <div class="report-left">
+                        <div class="report-icon" style="background:rgba(245,158,11,0.12);color:var(--accent-yellow)"><i class="fas fa-chart-bar"></i></div>
+                        <div>
+                            <div class="report-name">Academic Performance Report</div>
+                            <div class="report-date">Semester 2026 · PDF</div>
+                        </div>
+                    </div>
+                    <button class="btn" onclick="showToast('Performance report downloaded!')"><i class="fas fa-download"></i> Download</button>
+                </div>
+                <div class="report-row">
+                    <div class="report-left">
+                        <div class="report-icon" style="background:rgba(239,68,68,0.12);color:var(--accent-red)"><i class="fas fa-exclamation-triangle"></i></div>
+                        <div>
+                            <div class="report-name">Low Attendance Alert Report</div>
+                            <div class="report-date">Current Semester · PDF</div>
+                        </div>
+                    </div>
+                    <button class="btn" onclick="showToast('Alert report downloaded!')"><i class="fas fa-download"></i> Download</button>
+                </div>
             </div>
-            {% if attendance %}
-            <table>
-                <thead>
-                    <tr>
-                        <th>#</th>
-                        <th>Subject</th>
-                        <th>Date</th>
-                        <th>Time</th>
-                        <th>Marked By</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {% for a in attendance %}
-                    <tr>
-                        <td>{{ loop.index }}</td>
-                        <td><span class="subject-badge">{{ a['subject'] }}</span></td>
-                        <td>{{ a['date'] }}</td>
-                        <td>{{ a['time'] }}</td>
-                        <td>{{ a['marked_by'] }}</td>
-                    </tr>
+        </div>
+
+        <!-- ══════════════ SUBJECTS PAGE ══════════════ -->
+        <div class="page" id="page-subjects">
+            <div class="section-card">
+                <div class="section-header">
+                    <div class="section-icon"><i class="fas fa-book"></i></div>
+                    <div class="section-title-text">Enrolled Subjects</div>
+                </div>
+                {% if attendance %}
+                    {% for subject, count in attendance | groupby('subject') %}
+                        {% set sub_count = count | list | length %}
+                        {% set sub_pct = ((sub_count / total) * 100) | round(0) | int if total > 0 else 0 %}
+                        <div class="subject-card">
+                            <div class="subject-card-left">
+                                <div class="subject-card-icon" style="background:rgba(99,102,241,0.15);color:var(--accent-blue)">
+                                    <i class="fas fa-book"></i>
+                                </div>
+                                <div>
+                                    <div class="subject-card-name">{{ subject }}</div>
+                                    <div class="subject-card-code">{{ sub_count }} classes attended</div>
+                                </div>
+                            </div>
+                            <span class="subject-pct {{ 'pct-high' if sub_pct >= 85 else ('pct-medium' if sub_pct >= 75 else 'pct-low') }}">{{ sub_pct }}%</span>
+                        </div>
                     {% endfor %}
-                </tbody>
-            </table>
-            {% else %}
-            <div class="empty-state">
-                <i class="fas fa-calendar-times"></i>
-                <p>No attendance records yet.</p>
+                {% else %}
+                    <div class="empty-state"><i class="fas fa-book-open"></i><p>No subjects enrolled yet.</p></div>
+                {% endif %}
             </div>
-            {% endif %}
         </div>
 
-    </div>
+        <!-- ══════════════ FACE RECOGNITION PAGE ══════════════ -->
+        <div class="page" id="page-face">
+            <div class="section-card">
+                <div class="face-area">
+                    <div class="face-frame">
+                        {% if student['face_image'] %}
+                            <img src="{{ url_for('static', filename=student['face_image']) }}" style="width:100%;height:100%;object-fit:cover;">
+                        {% else %}
+                            <i class="fas fa-user"></i>
+                        {% endif %}
+                        <div class="scan-line"></div>
+                    </div>
+                    <div class="face-title">
+                        {% if student['face_image'] %}Face Enrolled ✓{% else %}Face Not Enrolled{% endif %}
+                    </div>
+                    <div class="face-desc">
+                        {% if student['face_image'] %}
+                            Your face is registered for automatic attendance marking via Vision AI.
+                        {% else %}
+                            Register your face to enable automatic attendance marking. Visit the admin or use the enrollment link below.
+                        {% endif %}
+                    </div>
+                    <div style="display:flex;gap:10px;">
+                        <a href="/student-face-enroll" class="btn btn-primary"><i class="fas fa-camera"></i>
+                            {% if student['face_image'] %}Re-Enroll Face{% else %}Enroll Face{% endif %}
+                        </a>
+                        {% if student['face_image'] %}
+                            <button class="btn" onclick="showToast('Face data cleared! Please re-enroll.')"><i class="fas fa-trash"></i> Remove Face</button>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ══════════════ SETTINGS PAGE ══════════════ -->
+        <div class="page" id="page-settings">
+            <div class="section-card" style="max-width:580px;">
+                <div class="section-header">
+                    <div class="section-icon"><i class="fas fa-cog"></i></div>
+                    <div class="section-title-text">Account Settings</div>
+                </div>
+
+                <div class="settings-group">
+                    <div class="settings-group-title">Notifications</div>
+                    <div class="setting-row">
+                        <div>
+                            <div class="setting-label">Attendance Alerts</div>
+                            <div class="setting-desc">Get notified when attendance drops below 75%</div>
+                        </div>
+                        <label class="toggle-switch">
+                            <input type="checkbox" checked onchange="showToast('Attendance alerts ' + (this.checked ? 'enabled' : 'disabled'))">
+                            <span class="toggle-slider"></span>
+                        </label>
+                    </div>
+                    <div class="setting-row">
+                        <div>
+                            <div class="setting-label">Class Reminders</div>
+                            <div class="setting-desc">Reminder 15 minutes before each class</div>
+                        </div>
+                        <label class="toggle-switch">
+                            <input type="checkbox" onchange="showToast('Class reminders ' + (this.checked ? 'enabled' : 'disabled'))">
+                            <span class="toggle-slider"></span>
+                        </label>
+                    </div>
+                    <div class="setting-row">
+                        <div>
+                            <div class="setting-label">Email Reports</div>
+                            <div class="setting-desc">Receive weekly attendance report via email</div>
+                        </div>
+                        <label class="toggle-switch">
+                            <input type="checkbox" checked onchange="showToast('Email reports ' + (this.checked ? 'enabled' : 'disabled'))">
+                            <span class="toggle-slider"></span>
+                        </label>
+                    </div>
+                </div>
+
+                <div class="settings-group">
+                    <div class="settings-group-title">Privacy</div>
+                    <div class="setting-row">
+                        <div>
+                            <div class="setting-label">Face Recognition</div>
+                            <div class="setting-desc">Allow Vision AI to mark attendance via face scan</div>
+                        </div>
+                        <label class="toggle-switch">
+                            <input type="checkbox" checked onchange="showToast('Face recognition ' + (this.checked ? 'enabled' : 'disabled'))">
+                            <span class="toggle-slider"></span>
+                        </label>
+                    </div>
+                    <div class="setting-row">
+                        <div>
+                            <div class="setting-label">Profile Visibility</div>
+                            <div class="setting-desc">Show your profile to classmates</div>
+                        </div>
+                        <label class="toggle-switch">
+                            <input type="checkbox" onchange="showToast('Profile visibility ' + (this.checked ? 'enabled' : 'disabled'))">
+                            <span class="toggle-slider"></span>
+                        </label>
+                    </div>
+                </div>
+
+                <div style="display:flex;gap:10px;margin-top:8px;">
+                    <a href="/change-password" class="btn"><i class="fas fa-lock"></i> Change Password</a>
+                    <button class="btn" onclick="showToast('Settings saved successfully!')"><i class="fas fa-save"></i> Save Settings</button>
+                </div>
+            </div>
+        </div>
+
+    </div><!-- /content -->
+</div><!-- /main -->
+
+<script>
+    // ── PAGE NAVIGATION ──
+    const pageTitles = {
+        dashboard:  'My Dashboard',
+        profile:    'My Profile',
+        attendance: 'Attendance',
+        reports:    'Reports',
+        subjects:   'Subjects',
+        face:       'Face Recognition',
+        settings:   'Settings'
+    };
+
+    function showPage(name, btn) {
+        // Hide all pages
+        document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+        // Deactivate all nav items
+        document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+        // Show target page
+        document.getElementById('page-' + name).classList.add('active');
+        // Mark nav item active
+        btn.classList.add('active');
+        // Update header
+        document.getElementById('page-heading').textContent = pageTitles[name];
+    }
+
+    // ── DOWNLOAD REPORT ──
+    function downloadReport() {
+        showToast('Generating report... Download will start shortly.');
+        // Wire to real endpoint: window.location.href = '/student-download-report';
+    }
+
+    // ── VIEW ALL RECORDS ──
+    function viewAllRecords() {
+        // Activate Attendance page
+        const attendanceBtn = document.querySelectorAll('.nav-item')[2];
+        showPage('attendance', attendanceBtn);
+        showToast('Showing all attendance records.');
+    }
+
+    // ── LOGOUT MODAL ──
+    function openLogoutModal()  { document.getElementById('logout-modal').classList.add('show'); }
+    function closeLogoutModal() { document.getElementById('logout-modal').classList.remove('show'); }
+
+    // ── TOAST ──
+    let toastTimer;
+    function showToast(msg) {
+        const toast = document.getElementById('toast');
+        document.getElementById('toast-msg').textContent = msg;
+        toast.classList.add('show');
+        clearTimeout(toastTimer);
+        toastTimer = setTimeout(() => toast.classList.remove('show'), 3000);
+    }
+
+    // ── CLOSE MODAL ON OVERLAY CLICK ──
+    document.getElementById('logout-modal').addEventListener('click', function(e) {
+        if (e.target === this) closeLogoutModal();
+    });
+
+    // ── UPDATE DATE ──
+    const days = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
+    const months = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+    const now = new Date();
+    document.getElementById('page-date').textContent =
+        days[now.getDay()] + ', ' + now.getDate() + ' ' + months[now.getMonth()] + ' ' + now.getFullYear();
+</script>
 </body>
 </html>

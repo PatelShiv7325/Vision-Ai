@@ -4,9 +4,8 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Student Registration - Vision AI</title>
-    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600;700;800&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
     <style>
         * { box-sizing: border-box; margin: 0; padding: 0; }
 
@@ -19,7 +18,6 @@
             background: linear-gradient(135deg, #4e54c8 0%, #7b4fa6 50%, #c471ed 100%);
             overflow-x: hidden;
             position: relative;
-            padding: 2rem 0;
         }
 
         body::before, body::after {
@@ -29,32 +27,18 @@
             opacity: 0.12;
             animation: float 6s ease-in-out infinite;
         }
-        body::before {
-            width: 420px; height: 420px;
-            background: #fff;
-            top: -120px; left: -100px;
-        }
-        body::after {
-            width: 320px; height: 320px;
-            background: #fff;
-            bottom: -100px; right: -80px;
-            animation-delay: 3s;
-        }
+        body::before { width: 420px; height: 420px; background: #fff; top: -120px; left: -100px; }
+        body::after  { width: 320px; height: 320px; background: #fff; bottom: -100px; right: -80px; animation-delay: 3s; }
 
         @keyframes float {
             0%, 100% { transform: translateY(0); }
-            50% { transform: translateY(20px); }
-        }
-
-        @keyframes fadeUp {
-            from { opacity: 0; transform: translateY(40px); }
-            to   { opacity: 1; transform: translateY(0); }
+            50%       { transform: translateY(20px); }
         }
 
         .register-card {
             background: rgba(255,255,255,0.97);
             border-radius: 30px;
-            padding: 2.8rem 2.8rem;
+            padding: 2.8rem;
             max-width: 500px;
             width: 92%;
             box-shadow: 0 30px 80px rgba(20,20,80,0.25);
@@ -127,6 +111,12 @@
             text-align: left;
         }
 
+        .form-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 1rem;
+        }
+
         .form-group {
             margin-bottom: 1.1rem;
             text-align: left;
@@ -145,9 +135,7 @@
             margin-right: 6px;
         }
 
-        .input-wrapper {
-            position: relative;
-        }
+        .input-wrapper { position: relative; }
 
         .input-wrapper .icon {
             position: absolute;
@@ -172,12 +160,30 @@
             color: #333;
         }
 
-        .input-wrapper input:focus {
+        .form-group input:focus,
+        .form-group select:focus {
             border-color: #667eea;
             background: #fff;
             outline: none;
             box-shadow: 0 0 0 4px rgba(102,126,234,0.1);
             transform: translateY(-1px);
+        }
+        
+        .form-group select {
+            width: 100%;
+            padding: 14px 15px 14px 45px;
+            border: 2px solid #e0e6ed;
+            border-radius: 12px;
+            font-size: 0.95rem;
+            background: #fafbfc;
+            color: #2d3748;
+            transition: all 0.3s ease;
+            cursor: pointer;
+        }
+        
+        .form-group select option {
+            padding: 10px;
+            background: #fff;
         }
 
         .input-wrapper input.valid   { border-color: #28a745; background: #f6fff8; }
@@ -192,6 +198,8 @@
             cursor: pointer;
             font-size: 0.9rem;
             transition: color 0.3s;
+            background: none;
+            border: none;
         }
         .toggle-password:hover { color: #667eea; }
 
@@ -202,14 +210,59 @@
             padding-left: 4px;
         }
 
-        /* Two column grid for name + roll */
-        .form-row {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 1rem;
+        .face-capture-area {
+            border: 2px dashed #c5c8ff;
+            border-radius: 12px;
+            padding: 1.5rem;
+            text-align: center;
+            background: #fafafe;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            position: relative;
+            min-height: 120px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+        }
+        .face-capture-area:hover {
+            border-color: #667eea;
+            background: #f0eeff;
+            transform: translateY(-2px);
+        }
+        .face-capture-area p {
+            font-size: 0.85rem;
+            color: #888;
+            margin-top: 0.8rem;
+            margin-bottom: 0;
+        }
+        .face-captured {
+            border-color: #28a745;
+            background: #f0fff4;
+            border-style: solid;
+        }
+        .face-captured p { color: #28a745; font-weight: 600; }
+        .face-captured .camera-icon { color: #28a745; }
+        .camera-icon {
+            font-size: 32px;
+            margin-bottom: 0.5rem;
+            transition: all 0.3s ease;
+        }
+        .face-capture-area:hover .camera-icon {
+            transform: scale(1.1);
+        }
+        .face-preview {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            border-radius: 10px;
+            object-fit: cover;
+            opacity: 0.8;
         }
 
-        .btn-register {
+        .btn-primary {
             width: 100%;
             padding: 16px;
             background: linear-gradient(135deg, #667eea, #764ba2);
@@ -225,12 +278,9 @@
             position: relative;
             overflow: hidden;
             margin-top: 0.6rem;
-            z-index: 10;
-            display: block !important;
-            visibility: visible !important;
         }
 
-        .btn-register::after {
+        .btn-primary::after {
             content: '';
             position: absolute;
             top: 0; left: -100%;
@@ -239,12 +289,12 @@
             transition: left 0.5s ease;
         }
 
-        .btn-register:hover {
+        .btn-primary:hover {
             transform: translateY(-3px);
             box-shadow: 0 14px 32px rgba(102,126,234,0.45);
         }
-        .btn-register:hover::after { left: 100%; }
-        .btn-register:active { transform: translateY(-1px); }
+        .btn-primary:hover::after { left: 100%; }
+        .btn-primary:active { transform: translateY(-1px); }
 
         .links {
             margin-top: 1.5rem;
@@ -256,112 +306,86 @@
             color: #667eea;
             font-weight: 600;
             text-decoration: none;
-            transition: color 0.3s;
+            transition: color 0.3s ease;
         }
-        .links a:hover { color: #4a4fc4; }
-
-        .back-home {
-            display: inline-flex;
-            align-items: center;
-            gap: 6px;
-            margin-top: 0.4rem;
-            font-size: 0.82rem;
-            color: #aaa;
-            text-decoration: none;
-            transition: color 0.3s;
-        }
-        .back-home:hover { color: #667eea; }
+        .links a:hover { color: #764ba2; text-decoration: underline; }
 
         /* Camera Modal */
-        .camera-modal {
+        .modal-overlay {
             display: none;
             position: fixed;
-            top: 0; left: 0;
-            width: 100%; height: 100%;
-            background: rgba(0,0,0,0.85);
+            inset: 0;
+            background: rgba(0,0,0,0.65);
+            z-index: 999;
             justify-content: center;
             align-items: center;
-            z-index: 999;
         }
-
-        .camera-box {
-            background: white;
-            padding: 2.5rem;
-            border-radius: 24px;
+        .modal-box {
+            background: #fff;
+            border-radius: 20px;
+            padding: 2rem;
             text-align: center;
-            box-shadow: 0 25px 80px rgba(0,0,0,0.4);
-            animation: fadeUp 0.4s ease;
-            max-width: 500px;
             width: 90%;
+            max-width: 380px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
         }
-
-        .camera-box h3 {
-            font-size: 1.4rem;
+        .modal-box h3 {
+            font-size: 1.1rem;
             font-weight: 700;
-            color: #333;
+            color: #1a1a2e;
             margin-bottom: 1rem;
         }
-
-        .video-container {
-            position: relative;
-            width: 320px;
-            height: 240px;
-            margin: 0 auto 1.5rem;
-            border-radius: 16px;
+        .video-wrap {
+            width: 100%;
+            border-radius: 12px;
             overflow: hidden;
             background: #000;
-            border: 3px solid #e8eaf0;
+            margin-bottom: 1rem;
         }
-
-        video {
-            width: 100%;
-            height: 100%;
-            object-fit: cover;
-            border-radius: 13px;
-        }
-
-        .camera-btns {
-            display: flex;
-            gap: 1rem;
-            justify-content: center;
-            margin-top: 1.5rem;
-        }
-
-        .camera-btns .btn-register {
-            width: auto;
-            padding: 12px 28px;
-            font-size: 0.9rem;
-            margin-top: 0;
-        }
-
+        video { width: 100%; display: block; }
+        .modal-btns { display: flex; gap: 0.8rem; justify-content: center; }
         .btn-capture {
-            background: linear-gradient(135deg, #28a745, #20c997) !important;
+            padding: 10px 22px;
+            background: #28a745;
+            color: #fff;
+            border: none;
+            border-radius: 10px;
+            font-size: 0.88rem;
+            font-weight: 600;
+            font-family: 'Poppins', sans-serif;
+            cursor: pointer;
+            transition: all 0.25s;
         }
-
-        .btn-capture:disabled {
-            background: linear-gradient(135deg, #aaa, #888) !important;
-            cursor: not-allowed;
-            opacity: 0.6;
-        }
-
+        .btn-capture:hover { background: #218838; }
         .btn-cancel {
-            background: linear-gradient(135deg, #6c757d, #5a6268) !important;
-            box-shadow: none !important;
+            padding: 10px 22px;
+            background: #dc3545;
+            color: #fff;
+            border: none;
+            border-radius: 10px;
+            font-size: 0.88rem;
+            font-weight: 600;
+            font-family: 'Poppins', sans-serif;
+            cursor: pointer;
+            transition: all 0.25s;
         }
+        .btn-cancel:hover { background: #c82333; }
 
-        @media (max-width: 520px) {
-            .register-card { padding: 2rem 1.5rem; }
-            .register-card h2 { font-size: 1.5rem; }
+        @media (max-width: 480px) {
             .form-row { grid-template-columns: 1fr; }
+            .register-card { padding: 2rem 1.4rem; }
         }
     </style>
 </head>
 <body>
     <div class="register-card">
-        <div class="logo-icon">👁️</div>
-        <div class="badge">Student Portal</div>
+        <div class="logo-wrap">
+            <div class="logo-icon">🎓</div>
+            <span class="badge">Student Portal</span>
+        </div>
+
         <h2>Student Registration</h2>
-        <p class="subtitle">Create your account and register your face for attendance</p>
+        <p class="subtitle">Create your account to track attendance</p>
         <div class="divider"></div>
 
         {% if error %}
@@ -371,19 +395,20 @@
         <form method="POST" id="registerForm">
             <input type="hidden" name="face_image" id="face_image">
 
+            
             <div class="form-row">
                 <div class="form-group">
                     <label><i class="fas fa-user"></i>Full Name</label>
                     <div class="input-wrapper">
                         <i class="fas fa-user icon"></i>
-                        <input type="text" id="name" name="name" placeholder="Your full name" required>
+                        <input type="text" name="name" id="name" placeholder="Your full name" required>
                     </div>
                 </div>
                 <div class="form-group">
                     <label><i class="fas fa-id-card"></i>Roll Number</label>
                     <div class="input-wrapper">
                         <i class="fas fa-id-card icon"></i>
-                        <input type="text" id="roll" name="roll" placeholder="Roll number" required>
+                        <input type="text" name="roll" id="roll" placeholder="Roll number" required>
                     </div>
                 </div>
             </div>
@@ -392,56 +417,115 @@
                 <label><i class="fas fa-phone"></i>Phone Number</label>
                 <div class="input-wrapper">
                     <i class="fas fa-phone icon"></i>
-                    <input type="text" id="phone" name="phone" placeholder="Enter your phone number" required>
+                    <input type="text" name="phone" placeholder="Enter your phone number">
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label><i class="fas fa-graduation-cap"></i>Standard</label>
+                <div class="input-wrapper">
+                    <i class="fas fa-graduation-cap icon"></i>
+                    <select name="standard" id="standard" required>
+                        <option value="">Select Standard</option>
+                        <option value="1">Standard 1</option>
+                        <option value="2">Standard 2</option>
+                        <option value="3">Standard 3</option>
+                        <option value="4">Standard 4</option>
+                        <option value="5">Standard 5</option>
+                        <option value="6">Standard 6</option>
+                        <option value="7">Standard 7</option>
+                        <option value="8">Standard 8</option>
+                        <option value="9">Standard 9</option>
+                        <option value="10">Standard 10</option>
+                      </select>
+                </div>
+            </div>
+
+            <div class="form-row">
+                <div class="form-group">
+                    <label><i class="fas fa-layer-group"></i>Division</label>
+                    <div class="input-wrapper">
+                        <i class="fas fa-layer-group icon"></i>
+                        <select name="division" id="division" required>
+                            <option value="">Select Division</option>
+                            <option value="A">Division A</option>
+                            <option value="B">Division B</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="form-group">
+                   <label><i class="fas fa-venus-mars"></i> Gender</label>
+                    <div class="input-wrapper">
+                        <i class="fas fa-venus-mars icon"></i>
+                        <!-- <input type="text" name="phone" placeholder="Enter your phone number"> -->
+                   <select name="Gender" id="gender" required>
+                        <option value="">Select Gender</option>
+                        <option value="Male">Male</option>
+                        <option value="Female">Female</option>
+                        <option value="Other">Other</option>
+                    </select>
+                    </div>
                 </div>
             </div>
 
             <div class="form-group">
                 <label><i class="fas fa-envelope"></i>Email Address</label>
-                    <div class="input-wrapper">
-                        <i class="fas fa-envelope icon"></i>
-                        <input type="email" id="email" name="email" placeholder="Enter your email" required>
-                    </div>
+                <div class="input-wrapper">
+                    <i class="fas fa-envelope icon"></i>
+                    <input type="email" name="email" id="email" placeholder="Enter your email" required>
+                </div>
             </div>
 
+            <!-- Password -->
             <div class="form-group">
                 <label><i class="fas fa-lock"></i>Password</label>
-                    <div class="input-wrapper">
-                        <i class="fas fa-lock icon"></i>
-                        <input type="password" id="password" name="password" placeholder="Create a strong password" required>
-                        <i class="fas fa-eye toggle-password" id="togglePassword"></i>
-                    </div>
+                <div class="input-wrapper">
+                    <i class="fas fa-lock icon"></i>
+                    <input type="password" id="password" name="password" placeholder="Create a strong password" required>
+                    <button type="button" class="toggle-password" id="togglePassword" aria-label="Show/hide password">
+                        <i class="fas fa-eye" id="eyeIcon"></i>
+                    </button>
+                </div>
                 <small id="passwordHelp" class="password-help">
                     Min 8 chars with uppercase, lowercase, number & special character.
                 </small>
             </div>
 
-                        
-            <button type="button" class="btn-register" onclick="openCamera()" style="background: linear-gradient(135deg, #667eea, #764ba2) !important; color: white !important; padding: 16px 32px !important; border: none !important; border-radius: 12px !important; font-size: 16px !important; font-weight: bold !important; cursor: pointer !important; box-shadow: 0 8px 24px rgba(102,126,234,0.35) !important; width: 100% !important; margin-top: 20px !important; display: block !important; visibility: visible !important; position: relative !important; z-index: 1000 !important;">
-                <i class="fas fa-camera" style="margin-right:10px;"></i>Register & Capture Face
+            <div class="form-group">
+                <label><i class="fas fa-camera"></i>Face Photo</label>
+                <div class="face-capture-area" id="faceArea" onclick="openCamera()">
+                    <i class="fas fa-camera camera-icon" id="cameraIcon"></i>
+                    <p id="faceStatus">Click to capture face using camera</p>
+                    <img id="facePreview" class="face-preview" style="display: none;">
+                </div>
+                <small class="password-help" style="margin-top: 0.5rem;">
+                    <i class="fas fa-info-circle"></i> Required for face recognition attendance
+                </small>
+            </div>
+
+            <button type="submit" class="btn-primary" id="submitBtn">
+                <i class="fas fa-user-plus" style="margin-right:8px;"></i>Register
             </button>
         </form>
 
         <div class="links">
             <p>Already have an account? <a href="/student-login">Login here</a></p>
-            <a href="/" class="back-home"><i class="fas fa-arrow-left"></i> Back to Home</a>
+            <p><a href="/"><i class="fas fa-arrow-left" style="margin-right:4px;"></i>Back to Home</a></p>
         </div>
     </div>
 
     <!-- Camera Modal -->
-    <div id="cameraModal" class="camera-modal">
-        <div class="camera-box">
-            <h3>📸 Capture Your Face</h3>
-            
-            <div class="video-container">
-                <video id="video" autoplay></video>
+    <div id="cameraModal" class="modal-overlay">
+        <div class="modal-box">
+            <h3><i class="fas fa-camera" style="color:#667eea;margin-right:8px;"></i>Capture Your Face</h3>
+            <div class="video-wrap">
+                <video id="video" autoplay playsinline></video>
             </div>
-
-            <div class="camera-btns">
-                <button onclick="captureAndSubmit()" class="btn-register btn-capture" id="captureBtn">
-                    <i class="fas fa-camera"></i> Capture Face
+            <div class="modal-btns">
+                <button onclick="capturePhoto()" class="btn-capture">
+                    <i class="fas fa-camera"></i> Capture
                 </button>
-                <button onclick="closeCamera()" class="btn-register btn-cancel">
+                <button onclick="closeCamera()" class="btn-cancel">
                     <i class="fas fa-times"></i> Cancel
                 </button>
             </div>
@@ -449,158 +533,192 @@
     </div>
 
     <script>
+        // Password toggle functionality
         document.getElementById('togglePassword').addEventListener('click', function () {
             const pwd = document.getElementById('password');
-            const type = pwd.getAttribute('type') === 'password' ? 'text' : 'password';
-            pwd.setAttribute('type', type);
-            this.classList.toggle('fa-eye');
-            this.classList.toggle('fa-eye-slash');
+            const eyeIcon = document.getElementById('eyeIcon');
+            
+            if (pwd.type === 'password') {
+                pwd.type = 'text';
+                eyeIcon.classList.remove('fa-eye');
+                eyeIcon.classList.add('fa-eye-slash');
+            } else {
+                pwd.type = 'password';
+                eyeIcon.classList.remove('fa-eye-slash');
+                eyeIcon.classList.add('fa-eye');
+            }
         });
-
-        document.getElementById("email").addEventListener("input", function () {
-            const pattern = /^[^ ]+@[^ ]+\.[a-z]{2,3}$/;
-            this.classList.toggle("valid", pattern.test(this.value));
-            this.classList.toggle("invalid", !pattern.test(this.value));
-        });
-
-        document.getElementById("phone").addEventListener("input", function () {
-            const valid = /^\d{10}$/.test(this.value);
-            this.classList.toggle("valid", valid);
-            this.classList.toggle("invalid", !valid);
-        });
-
-        document.getElementById("password").addEventListener("input", function () {
+        
+        // Password validation
+        document.getElementById('password').addEventListener('input', function () {
             const val = this.value;
             const valid = val.length >= 8 &&
-                /[A-Z]/.test(val) && /[a-z]/.test(val) &&
-                /[0-9]/.test(val) && /[^A-Za-z0-9]/.test(val);
-            this.classList.toggle("valid", valid);
-            this.classList.toggle("invalid", !valid);
-            document.getElementById("passwordHelp").innerText =
-                valid ? "✅ Strong password!" : "❌ Weak — add uppercase, number & special char.";
-            document.getElementById("passwordHelp").style.color = valid ? "#28a745" : "#dc3545";
+                          /[A-Z]/.test(val) &&
+                          /[a-z]/.test(val) &&
+                          /[0-9]/.test(val) &&
+                          /[^A-Za-z0-9]/.test(val);
+
+            this.classList.toggle('valid',   valid);
+            this.classList.toggle('invalid', !valid);
+
+            const help       = document.getElementById('passwordHelp');
+            help.innerText   = valid ? '✅ Strong password!' : '❌ Weak — add uppercase, number & special char.';
+            help.style.color = valid ? '#28a745' : '#dc3545';
         });
+        
+        // Form validation before submit
+        document.getElementById('registerForm').addEventListener('submit', function(e) {
+            const faceImage = document.getElementById('face_image').value;
+            const password = document.getElementById('password').value;
+            
+            // Validate face photo
+            if (!faceImage) {
+                e.preventDefault();
+                alert('Please capture your face photo to complete registration.');
+                document.getElementById('faceArea').scrollIntoView({ behavior: 'smooth' });
+                document.getElementById('faceArea').style.animation = 'pulse 1s ease-in-out';
+                setTimeout(() => {
+                    document.getElementById('faceArea').style.animation = '';
+                }, 1000);
+                return false;
+            }
+            
+            // Validate password strength
+            const validPassword = password.length >= 8 &&
+                                 /[A-Z]/.test(password) &&
+                                 /[a-z]/.test(password) &&
+                                 /[0-9]/.test(password) &&
+                                 /[^A-Za-z0-9]/.test(password);
+            
+            if (!validPassword) {
+                e.preventDefault();
+                alert('Please create a strong password with at least 8 characters including uppercase, lowercase, number, and special character.');
+                document.getElementById('password').scrollIntoView({ behavior: 'smooth' });
+                document.getElementById('password').focus();
+                document.getElementById('password').style.animation = 'pulse 1s ease-in-out';
+                setTimeout(() => {
+                    document.getElementById('password').style.animation = '';
+                }, 1000);
+                return false;
+            }
+            
+            return true;
+        });
+        
+        // Add pulse animation
+        const style = document.createElement('style');
+        style.textContent = `
+            @keyframes pulse {
+                0%, 100% { transform: scale(1); }
+                50% { transform: scale(1.05); }
+            }
+        `;
+        document.head.appendChild(style);
 
         let stream;
-        let isFaceCaptured = false;
 
         function openCamera() {
-            console.log("Opening camera...");
+            const modal = document.getElementById('cameraModal');
+            modal.style.display = 'flex';
             
-            const modal = document.getElementById("cameraModal");
-            if (modal) {
-                modal.style.display = "flex";
-                console.log("Camera modal opened successfully");
-            } else {
-                alert("Error: Camera modal not found!");
-                return;
-            }
-            
-            // Check if browser supports camera
+            // Check if camera is available
             if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
-                alert("Camera API not supported in this browser!");
+                alert('Camera API is not supported in your browser. Please use a modern browser.');
+                closeCamera();
                 return;
             }
             
-            // Simple camera access
+            // Request camera access
             navigator.mediaDevices.getUserMedia({ 
                 video: { 
+                    facingMode: 'user',
                     width: { ideal: 640 },
-                    height: { ideal: 480 },
-                    facingMode: 'user'
+                    height: { ideal: 480 }
                 } 
-            }).then(s => {
-                stream = s;
-                const video = document.getElementById("video");
-                if (video) {
+            })
+                .then(s => {
+                    stream = s;
+                    const video = document.getElementById('video');
                     video.srcObject = stream;
-                    console.log("Camera stream started successfully");
-                } else {
-                    alert("Video element not found!");
-                }
-            }).catch(err => {
-                console.error("Camera error:", err);
-                alert("Camera access denied: " + err.message);
-            });
+                    video.onloadedmetadata = () => {
+                        video.play();
+                    };
+                })
+                .catch(err => {
+                    console.error('Camera error:', err);
+                    let errorMessage = 'Unable to access camera. ';
+                    
+                    if (err.name === 'NotAllowedError') {
+                        errorMessage += 'Please allow camera access in your browser settings.';
+                    } else if (err.name === 'NotFoundError') {
+                        errorMessage += 'No camera found. Please connect a camera.';
+                    } else if (err.name === 'NotReadableError') {
+                        errorMessage += 'Camera is already in use by another application.';
+                    } else {
+                        errorMessage += 'Please check camera permissions and try again.';
+                    }
+                    
+                    alert(errorMessage);
+                    closeCamera();
+                });
         }
 
         function closeCamera() {
-            const modal = document.getElementById("cameraModal");
-            if (modal) {
-                modal.style.display = "none";
-            }
+            const modal = document.getElementById('cameraModal');
+            modal.style.display = 'none';
+            
+            // Stop all video tracks
             if (stream) {
-                stream.getTracks().forEach(t => t.stop());
+                stream.getTracks().forEach(track => {
+                    track.stop();
+                });
+                stream = null;
             }
+            
+            // Clear video source
+            const video = document.getElementById('video');
+            video.srcObject = null;
         }
 
-        function captureAndSubmit() {
-            console.log("Capturing face...");
+        function capturePhoto() {
+            const video = document.getElementById('video');
+            const canvas = document.createElement('canvas');
+            const context = canvas.getContext('2d');
             
-            // Get form values
-            const roll = document.getElementById("roll").value;
-            const email = document.getElementById("email").value;
+            // Set canvas dimensions to match video
+            canvas.width = video.videoWidth;
+            canvas.height = video.videoHeight;
             
-            // Validation
-            if (!roll || !email) {
-                alert("Please fill in all required fields first.");
-                return;
-            }
+            // Draw video frame to canvas
+            context.drawImage(video, 0, 0, canvas.width, canvas.height);
+            
+            // Convert to base64 with good quality
+            const imageData = canvas.toDataURL('image/jpeg', 0.85);
+            document.getElementById('face_image').value = imageData;
 
-            // Get video element
-            const video = document.getElementById("video");
-            if (!video) {
-                alert("Video element not found!");
-                return;
-            }
+            // Update UI to show captured state
+            const area = document.getElementById('faceArea');
+            const status = document.getElementById('faceStatus');
+            const preview = document.getElementById('facePreview');
+            const cameraIcon = document.getElementById('cameraIcon');
             
-            if (!video.videoWidth || !video.videoHeight) {
-                alert("Camera not ready. Please wait for video to load.");
-                return;
-            }
+            area.classList.add('face-captured');
+            status.textContent = 'Face captured successfully! Click to retake';
+            
+            // Show preview image
+            preview.src = imageData;
+            preview.style.display = 'block';
+            cameraIcon.style.display = 'none';
+            
+            // Add success animation
+            area.style.transform = 'scale(0.95)';
+            setTimeout(() => {
+                area.style.transform = 'scale(1)';
+            }, 200);
 
-            try {
-                // Create canvas to capture image
-                const canvas = document.createElement("canvas");
-                canvas.width = video.videoWidth;
-                canvas.height = video.videoHeight;
-                const ctx = canvas.getContext("2d");
-                
-                // Draw video frame to canvas
-                ctx.drawImage(video, 0, 0);
-                
-                // Add timestamp
-                ctx.fillStyle = "rgba(40, 167, 69, 0.8)";
-                ctx.font = "bold 12px Arial";
-                ctx.fillText(`Roll: ${roll} | ${new Date().toLocaleString()}`, 10, canvas.height - 10);
-                
-                // Convert to base64 and set to hidden input
-                const imageData = canvas.toDataURL("image/jpeg", 0.9);
-                document.getElementById("face_image").value = imageData;
-                
-                // Mark face as captured
-                isFaceCaptured = true;
-                
-                console.log("Face captured successfully");
-                
-                // Close camera and submit
-                closeCamera();
-                
-                // Show success message
-                alert("Face captured successfully! Submitting registration...");
-                
-                // Submit form
-                try {
-                    document.getElementById("registerForm").submit();
-                } catch (submitError) {
-                    console.error("Form submission error:", submitError);
-                    alert("Error submitting form: " + submitError.message);
-                }
-                
-            } catch (error) {
-                console.error("Error capturing face:", error);
-                alert("Error capturing face: " + error.message);
-            }
+            closeCamera();
+            
+            console.log('Face photo captured successfully');
         }
     </script>
 </body>
