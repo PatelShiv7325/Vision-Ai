@@ -1,363 +1,364 @@
 <!DOCTYPE html>
 <html lang="en">
-
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Faculty Login - Vision AI</title>
-
-    <!-- Fonts & Icons -->
-    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600;700;800&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
-
+    <title>Faculty Login — Vision AI</title>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
-        * { 
-            box-sizing: border-box;
-            margin: 0;
-            padding: 0;
+        *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+        :root {
+            --bg:       #07070f;
+            --panel:    #070f0d;
+            --card:     #0c1512;
+            --card2:    #111e1a;
+            --border:   rgba(255,255,255,0.07);
+            --f-accent: #00d4aa;
+            --f-glow:   rgba(0,212,170,0.25);
+            --s-accent: #6c63ff;
+            --text:     #ededf5;
+            --sub:      #7a9490;
+            --dim:      #3a5550;
+            --red:      #ff6b6b;
+            --green:    #43e97b;
         }
 
         body {
-            font-family: 'Poppins', sans-serif;
+            font-family: 'Outfit', sans-serif;
+            background: var(--bg);
+            color: var(--text);
             min-height: 100vh;
             display: flex;
-            align-items: center;
-            justify-content: center;
-            background: linear-gradient(135deg, #4e54c8 0%, #7b4fa6 50%, #c471ed 100%);
             overflow-x: hidden;
-            position: relative;
         }
 
-        body::before,
-        body::after {
-            content: '';
-            position: absolute;
-            border-radius: 50%;
-            opacity: 0.12;
-            animation: float 6s ease-in-out infinite;
+        .left-panel {
+            width: 420px; min-height: 100vh;
+            background: var(--panel);
+            border-right: 1px solid rgba(0,212,170,0.08);
+            display: flex; flex-direction: column;
+            padding: 40px 44px;
+            position: sticky; top: 0; height: 100vh;
+            overflow: hidden; flex-shrink: 0;
         }
 
-        body::before {
-            width: 420px;
-            height: 420px;
-            background: #fff;
-            top: -120px;
-            left: -100px;
+        .brand { display: flex; align-items: center; gap: 12px; margin-bottom: 60px; }
+        .brand-gem {
+            width: 42px; height: 42px;
+            background: linear-gradient(135deg, var(--f-accent), #00ffcc);
+            border-radius: 12px;
+            display: flex; align-items: center; justify-content: center;
+            font-size: 20px;
+            box-shadow: 0 0 24px var(--f-glow);
+        }
+        .brand-name { font-size: 1.25rem; font-weight: 800; letter-spacing: -0.02em; }
+
+        .panel-heading { font-size: 2.1rem; font-weight: 900; line-height: 1.15; letter-spacing: -0.03em; margin-bottom: 16px; }
+        .panel-heading .hl {
+            background: linear-gradient(135deg, var(--f-accent) 0%, #00ffcc 50%, #7affd6 100%);
+            -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;
         }
 
-        body::after {
-            width: 320px;
-            height: 320px;
-            background: #fff;
-            bottom: -100px;
-            right: -80px;
-            animation-delay: 3s;
+        .panel-sub { font-size: 0.93rem; color: var(--sub); line-height: 1.7; margin-bottom: 48px; font-weight: 300; }
+
+        .role-toggle {
+            display: flex; background: var(--card);
+            border: 1px solid rgba(0,212,170,0.1);
+            border-radius: 14px; padding: 5px; gap: 4px; margin-bottom: 40px;
+        }
+        .role-btn {
+            flex: 1; padding: 11px 0;
+            border-radius: 10px; font-size: 0.88rem; font-weight: 700;
+            font-family: 'Outfit', sans-serif;
+            cursor: pointer; border: none; background: transparent;
+            color: var(--sub); transition: all 0.25s;
+            display: flex; align-items: center; justify-content: center; gap: 7px;
+        }
+        .role-btn.active-f { background: var(--f-accent); color: #07070f; box-shadow: 0 4px 20px var(--f-glow); }
+        .role-btn:hover:not(.active-f) { color: var(--text); }
+
+        .login-visual { flex: 1; display: flex; flex-direction: column; gap: 14px; }
+        .visual-label { font-size: 0.75rem; font-weight: 700; color: var(--f-accent); text-transform: uppercase; letter-spacing: 1px; margin-bottom: 6px; }
+
+        .stat-row {
+            display: flex; align-items: center; justify-content: space-between;
+            padding: 14px 16px;
+            background: rgba(0,212,170,0.05);
+            border: 1px solid rgba(0,212,170,0.1);
+            border-radius: 12px;
+        }
+        .stat-row-left { display: flex; align-items: center; gap: 10px; }
+        .stat-icon {
+            width: 34px; height: 34px;
+            background: rgba(0,212,170,0.12);
+            border-radius: 9px;
+            display: flex; align-items: center; justify-content: center;
+            font-size: 14px; color: var(--f-accent);
+        }
+        .stat-name  { font-size: 0.88rem; font-weight: 600; }
+        .stat-desc  { font-size: 0.76rem; color: var(--sub); margin-top: 1px; }
+        .stat-count { font-family: 'JetBrains Mono', monospace; font-size: 0.9rem; font-weight: 700; color: var(--f-accent); }
+
+        .orb { position: absolute; border-radius: 50%; filter: blur(80px); pointer-events: none; }
+        .orb-1 { width:300px;height:300px; background:rgba(0,212,170,0.07); bottom:-60px; right:-80px; }
+        .orb-2 { width:180px;height:180px; background:rgba(0,255,204,0.05); top:20%; left:-30px; }
+
+        .panel-footer { border-top: 1px solid rgba(0,212,170,0.1); padding-top: 24px; font-size: 0.82rem; color: var(--sub); }
+        .panel-footer a { color: var(--f-accent); font-weight: 700; text-decoration: none; }
+        .panel-footer a:hover { text-decoration: underline; }
+
+        .right-panel {
+            flex: 1; overflow-y: auto;
+            display: flex; flex-direction: column;
+            align-items: center; justify-content: center;
+            padding: 60px;
+        }
+        .login-box { width: 100%; max-width: 420px; }
+
+        .form-badge {
+            display: inline-flex; align-items: center; gap: 7px;
+            padding: 5px 14px; border-radius: 50px;
+            font-size: 0.75rem; font-weight: 700;
+            letter-spacing: 0.8px; text-transform: uppercase;
+            margin-bottom: 14px;
+            background: rgba(0,212,170,0.1); color: var(--f-accent);
+            border: 1px solid rgba(0,212,170,0.2);
         }
 
-        @keyframes float {
-            0%, 100% { transform: translateY(0); }
-            50% { transform: translateY(20px); }
-        }
-
-        @keyframes fadeUp {
-            from { opacity: 0; transform: translateY(40px); }
-            to   { opacity: 1; transform: translateY(0); }
-        }
-
-        .register-card {
-            background: rgba(255,255,255,0.97);
-            border-radius: 30px;
-            padding: 2.8rem;
-            max-width: 500px;
-            width: 92%;
-            box-shadow: 0 30px 80px rgba(20,20,80,0.25);
-            text-align: center;
-            animation: fadeUp 0.8s ease-in-out;
-            position: relative;
-            z-index: 1;
-        }
-
-        .logo-icon {
-            width: 68px;
-            height: 68px;
-            background: linear-gradient(135deg, #667eea, #764ba2);
-            border-radius: 18px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            margin: 0 auto 1rem;
-            font-size: 1.8rem;
-            box-shadow: 0 10px 30px rgba(102,126,234,0.4);
-            color: white;
-        }
-
-        .badge {
-            display: inline-block;
-            background: linear-gradient(135deg, rgba(102,126,234,0.12), rgba(118,75,162,0.12));
-            color: #6f73ff;
-            font-size: 0.72rem;
-            font-weight: 600;
-            letter-spacing: 1.5px;
-            text-transform: uppercase;
-            padding: 5px 16px;
-            border-radius: 50px;
-            margin-bottom: 0.8rem;
-            border: 1px solid rgba(111,115,255,0.25);
-        }
-
-        h2 {
-            font-size: 1.85rem;
-            font-weight: 800;
-            background: linear-gradient(135deg, #667eea, #764ba2);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-            background-clip: text;
-            margin-bottom: 0.4rem;
-        }
-
-        .subtitle {
-            color: #999;
-            font-size: 0.85rem;
-            margin-bottom: 0.5rem;
-            line-height: 1.5;
-        }
-
-        .divider {
-            width: 50px;
-            height: 4px;
-            background: linear-gradient(135deg, #667eea, #764ba2);
-            margin: 0.8rem auto 1.8rem;
-            border-radius: 2px;
-        }
+        .form-title { font-size: 2.1rem; font-weight: 900; letter-spacing: -0.025em; line-height: 1.2; margin-bottom: 6px; }
+        .form-subtitle { font-size: 0.9rem; color: var(--sub); font-weight: 300; margin-bottom: 36px; }
 
         .alert-error {
-            background: rgba(220,53,69,0.08);
-            color: #dc3545;
-            border: 1px solid rgba(220,53,69,0.2);
-            border-radius: 12px;
-            padding: 0.8rem 1rem;
-            font-size: 0.85rem;
-            margin-bottom: 1.2rem;
-            text-align: left;
+            background: rgba(255,107,107,0.1); border: 1px solid rgba(255,107,107,0.25);
+            border-radius: 12px; padding: 12px 16px;
+            font-size: 0.88rem; color: var(--red);
+            display: flex; align-items: center; gap: 9px;
+            margin-bottom: 24px; animation: shake 0.4s ease;
         }
+        @keyframes shake { 0%,100%{transform:translateX(0);} 20%,60%{transform:translateX(-6px);} 40%,80%{transform:translateX(6px);} }
 
-        .form-group {
-            margin-bottom: 1.1rem;
-            text-align: left;
-        }
-
-        .form-group label {
-            display: block;
-            font-size: 0.82rem;
-            font-weight: 600;
-            color: #555;
-            margin-bottom: 5px;
-        }
-
-        .form-group label i {
-            color: #667eea;
-            margin-right: 6px;
-        }
-
-        .input-wrapper {
-            position: relative;
-        }
-
-        .input-wrapper .icon {
-            position: absolute;
-            left: 15px;
-            top: 50%;
-            transform: translateY(-50%);
-            color: #667eea;
-            font-size: 0.9rem;
-        }
-
-        .input-wrapper input {
-            width: 100%;
-            height: 50px;
-            padding: 0 45px;
-            border: 2px solid #e8eaf0;
-            border-radius: 14px;
-            font-size: 0.9rem;
-            font-family: 'Poppins', sans-serif;
-            background: #f8f9fe;
+        .field-group { margin-bottom: 20px; position: relative; }
+        .field-label { display: block; font-size: 0.79rem; font-weight: 700; color: var(--sub); text-transform: uppercase; letter-spacing: 0.7px; margin-bottom: 8px; }
+        .field-wrap { position: relative; }
+        .field-icon {
+            position: absolute; left: 14px; top: 50%; transform: translateY(-50%);
+            color: var(--dim); font-size: 0.9rem; pointer-events: none;
             transition: all 0.3s ease;
-            box-sizing: border-box;
-            color: #333;
         }
-
-        .input-wrapper input:focus {
-            border-color: #667eea;
-            background: #fff;
-            outline: none;
-            box-shadow: 0 0 0 4px rgba(102,126,234,0.1);
+        .field-input {
+            width: 100%; background: var(--card2);
+            border: 1.5px solid rgba(0,212,170,0.1);
+            border-radius: 12px; padding: 14px 14px 14px 42px;
+            font-size: 0.95rem; font-family: 'Outfit', sans-serif;
+            color: var(--text); outline: none; transition: all 0.3s ease; height: 52px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+        .field-input:focus {
+            border-color: var(--f-accent);
+            background: rgba(0,212,170,0.04);
+            box-shadow: 0 0 0 3px rgba(0,212,170,0.1), 0 4px 12px rgba(0,212,170,0.15);
             transform: translateY(-1px);
         }
+        .field-wrap:focus-within .field-icon { color: var(--f-accent); }
+        .field-input::placeholder { color: var(--dim); }
 
-        .input-wrapper input.valid   { border-color: #28a745; background: #f6fff8; }
-        .input-wrapper input.invalid { border-color: #dc3545; background: #fff8f8; }
+        .pwd-toggle { position:absolute; right:14px; top:50%; transform:translateY(-50%); color:var(--dim); cursor:pointer; font-size:0.9rem; background:none; border:none; padding:4px; transition:color 0.2s; }
+        .pwd-toggle:hover { color: var(--f-accent); }
 
-        .toggle-password {
-            position: absolute;
-            right: 12px;
-            top: 50%;
-            transform: translateY(-50%);
-            color: #aaa;
-            cursor: pointer;
-            font-size: 0.9rem;
-            transition: color 0.3s;
-            z-index: 10;
-            background: none;
-            border: none;
-            padding: 6px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            line-height: 1;
+        .forgot-row { text-align: right; margin-top: 6px; }
+        .forgot-row a { font-size: 0.8rem; font-weight: 700; color: var(--f-accent); text-decoration: none; }
+        .forgot-row a:hover { text-decoration: underline; }
+
+        .btn-login {
+            width: 100%; padding: 15px;
+            background: var(--f-accent); color: #07070f;
+            border: none; border-radius: 14px;
+            font-size: 1rem; font-weight: 800; font-family: 'Outfit', sans-serif;
+            cursor: pointer; transition: all 0.25s;
+            box-shadow: 0 4px 28px var(--f-glow);
+            display: flex; align-items: center; justify-content: center; gap: 9px;
+            position: relative; overflow: hidden;
+            letter-spacing: -0.01em; margin-top: 28px;
         }
+        .btn-login::after { content:''; position:absolute; top:0; left:-100%; width:100%; height:100%; background:linear-gradient(90deg,transparent,rgba(255,255,255,0.18),transparent); transition:left 0.5s; }
+        .btn-login:hover { background: #00bfa0; transform: translateY(-2px); box-shadow: 0 8px 36px var(--f-glow); }
+        .btn-login:hover::after { left: 100%; }
 
-        .toggle-password:hover { color: #667eea; }
-        .toggle-password:focus { outline: none; }
+        .or-divider { display:flex; align-items:center; gap:14px; color:var(--dim); font-size:0.78rem; font-weight:600; text-transform:uppercase; letter-spacing:1px; margin: 24px 0; }
+        .or-divider::before,.or-divider::after { content:''; flex:1; height:1px; background:rgba(0,212,170,0.1); }
 
-        .password-help {
-            display: block;
-            font-size: 0.75rem;
-            color: #999;
-            margin-top: 5px;
-            padding-left: 4px;
-        }
-
-        .btn-register {
-            width: 100%;
-            padding: 14px;
-            background: linear-gradient(135deg, #667eea, #764ba2);
-            color: white;
-            border: none;
+        .quick-access {
+            background: rgba(0,212,170,0.05);
+            border: 1px solid rgba(0,212,170,0.12);
             border-radius: 14px;
-            font-size: 1rem;
-            font-weight: 700;
-            font-family: 'Poppins', sans-serif;
-            cursor: pointer;
-            transition: all 0.3s ease;
-            box-shadow: 0 8px 24px rgba(102,126,234,0.35);
-            position: relative;
-            overflow: hidden;
-            margin-top: 0.6rem;
+            padding: 16px 18px;
         }
+        .quick-title { font-size: 0.78rem; font-weight: 700; color: var(--f-accent); text-transform: uppercase; letter-spacing: 0.8px; margin-bottom: 12px; }
+        .quick-items { display: flex; flex-direction: column; gap: 10px; }
+        .quick-item { display: flex; align-items: center; gap: 10px; font-size: 0.86rem; color: var(--sub); }
+        .quick-item i { color: var(--f-accent); font-size: 0.82rem; width: 16px; }
 
-        .btn-register::after {
-            content: '';
-            position: absolute;
-            top: 0; left: -100%;
-            width: 100%; height: 100%;
-            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.18), transparent);
-            transition: left 0.5s ease;
-        }
+        .form-footer { text-align:center; margin-top:28px; font-size:0.85rem; color:var(--sub); display:flex; flex-direction:column; gap:6px; }
+        .form-footer a { color: var(--f-accent); font-weight: 700; text-decoration: none; }
+        .form-footer a:hover { text-decoration: underline; }
 
-        .btn-register:hover {
-            transform: translateY(-3px);
-            box-shadow: 0 14px 32px rgba(102,126,234,0.45);
-        }
-        .btn-register:hover::after { left: 100%; }
-        .btn-register:active { transform: translateY(-1px); }
-
-        .links {
-            margin-top: 1.5rem;
-            font-size: 0.84rem;
-            color: #999;
-        }
-
-        .links p { margin-bottom: 0.4rem; }
-
-        .links a {
-            color: #667eea;
-            font-weight: 600;
-            text-decoration: none;
-            transition: color 0.3s;
-        }
-
-        .links a:hover { color: #4a4fc4; }
-
-        .back-home {
-            display: inline-flex;
-            align-items: center;
-            gap: 6px;
-            margin-top: 0.4rem;
-            font-size: 0.82rem;
-            color: #aaa;
-            text-decoration: none;
-            transition: color 0.3s;
-        }
-
-        .back-home:hover { color: #667eea; }
-
-        @media (max-width: 520px) {
-            .register-card { padding: 2rem 1.5rem; }
-            h2 { font-size: 1.5rem; }
-        }
+        @media (max-width: 960px) { .left-panel { display: none; } .right-panel { padding: 40px 32px; } }
+        @media (max-width: 540px) { .right-panel { padding: 28px 20px; } }
     </style>
 </head>
-
 <body>
 
-<div class="register-card">
-    <div class="logo-icon">👨‍🏫</div>
-    <div class="badge">Faculty Portal</div>
+    <aside class="left-panel">
+        <div class="orb orb-1"></div>
+        <div class="orb orb-2"></div>
 
-    <h2>Faculty Login</h2>
-    <p class="subtitle">Sign in to manage attendance</p>
-    <div class="divider"></div>
+        <div class="brand">
+            <div class="brand-gem">👁️</div>
+            <span class="brand-name">Vision AI</span>
+        </div>
 
-    {% if error %}
-        <div class="alert-error"><i class="fas fa-exclamation-circle"></i> {{ error }}</div>
-    {% endif %}
+        <div class="panel-heading">
+            Welcome back,<br><span class="hl">professor</span>
+        </div>
+        <p class="panel-sub">Sign in to manage your classes, mark attendance with face recognition, and access detailed student reports.</p>
 
-    <form method="POST">
+        <div class="role-toggle">
+            <button class="role-btn" onclick="window.location='/student-login'">
+                <i class="fas fa-graduation-cap"></i> Student
+            </button>
+            <button class="role-btn active-f" onclick="window.location='/faculty-login'">
+                <i class="fas fa-chalkboard-teacher"></i> Faculty
+            </button>
+        </div>
 
-        <!-- Faculty ID -->
-        <div class="form-group">
-            <label><i class="fas fa-id-badge"></i>Faculty ID</label>
-            <div class="input-wrapper">
-                <i class="fas fa-id-badge icon"></i>
-                <input type="text" name="fid" placeholder="Enter your faculty ID" required>
+        <div class="login-visual">
+            <div class="visual-label">Your Faculty Dashboard</div>
+            <div class="stat-row">
+                <div class="stat-row-left">
+                    <div class="stat-icon"><i class="fas fa-users"></i></div>
+                    <div>
+                        <div class="stat-name">Students</div>
+                        <div class="stat-desc">Registered &amp; enrolled</div>
+                    </div>
+                </div>
+                <div class="stat-count">Active</div>
+            </div>
+            <div class="stat-row">
+                <div class="stat-row-left">
+                    <div class="stat-icon"><i class="fas fa-calendar-check"></i></div>
+                    <div>
+                        <div class="stat-name">Attendance Records</div>
+                        <div class="stat-desc">All time logs</div>
+                    </div>
+                </div>
+                <div class="stat-count">Synced</div>
+            </div>
+            <div class="stat-row">
+                <div class="stat-row-left">
+                    <div class="stat-icon"><i class="fas fa-camera"></i></div>
+                    <div>
+                        <div class="stat-name">Face Recognition</div>
+                        <div class="stat-desc">Bulk class capture</div>
+                    </div>
+                </div>
+                <div class="stat-count">Ready</div>
             </div>
         </div>
 
-        <!-- Password -->
-        <div class="form-group">
-            <label><i class="fas fa-lock"></i>Password</label>
-            <div class="input-wrapper">
-                <i class="fas fa-lock icon"></i>
-                <input type="password" id="password" name="password" placeholder="Enter your password" required>
-                <button type="button" class="toggle-password" id="togglePassword" aria-label="Toggle password visibility">
-                    <i class="fas fa-eye" id="toggleIcon"></i>
+        <div class="panel-footer">
+            New faculty? <a href="/faculty-register">Create account →</a>
+        </div>
+    </aside>
+
+    <main class="right-panel">
+        <div class="login-box">
+
+            <div class="form-badge">
+                <i class="fas fa-chalkboard-teacher"></i> Faculty Portal
+            </div>
+            <div class="form-title">Faculty Sign In</div>
+            <p class="form-subtitle">Enter your Faculty ID and password to access the portal.</p>
+
+            {% if error %}
+            <div class="alert-error">
+                <i class="fas fa-exclamation-circle"></i> {{ error }}
+            </div>
+            {% endif %}
+
+            <form method="POST" id="loginForm">
+                <!-- ✅ CSRF token — fixes the Forbidden 403 error -->
+                <input type="hidden" name="_csrf" value="{{ csrf_token }}">
+
+                <div class="field-group">
+                    <label class="field-label">Faculty ID or Email</label>
+                    <div class="field-wrap">
+                        <i class="fas fa-user field-icon"></i>
+                        <input
+                            type="text"
+                            name="fid"
+                            class="field-input"
+                            placeholder="Enter your Faculty ID or Email"
+                            required
+                            autocomplete="username"
+                        >
+                    </div>
+                </div>
+
+                <div class="field-group">
+                    <label class="field-label">Password</label>
+                    <div class="field-wrap">
+                        <i class="fas fa-lock field-icon"></i>
+                        <input type="password" id="password" name="password" class="field-input" placeholder="Your password" required autocomplete="current-password">
+                        <button type="button" class="pwd-toggle" id="pwdToggle" tabindex="-1">
+                            <i class="fas fa-eye" id="pwdIcon"></i>
+                        </button>
+                    </div>
+                    <div class="forgot-row">
+                        <a href="/forgot-password?role=faculty"><i class="fas fa-key" style="margin-right:4px;"></i>Forgot Password?</a>
+                    </div>
+                </div>
+
+                <div style="display:flex; align-items:center; gap:8px; margin-top:10px;">
+                    <input type="checkbox" name="remember" id="remember">
+                    <label for="remember" style="font-size:0.8rem; color:var(--sub); cursor:pointer;">
+                        Remember me
+                    </label>
+                </div>
+
+                <button type="submit" class="btn-login">
+                    <i class="fas fa-sign-in-alt"></i> Access Faculty Dashboard
                 </button>
+            </form>
+
+            <div class="or-divider">quick access</div>
+
+            <div class="quick-access">
+                <div class="quick-title"><i class="fas fa-bolt" style="margin-right:6px;"></i>After login you can</div>
+                <div class="quick-items">
+                    <div class="quick-item"><i class="fas fa-camera"></i> Mark attendance by scanning the classroom</div>
+                    <div class="quick-item"><i class="fas fa-check-double"></i> Bulk-mark from student checklist</div>
+                    <div class="quick-item"><i class="fas fa-chart-bar"></i> View subject-wise attendance reports</div>
+                    <div class="quick-item"><i class="fas fa-download"></i> Export records to PDF or Excel</div>
+                </div>
+            </div>
+
+            <div class="form-footer">
+                <span>Don't have an account? <a href="/faculty-register">Register as faculty</a></span>
+                <span>Student? <a href="/student-login">Student login →</a></span>
             </div>
         </div>
+    </main>
 
-        <button type="submit" class="btn-register">
-            <i class="fas fa-sign-in-alt" style="margin-right: 8px;"></i>Login
-        </button>
-    </form>
-
-    <div class="links">
-        <p>Don't have an account? <a href="/faculty-register">Register here</a></p>
-        <a href="/" class="back-home"><i class="fas fa-arrow-left"></i> Back to Home</a>
-    </div>
-</div>
-
-<script>
-    // ✅ FIX: Button wraps the icon — reliable click in all browsers
-    document.getElementById('togglePassword').addEventListener('click', function () {
-        const pwd = document.getElementById('password');
-        const icon = document.getElementById('toggleIcon');
-        const isPassword = pwd.getAttribute('type') === 'password';
-        pwd.setAttribute('type', isPassword ? 'text' : 'password');
-        icon.classList.toggle('fa-eye', !isPassword);
-        icon.classList.toggle('fa-eye-slash', isPassword);
-    });
-
-</script>
-
+    <script>
+        document.getElementById('pwdToggle').addEventListener('click', () => {
+            const input = document.getElementById('password');
+            const icon  = document.getElementById('pwdIcon');
+            const show  = input.type === 'password';
+            input.type = show ? 'text' : 'password';
+            icon.className = show ? 'fas fa-eye-slash' : 'fas fa-eye';
+        });
+    </script>
 </body>
 </html>

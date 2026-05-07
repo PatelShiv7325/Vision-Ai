@@ -3,365 +3,498 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Faculty Registration - Vision AI</title>
-
-    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600;700;800&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
-
+    <title>Faculty Register — Vision AI</title>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
-        * { box-sizing: border-box; margin: 0; padding: 0; }
+        *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+        :root {
+            --bg:       #07070f;
+            --panel:    #070f0d;
+            --card:     #0c1512;
+            --card2:    #111e1a;
+            --border:   rgba(255,255,255,0.07);
+            --f-accent: #00d4aa;
+            --f-glow:   rgba(0,212,170,0.25);
+            --f-dark:   #004d3d;
+            --s-accent: #6c63ff;
+            --text:     #ededf5;
+            --sub:      #7a9490;
+            --dim:      #3a5550;
+            --red:      #ff6b6b;
+            --green:    #43e97b;
+        }
 
         body {
-            font-family: 'Poppins', sans-serif;
+            font-family: 'Outfit', sans-serif;
+            background: var(--bg);
+            color: var(--text);
             min-height: 100vh;
             display: flex;
-            align-items: center;
-            justify-content: center;
-            background: linear-gradient(135deg, #4e54c8 0%, #7b4fa6 50%, #c471ed 100%);
             overflow-x: hidden;
-            position: relative;
         }
 
-        body::before, body::after {
-            content: '';
-            position: absolute;
-            border-radius: 50%;
-            opacity: 0.12;
-            animation: float 6s ease-in-out infinite;
-        }
-        body::before { width: 420px; height: 420px; background: #fff; top: -120px; left: -100px; }
-        body::after  { width: 320px; height: 320px; background: #fff; bottom: -100px; right: -80px; animation-delay: 3s; }
-
-        @keyframes float {
-            0%, 100% { transform: translateY(0); }
-            50%       { transform: translateY(20px); }
-        }
-        @keyframes fadeUp {
-            from { opacity: 0; transform: translateY(40px); }
-            to   { opacity: 1; transform: translateY(0); }
+        /* ── LEFT PANEL ── */
+        .left-panel {
+            width: 420px;
+            min-height: 100vh;
+            background: var(--panel);
+            border-right: 1px solid rgba(0,212,170,0.08);
+            display: flex; flex-direction: column;
+            padding: 40px 44px;
+            position: sticky; top: 0; height: 100vh;
+            overflow: hidden; flex-shrink: 0;
         }
 
-        .register-card {
-            background: rgba(255,255,255,0.97);
-            border-radius: 30px;
-            padding: 2.8rem;
-            max-width: 500px;
-            width: 92%;
-            box-shadow: 0 30px 80px rgba(20,20,80,0.25);
-            animation: fadeUp 0.8s ease-in-out;
-            position: relative;
-            z-index: 1;
-            text-align: center;
+        .brand { display: flex; align-items: center; gap: 12px; margin-bottom: 60px; }
+
+        .brand-gem {
+            width: 42px; height: 42px;
+            background: linear-gradient(135deg, var(--f-accent), #00ffcc);
+            border-radius: 12px;
+            display: flex; align-items: center; justify-content: center;
+            font-size: 20px;
+            box-shadow: 0 0 24px var(--f-glow);
         }
 
-        .logo-icon {
-            width: 68px;
-            height: 68px;
-            background: linear-gradient(135deg, #667eea, #764ba2);
-            border-radius: 18px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            margin: 0 auto 1rem;
-            font-size: 1.8rem;
-            box-shadow: 0 10px 30px rgba(102,126,234,0.4);
+        .brand-name { font-size: 1.25rem; font-weight: 800; letter-spacing: -0.02em; }
+
+        .panel-heading {
+            font-size: 2.1rem; font-weight: 900;
+            line-height: 1.15; letter-spacing: -0.03em; margin-bottom: 16px;
         }
 
-        .badge {
-            display: inline-block;
-            background: linear-gradient(135deg, rgba(102,126,234,0.12), rgba(118,75,162,0.12));
-            color: #6f73ff;
-            font-size: 0.72rem;
-            font-weight: 600;
-            letter-spacing: 1.5px;
-            text-transform: uppercase;
-            padding: 5px 16px;
-            border-radius: 50px;
-            margin-bottom: 0.8rem;
-            border: 1px solid rgba(111,115,255,0.25);
+        .panel-heading .hl {
+            background: linear-gradient(135deg, var(--f-accent) 0%, #00ffcc 50%, #7affd6 100%);
+            -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;
         }
 
-        .register-card h2 {
-            font-size: 1.85rem;
-            font-weight: 800;
-            background: linear-gradient(135deg, #667eea, #764ba2);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-            background-clip: text;
-            margin-bottom: 0.4rem;
+        .panel-sub { font-size: 0.93rem; color: var(--sub); line-height: 1.7; margin-bottom: 48px; font-weight: 300; }
+
+        .role-toggle {
+            display: flex; background: var(--card);
+            border: 1px solid rgba(0,212,170,0.1);
+            border-radius: 14px; padding: 5px; gap: 4px; margin-bottom: 40px;
         }
 
-        .subtitle {
-            color: #999;
-            font-size: 0.85rem;
-            margin-bottom: 0.5rem;
-            line-height: 1.5;
+        .role-btn {
+            flex: 1; padding: 11px 0;
+            border-radius: 10px; font-size: 0.88rem; font-weight: 700;
+            font-family: 'Outfit', sans-serif;
+            cursor: pointer; border: none; background: transparent;
+            color: var(--sub); transition: all 0.25s;
+            display: flex; align-items: center; justify-content: center; gap: 7px;
+        }
+        .role-btn.active-f { background: var(--f-accent); color: #07070f; box-shadow: 0 4px 20px var(--f-glow); }
+        .role-btn:hover:not(.active-f) { color: var(--text); }
+
+        .steps-list { list-style: none; display: flex; flex-direction: column; gap: 20px; margin-bottom: auto; }
+        .step-item  { display: flex; align-items: flex-start; gap: 14px; }
+
+        .step-dot {
+            width: 28px; height: 28px; border-radius: 8px;
+            display: flex; align-items: center; justify-content: center;
+            font-size: 12px; flex-shrink: 0; margin-top: 2px;
+            font-family: 'JetBrains Mono', monospace; font-weight: 500;
+            background: rgba(0,212,170,0.12); color: var(--f-accent);
+            border: 1px solid rgba(0,212,170,0.25);
         }
 
-        .divider {
-            width: 50px;
-            height: 4px;
-            background: linear-gradient(135deg, #667eea, #764ba2);
-            border-radius: 2px;
-            margin: 0.8rem auto 1.8rem;
+        .step-text strong { display: block; font-size: 0.9rem; font-weight: 700; margin-bottom: 2px; }
+        .step-text span   { font-size: 0.82rem; color: var(--sub); line-height: 1.5; }
+
+        .panel-footer { border-top: 1px solid rgba(0,212,170,0.1); padding-top: 24px; font-size: 0.82rem; color: var(--sub); }
+        .panel-footer a { color: var(--f-accent); font-weight: 700; text-decoration: none; }
+        .panel-footer a:hover { text-decoration: underline; }
+
+        .orb { position: absolute; border-radius: 50%; filter: blur(80px); pointer-events: none; }
+        .orb-1 { width:300px;height:300px; background:rgba(0,212,170,0.07); bottom:-60px; right:-80px; }
+        .orb-2 { width:180px;height:180px; background:rgba(0,255,204,0.05); top:20%; left:-30px; }
+
+        /* ── RIGHT PANEL ── */
+        .right-panel {
+            flex: 1; overflow-y: auto;
+            padding: 48px 60px 60px;
+            display: flex; flex-direction: column;
         }
+
+        .form-header { margin-bottom: 36px; }
+
+        .form-badge {
+            display: inline-flex; align-items: center; gap: 7px;
+            padding: 5px 14px; border-radius: 50px;
+            font-size: 0.75rem; font-weight: 700; letter-spacing: 0.8px; text-transform: uppercase;
+            margin-bottom: 14px;
+            background: rgba(0,212,170,0.1); color: var(--f-accent);
+            border: 1px solid rgba(0,212,170,0.2);
+        }
+
+        .form-title { font-size: 1.9rem; font-weight: 900; letter-spacing: -0.025em; line-height: 1.2; margin-bottom: 6px; }
+        .form-subtitle { font-size: 0.9rem; color: var(--sub); font-weight: 300; }
 
         .alert-error {
-            background: rgba(220,53,69,0.08);
-            color: #dc3545;
-            border: 1px solid rgba(220,53,69,0.2);
-            border-radius: 12px;
-            padding: 0.8rem 1rem;
-            font-size: 0.85rem;
-            margin-bottom: 1.2rem;
-            text-align: left;
+            background: rgba(255,107,107,0.1); border: 1px solid rgba(255,107,107,0.25);
+            border-radius: 12px; padding: 12px 16px;
+            font-size: 0.88rem; color: var(--red);
+            display: flex; align-items: center; gap: 9px;
+            margin-bottom: 24px; animation: shake 0.4s ease;
+        }
+        @keyframes shake { 0%,100%{transform:translateX(0);} 20%,60%{transform:translateX(-6px);} 40%,80%{transform:translateX(6px);} }
+
+        .form-grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 18px 20px; }
+
+        .field-group { display: flex; flex-direction: column; gap: 7px; }
+
+        .field-label {
+            font-size: 0.79rem; font-weight: 700; color: var(--sub);
+            text-transform: uppercase; letter-spacing: 0.7px;
         }
 
-        .form-group {
-            margin-bottom: 1.1rem;
-            text-align: left;
+        .field-wrap { position: relative; }
+
+        .field-icon {
+            position: absolute; left: 14px; top: 50%;
+            transform: translateY(-50%); color: var(--dim);
+            font-size: 0.9rem; pointer-events: none; transition: color 0.2s;
         }
 
-        .form-group label {
-            display: block;
-            font-size: 0.82rem;
-            font-weight: 600;
-            color: #555;
-            margin-bottom: 5px;
+        .field-input {
+            width: 100%; background: var(--card2);
+            border: 1.5px solid rgba(0,212,170,0.1);
+            border-radius: 12px; padding: 13px 14px 13px 42px;
+            font-size: 0.93rem; font-family: 'Outfit', sans-serif;
+            color: var(--text); outline: none; transition: all 0.2s; height: 48px;
         }
-
-        .form-group label i {
-            color: #667eea;
-            margin-right: 6px;
+        .field-input:focus {
+            border-color: var(--f-accent);
+            background: rgba(0,212,170,0.04);
+            box-shadow: 0 0 0 3px rgba(0,212,170,0.1);
         }
+        .field-wrap:focus-within .field-icon { color: var(--f-accent); }
+        .field-input::placeholder { color: var(--dim); }
 
-        .input-wrapper {
-            position: relative;
+        .field-select {
+            width: 100%; background: var(--card2);
+            border: 1.5px solid rgba(0,212,170,0.1);
+            border-radius: 12px; padding: 13px 14px 13px 42px;
+            font-size: 0.93rem; font-family: 'Outfit', sans-serif;
+            color: var(--text); outline: none; transition: all 0.2s; height: 48px;
+            cursor: pointer; appearance: none;
         }
+        .field-select:focus { border-color: var(--f-accent); background: rgba(0,212,170,0.04); box-shadow: 0 0 0 3px rgba(0,212,170,0.1); }
+        .field-select option { background: var(--card2); color: var(--text); }
+        .select-arrow { position: absolute; right:14px; top:50%; transform:translateY(-50%); color:var(--dim); font-size:0.75rem; pointer-events:none; }
 
-        .input-wrapper .icon {
-            position: absolute;
-            left: 15px;
-            top: 50%;
-            transform: translateY(-50%);
-            color: #667eea;
-            font-size: 0.9rem;
+        .pwd-toggle { position:absolute; right:14px; top:50%; transform:translateY(-50%); color:var(--dim); cursor:pointer; font-size:0.9rem; background:none; border:none; padding:4px; transition:color 0.2s; }
+        .pwd-toggle:hover { color: var(--f-accent); }
+
+        .pwd-meter { height:3px; border-radius:2px; background:rgba(0,212,170,0.1); margin-top:6px; overflow:hidden; }
+        .pwd-meter-fill { height:100%; border-radius:2px; width:0%; transition:width 0.3s,background 0.3s; }
+        .pwd-hint { font-size:0.76rem; color:var(--sub); margin-top:4px; display:flex; align-items:center; gap:5px; }
+
+        .section-divider {
+            display:flex; align-items:center; gap:14px;
+            margin: 28px 0 24px;
+            color:var(--dim); font-size:0.78rem; font-weight:600; text-transform:uppercase; letter-spacing:1px;
         }
-
-        .input-wrapper input {
-            width: 100%;
-            height: 50px;
-            padding: 0 45px;
-            border: 2px solid #e8eaf0;
-            border-radius: 14px;
-            font-size: 0.9rem;
-            font-family: 'Poppins', sans-serif;
-            background: #f8f9fe;
-            transition: all 0.3s ease;
-            box-sizing: border-box;
-            color: #333;
-        }
-
-        .input-wrapper input:focus {
-            border-color: #667eea;
-            background: #fff;
-            outline: none;
-            box-shadow: 0 0 0 4px rgba(102,126,234,0.1);
-            transform: translateY(-1px);
-        }
-
-        .input-wrapper input.valid   { border-color: #28a745; background: #f6fff8; }
-        .input-wrapper input.invalid { border-color: #dc3545; background: #fff8f8; }
-
-        .toggle-password {
-            position: absolute;
-            right: 15px;
-            top: 50%;
-            transform: translateY(-50%);
-            color: #aaa;
-            cursor: pointer;
-            font-size: 0.9rem;
-            transition: color 0.3s;
-            background: none;
-            border: none;
-        }
-        .toggle-password:hover { color: #667eea; }
-
-        .password-help {
-            font-size: 0.75rem;
-            color: #999;
-            margin-top: 5px;
-            padding-left: 4px;
-        }
+        .section-divider::before,.section-divider::after { content:''; flex:1; height:1px; background:rgba(0,212,170,0.1); }
 
         .btn-register {
-            width: 100%;
-            padding: 16px;
-            background: linear-gradient(135deg, #667eea, #764ba2);
-            color: white;
-            border: none;
-            border-radius: 14px;
-            font-size: 1rem;
-            font-weight: 700;
-            font-family: 'Poppins', sans-serif;
-            cursor: pointer;
-            transition: all 0.3s ease;
-            box-shadow: 0 8px 24px rgba(102,126,234,0.35);
-            position: relative;
-            overflow: hidden;
-            margin-top: 0.6rem;
+            width:100%; padding:15px;
+            background: var(--f-accent); color: #07070f;
+            border:none; border-radius:14px;
+            font-size:1rem; font-weight:800; font-family:'Outfit',sans-serif;
+            cursor:pointer; transition:all 0.25s;
+            box-shadow: 0 4px 28px var(--f-glow);
+            display:flex; align-items:center; justify-content:center; gap:9px;
+            position:relative; overflow:hidden; letter-spacing:-0.01em;
         }
+        .btn-register::after { content:''; position:absolute; top:0; left:-100%; width:100%; height:100%; background:linear-gradient(90deg,transparent,rgba(255,255,255,0.15),transparent); transition:left 0.5s; }
+        .btn-register:hover { background:#00bfa0; transform:translateY(-2px); box-shadow:0 8px 36px var(--f-glow); }
+        .btn-register:hover::after { left:100%; }
 
-        .btn-register::after {
-            content: '';
-            position: absolute;
-            top: 0; left: -100%;
-            width: 100%; height: 100%;
-            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.18), transparent);
-            transition: left 0.5s ease;
-        }
+        .form-footer { text-align:center; margin-top:20px; font-size:0.85rem; color:var(--sub); }
+        .form-footer a { color:var(--f-accent); font-weight:700; text-decoration:none; }
+        .form-footer a:hover { text-decoration:underline; }
 
-        .btn-register:hover {
-            transform: translateY(-3px);
-            box-shadow: 0 14px 32px rgba(102,126,234,0.45);
+        /* Dept suggestions */
+        .dept-suggestions {
+            display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px;
         }
-        .btn-register:hover::after { left: 100%; }
-        .btn-register:active { transform: translateY(-1px); }
+        .dept-chip {
+            padding: 4px 12px;
+            border-radius: 50px;
+            font-size: 0.75rem; font-weight: 600;
+            background: rgba(0,212,170,0.08);
+            border: 1px solid rgba(0,212,170,0.15);
+            color: var(--f-accent);
+            cursor: pointer; transition: all 0.2s;
+        }
+        .dept-chip:hover { background: rgba(0,212,170,0.18); }
 
-        .links {
-            margin-top: 1.5rem;
-            font-size: 0.84rem;
-            color: #999;
-        }
-        .links p { margin-bottom: 0.4rem; }
-        .links a {
-            color: #667eea;
-            font-weight: 600;
-            text-decoration: none;
-            transition: color 0.3s;
-        }
-        .links a:hover { color: #4a4fc4; }
-
-        .back-home {
-            display: inline-flex;
-            align-items: center;
-            gap: 6px;
-            margin-top: 0.4rem;
-            font-size: 0.82rem;
-            color: #aaa;
-            text-decoration: none;
-            transition: color 0.3s;
-        }
-        .back-home:hover { color: #667eea; }
-
-        @media (max-width: 520px) {
-            .register-card { padding: 2rem 1.5rem; }
-            .register-card h2 { font-size: 1.5rem; }
-        }
+        @media (max-width: 960px) { .left-panel { display:none; } .right-panel { padding: 40px 32px 60px; } }
+        @media (max-width: 540px) { .right-panel { padding:28px 20px 48px; } .form-grid-2 { grid-template-columns:1fr; } }
     </style>
 </head>
-
 <body>
-    <div class="register-card">
-        <div class="logo-icon">👨‍🏫</div>
-        <div class="badge">Faculty Portal</div>
 
-        <h2>Faculty Registration</h2>
-        <p class="subtitle">Create your account to manage attendance</p>
-        <div class="divider"></div>
+    <!-- ── LEFT PANEL ── -->
+    <aside class="left-panel">
+        <div class="orb orb-1"></div>
+        <div class="orb orb-2"></div>
+
+        <div class="brand">
+            <div class="brand-gem">👁️</div>
+            <span class="brand-name">Vision AI</span>
+        </div>
+
+        <div class="panel-heading">
+            Join as<br><span class="hl">faculty today</span>
+        </div>
+        <p class="panel-sub">Manage attendance for your entire class in seconds using AI face recognition — no clipboards, no hassle.</p>
+
+        <div class="role-toggle">
+            <button class="role-btn" onclick="window.location='/student-register'">
+                <i class="fas fa-graduation-cap"></i> Student
+            </button>
+            <button class="role-btn active-f" onclick="window.location='/faculty-register'">
+                <i class="fas fa-chalkboard-teacher"></i> Faculty
+            </button>
+        </div>
+
+        <ul class="steps-list">
+            <li class="step-item">
+                <div class="step-dot">01</div>
+                <div class="step-text">
+                    <strong>Register your profile</strong>
+                    <span>Name, faculty ID, department, and credentials</span>
+                </div>
+            </li>
+            <li class="step-item">
+                <div class="step-dot">02</div>
+                <div class="step-text">
+                    <strong>Access your dashboard</strong>
+                    <span>View all students, records, and analytics</span>
+                </div>
+            </li>
+            <li class="step-item">
+                <div class="step-dot">03</div>
+                <div class="step-text">
+                    <strong>Mark attendance</strong>
+                    <span>One camera capture marks the entire classroom</span>
+                </div>
+            </li>
+            <li class="step-item">
+                <div class="step-dot">04</div>
+                <div class="step-text">
+                    <strong>Generate reports</strong>
+                    <span>Subject-wise logs, export to PDF or Excel</span>
+                </div>
+            </li>
+        </ul>
+
+        <div class="panel-footer">
+            Already registered? <a href="/faculty-login">Sign in →</a>
+        </div>
+    </aside>
+
+    <!-- ── RIGHT PANEL ── -->
+    <main class="right-panel">
+
+        <div class="form-header">
+            <div class="form-badge">
+                <i class="fas fa-chalkboard-teacher"></i> Faculty Portal
+            </div>
+            <div class="form-title">Faculty Registration</div>
+            <p class="form-subtitle">Create your faculty account to manage attendance and students.</p>
+        </div>
 
         {% if error %}
-        <div class="alert-error"><i class="fas fa-exclamation-circle"></i> {{ error }}</div>
+        <div class="alert-error">
+            <i class="fas fa-exclamation-circle"></i> {{ error }}
+        </div>
         {% endif %}
 
-        <form method="POST">
-            <!-- Full Name -->
-            <div class="form-group">
-                <label><i class="fas fa-user"></i>Full Name</label>
-                <div class="input-wrapper">
-                    <i class="fas fa-user icon"></i>
-                    <input type="text" name="name" placeholder="Enter your full name" required>
+        <form method="POST" id="facultyForm">
+
+            <!-- ✅ FIX: CSRF token added — this was missing and caused the 403 Forbidden error -->
+            <input type="hidden" name="_csrf" value="{{ csrf_token }}">
+
+            <div class="form-grid-2">
+                <div class="field-group">
+                    <label class="field-label">Full Name <span style="color:var(--red)">*</span></label>
+                    <div class="field-wrap">
+                        <input type="text" name="name" class="field-input" placeholder="Prof. Full Name" required autocomplete="name">
+                        <i class="fas fa-user field-icon"></i>
+                    </div>
+                </div>
+                <div class="field-group">
+                    <label class="field-label">Faculty ID <span style="color:var(--red)">*</span></label>
+                    <div class="field-wrap">
+                        <input type="text" name="faculty_id" id="faculty_id" class="field-input" placeholder="e.g. FAC2024001" required>
+                        <i class="fas fa-id-badge field-icon"></i>
+                    </div>
+                </div>
+                <div class="field-group" style="grid-column:1/-1">
+                    <label class="field-label">Department <span style="color:var(--red)">*</span></label>
+                    <div class="field-wrap">
+                        <input type="text" name="department" id="deptInput" class="field-input" placeholder="e.g. Computer Science" required>
+                        <i class="fas fa-building field-icon"></i>
+                    </div>
+                    <div class="dept-suggestions">
+                        <span class="dept-chip" onclick="setDept('Science')">Science</span>
+                        <span class="dept-chip" onclick="setDept('Commerce')">Commerce</span>
+                        <span class="dept-chip" onclick="setDept('Arts')">Arts</span>
+                        <span class="dept-chip" onclick="setDept('Mathematics')">Mathematics</span>
+                        <span class="dept-chip" onclick="setDept('Physics')">Physics</span>
+                        <span class="dept-chip" onclick="setDept('Chemistry')">Chemistry</span>
+                        <span class="dept-chip" onclick="setDept('Biology')">Biology</span>
+                        <span class="dept-chip" onclick="setDept('Computer Science')">Computer Science</span>
+                        <span class="dept-chip" onclick="setDept('English')">English</span>
+                        <span class="dept-chip" onclick="setDept('Hindi')">Hindi</span>
+                        <span class="dept-chip" onclick="setDept('History')">History</span>
+                        <span class="dept-chip" onclick="setDept('Geography')">Geography</span>
+                        <span class="dept-chip" onclick="setDept('Economics')">Economics</span>
+                        <span class="dept-chip" onclick="setDept('Physical Education')">Physical Education</span>
+                        <span class="dept-chip" onclick="setDept('General Studies')">General Studies</span>
+                    </div>
                 </div>
             </div>
 
-            <!-- Faculty ID -->
-            <div class="form-group">
-                <label><i class="fas fa-id-badge"></i>Faculty ID</label>
-                <div class="input-wrapper">
-                    <i class="fas fa-id-badge icon"></i>
-                    <input type="text" name="faculty_id" placeholder="Enter faculty ID" required>
+            <div class="section-divider">Contact & Security</div>
+
+            <div class="form-grid-2">
+                <div class="field-group">
+                    <label class="field-label">Email Address <span style="color:var(--red)">*</span></label>
+                    <div class="field-wrap">
+                        <input type="email" name="email" class="field-input" placeholder="faculty@institution.edu" required autocomplete="email">
+                        <i class="fas fa-envelope field-icon"></i>
+                    </div>
+                </div>
+                <div class="field-group">
+                    <label class="field-label">Phone Number <span style="color:var(--red)">*</span></label>
+                    <div class="field-wrap">
+                        <input type="tel" name="phone" class="field-input" placeholder="+91 XXXXX XXXXX"
+                               maxlength="10" pattern="[6-9][0-9]{9}" required
+                               oninput="this.value = this.value.replace(/[^0-9]/g, '').slice(0, 10)"
+                               title="Please enter a valid 10-digit mobile number starting with 6, 7, 8, or 9">
+                        <i class="fas fa-phone field-icon"></i>
+                        <small style="font-size:0.76rem; color:var(--sub); margin-top:4px; display:block;">10-digit mobile number (6,7,8,9)</small>
+                    </div>
+                </div>
+                <div class="field-group">
+                    <label class="field-label">Password <span style="color:var(--red)">*</span></label>
+                    <div class="field-wrap">
+                        <input type="password" name="password" id="password" class="field-input" placeholder="Create password" required autocomplete="new-password">
+                        <i class="fas fa-lock field-icon"></i>
+                        <button type="button" class="pwd-toggle" id="pwdToggle" tabindex="-1">
+                            <i class="fas fa-eye" id="pwdIcon"></i>
+                        </button>
+                    </div>
+                    <div class="pwd-meter"><div class="pwd-meter-fill" id="pwdMeter"></div></div>
+                    <div class="pwd-hint" id="pwdHint"><i class="fas fa-shield-alt"></i> Min 8 chars, uppercase, number & symbol</div>
+                </div>
+                <div class="field-group">
+                    <label class="field-label">Designation</label>
+                    <div class="field-wrap">
+                        <select name="designation" class="field-select">
+                            <option value="">Select Designation</option>
+                            <option value="Professor">Professor</option>
+                            <option value="Associate Professor">Associate Professor</option>
+                            <option value="Assistant Professor">Assistant Professor</option>
+                            <option value="Lecturer">Lecturer</option>
+                            <option value="HOD">HOD</option>
+                        </select>
+                        <i class="fas fa-user-tie field-icon"></i>
+                        <i class="fas fa-chevron-down select-arrow"></i>
+                    </div>
                 </div>
             </div>
 
-            <!-- Department -->
-            <div class="form-group">
-                <label><i class="fas fa-building"></i>Department</label>
-                <div class="input-wrapper">
-                    <i class="fas fa-building icon"></i>
-                    <input type="text" name="department" placeholder="Enter your department" required>
-                </div>
+            <div style="margin-top:28px;">
+                <button type="submit" class="btn-register">
+                    <i class="fas fa-chalkboard-teacher"></i> Create Faculty Account
+                </button>
             </div>
 
-            <!-- Email -->
-            <div class="form-group">
-                <label><i class="fas fa-envelope"></i>Email ID</label>
-                <div class="input-wrapper">
-                    <i class="fas fa-envelope icon"></i>
-                    <input type="email" name="email" placeholder="Enter your email address" required>
-                </div>
+            <div class="form-footer">
+                Already registered? <a href="/faculty-login">Sign in here</a> &nbsp;·&nbsp;
+                Student? <a href="/student-register">Student register →</a>
             </div>
-
-            <!-- Password -->
-            <div class="form-group">
-                <label><i class="fas fa-lock"></i>Password</label>
-                <div class="input-wrapper">
-                    <i class="fas fa-lock icon"></i>
-                    <input type="password" id="password" name="password" placeholder="Create a strong password" required>
-                    <button type="button" class="toggle-password" id="togglePassword" aria-label="Show/hide password">
-                        <i class="fas fa-eye" id="eyeIcon"></i>
-                    </button>
-                </div>
-                <small id="passwordHelp" class="password-help">
-                    Min 8 chars with uppercase, lowercase, number & special character.
-                </small>
-            </div>
-
-            <button type="submit" class="btn-register">
-                <i class="fas fa-user-plus" style="margin-right: 8px;"></i>Register
-            </button>
         </form>
-
-        <div class="links">
-            <p>Already have an account? <a href="/faculty-login">Login here</a></p>
-            <a href="/" class="back-home"><i class="fas fa-arrow-left"></i> Back to Home</a>
-        </div>
-    </div>
+    </main>
 
     <script>
-        document.getElementById('togglePassword').addEventListener('click', function () {
-            const pwd     = document.getElementById('password');
-            const eyeIcon = document.getElementById('eyeIcon');
-            const show    = pwd.getAttribute('type') === 'password';
-            pwd.setAttribute('type', show ? 'text' : 'password');
-            eyeIcon.classList.toggle('fa-eye',      !show);
-            eyeIcon.classList.toggle('fa-eye-slash', show);
+        function setDept(name) {
+            document.getElementById('deptInput').value = name;
+        }
+
+        const pwdInput = document.getElementById('password');
+        const pwdMeter = document.getElementById('pwdMeter');
+        const pwdHint  = document.getElementById('pwdHint');
+
+        pwdInput.addEventListener('input', () => {
+            const v = pwdInput.value;
+            let score = 0;
+            if (v.length >= 8)           score++;
+            if (/[A-Z]/.test(v))         score++;
+            if (/[0-9]/.test(v))         score++;
+            if (/[^A-Za-z0-9]/.test(v))  score++;
+
+            const pct = (score/4)*100;
+            const colors = ['#ff6b6b','#f59e0b','#6c63ff','#00d4aa'];
+            pwdMeter.style.width = pct + '%';
+            pwdMeter.style.background = colors[score-1] || 'rgba(0,212,170,0.1)';
+            pwdHint.innerHTML = score === 4
+                ? '<i class="fas fa-check-circle" style="color:var(--green)"></i> <span style="color:var(--green)">Strong password</span>'
+                : `<i class="fas fa-shield-alt"></i> Add ${['uppercase','a number','a symbol'][score] || 'more chars'}`;
         });
 
-        document.getElementById('password').addEventListener('input', function () {
-            const val   = this.value;
-            const valid = val.length >= 8 &&
-                          /[A-Z]/.test(val) &&
-                          /[a-z]/.test(val) &&
-                          /[0-9]/.test(val) &&
-                          /[^A-Za-z0-9]/.test(val);
-
-            this.classList.toggle('valid',   valid);
-            this.classList.toggle('invalid', !valid);
-
-            const help       = document.getElementById('passwordHelp');
-            help.innerText   = valid ? '✅ Strong password!' : '❌ Weak — add uppercase, number & special char.';
-            help.style.color = valid ? '#28a745' : '#dc3545';
+        document.getElementById('pwdToggle').addEventListener('click', () => {
+            const show = pwdInput.type === 'password';
+            pwdInput.type = show ? 'text' : 'password';
+            document.getElementById('pwdIcon').className = show ? 'fas fa-eye-slash' : 'fas fa-eye';
         });
+        document.getElementById('facultyForm').addEventListener('submit', function(e) {
+    const name  = this.name.value.trim();
+    const fid   = this.faculty_id.value.trim();
+    const dept  = this.department.value.trim();
+    const email = this.email.value.trim();
+    const phone = this.phone.value.trim();
+    const pwd   = this.password.value;
+
+    // Name check
+    if (name.length < 3) {
+        alert("Name must be at least 3 characters");
+        e.preventDefault();
+        return;
+    }
+
+    // Email
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+        alert("Invalid email");
+        e.preventDefault();
+        return;
+    }
+
+    // Phone
+    if (!/^[6-9]\d{9}$/.test(phone)) {
+        alert("Invalid phone number");
+        e.preventDefault();
+        return;
+    }
+
+    // Password strength
+    if (pwd.length < 8 ||
+        !/[A-Z]/.test(pwd) ||
+        !/[0-9]/.test(pwd) ||
+        !/[^A-Za-z0-9]/.test(pwd)) {
+        alert("Weak password");
+        e.preventDefault();
+        return;
+    }
+});
     </script>
 </body>
 </html>

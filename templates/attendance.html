@@ -3,90 +3,231 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Attendance - Vision AI</title>
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <title>Mark Attendance — Vision AI</title>
+    <link href="https://fonts.googleapis.com/css2?family=Syne:wght@600;700;800&family=DM+Sans:opsz,wght@9..40,300;9..40,400;9..40,500;9..40,600&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+        :root {
+            --bg: #0a0a12; --surface: #14141e; --card: #1a1a26;
+            --border: rgba(255,255,255,0.08); --accent: #7c6fe0;
+            --green: #4ade80; --red: #f87171; --yellow: #fbbf24;
+            --text: #e8e6f0; --muted: #6e6c80;
+        }
+        body {
+            font-family: 'DM Sans', sans-serif; background: var(--bg);
+            color: var(--text); min-height: 100vh;
+            display: flex; align-items: center; justify-content: center; padding: 24px;
+            background-image:
+                radial-gradient(ellipse 60% 50% at 20% 20%, rgba(124,111,224,0.1) 0%, transparent 60%),
+                radial-gradient(ellipse 50% 40% at 80% 80%, rgba(74,222,128,0.06) 0%, transparent 55%);
+        }
+        .page-wrap { width: 100%; max-width: 520px; display: flex; flex-direction: column; gap: 20px; }
+        .back-link { display: inline-flex; align-items: center; gap: 8px; color: var(--muted); text-decoration: none; font-size: 0.88rem; transition: color 0.2s; }
+        .back-link:hover { color: var(--text); }
+        .header-card { background: var(--card); border: 1px solid var(--border); border-radius: 20px; padding: 28px 30px; text-align: center; }
+        .logo-wrap { width: 56px; height: 56px; background: linear-gradient(135deg, var(--accent), #5edfc5); border-radius: 16px; display: flex; align-items: center; justify-content: center; font-size: 24px; margin: 0 auto 16px; box-shadow: 0 0 30px rgba(124,111,224,0.3); }
+        .header-card h1 { font-family: 'Syne', sans-serif; font-size: 1.6rem; font-weight: 800; margin-bottom: 6px; }
+        .header-card p { color: var(--muted); font-size: 0.9rem; line-height: 1.6; }
+        .alert { border-radius: 14px; padding: 14px 18px; font-size: 0.9rem; font-weight: 500; display: flex; align-items: center; gap: 10px; border: 1px solid; animation: slideIn 0.3s ease; }
+        @keyframes slideIn { from { opacity:0; transform:translateY(-8px); } to { opacity:1; transform:translateY(0); } }
+        .alert-success { background: rgba(74,222,128,0.1); border-color: rgba(74,222,128,0.3); color: var(--green); }
+        .alert-error   { background: rgba(248,113,113,0.1); border-color: rgba(248,113,113,0.3); color: var(--red); }
+        .alert-info    { background: rgba(124,111,224,0.1); border-color: rgba(124,111,224,0.3); color: #a89ff0; }
+        .form-card { background: var(--card); border: 1px solid var(--border); border-radius: 20px; padding: 28px 30px; }
+        .form-group { margin-bottom: 18px; }
+        .form-label { display: block; font-size: 0.82rem; font-weight: 600; color: var(--muted); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 8px; }
+        .form-input { width: 100%; background: rgba(255,255,255,0.04); border: 1.5px solid var(--border); border-radius: 12px; padding: 13px 16px; font-size: 0.95rem; font-family: 'DM Sans', sans-serif; color: var(--text); outline: none; transition: all 0.2s; }
+        .form-input:focus { border-color: var(--accent); background: rgba(124,111,224,0.06); box-shadow: 0 0 0 3px rgba(124,111,224,0.12); }
+        .form-input::placeholder { color: var(--muted); }
+        .camera-area { border: 2px dashed rgba(124,111,224,0.35); border-radius: 16px; padding: 28px; text-align: center; cursor: pointer; transition: all 0.3s; background: rgba(124,111,224,0.03); position: relative; overflow: hidden; }
+        .camera-area:hover { border-color: var(--accent); background: rgba(124,111,224,0.07); }
+        .camera-area.captured { border-style: solid; border-color: var(--green); background: rgba(74,222,128,0.06); }
+        .camera-icon { font-size: 2.5rem; margin-bottom: 12px; display: block; }
+        .camera-area.captured .camera-icon { color: var(--green); }
+        .camera-area h3 { font-size: 1rem; font-weight: 600; margin-bottom: 6px; }
+        .camera-area p  { font-size: 0.83rem; color: var(--muted); }
+        .face-preview-img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; border-radius: 14px; opacity: 0.75; }
+        .preview-overlay { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; flex-direction: column; background: rgba(0,0,0,0.45); border-radius: 14px; }
+        .preview-overlay span { font-size: 2rem; margin-bottom: 6px; }
+        .preview-overlay p { color: #fff; font-size: 0.85rem; font-weight: 600; }
+        .btn-submit { width: 100%; padding: 15px; background: var(--accent); color: #fff; border: none; border-radius: 14px; font-size: 1rem; font-weight: 700; font-family: 'DM Sans', sans-serif; cursor: pointer; transition: all 0.25s; display: flex; align-items: center; justify-content: center; gap: 9px; box-shadow: 0 4px 24px rgba(124,111,224,0.35); }
+        .btn-submit:hover { background: #6a5dcc; transform: translateY(-2px); box-shadow: 0 8px 32px rgba(124,111,224,0.45); }
+        .btn-submit:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
+        .tip { font-size: 0.8rem; color: var(--muted); display: flex; align-items: center; gap: 6px; padding: 10px 14px; background: rgba(251,191,36,0.06); border: 1px solid rgba(251,191,36,0.15); border-radius: 10px; margin-top: 16px; }
+        .tip i { color: var(--yellow); }
+        .modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.7); z-index: 999; display: none; align-items: center; justify-content: center; backdrop-filter: blur(4px); }
+        .modal-overlay.open { display: flex; }
+        .modal-box { background: var(--card); border: 1px solid rgba(124,111,224,0.3); border-radius: 20px; padding: 24px; width: 90%; max-width: 420px; text-align: center; }
+        .modal-box h3 { font-family: 'Syne', sans-serif; font-size: 1.1rem; font-weight: 700; margin-bottom: 16px; display: flex; align-items: center; gap: 8px; justify-content: center; }
+        .video-wrap { border-radius: 12px; overflow: hidden; background: #000; margin-bottom: 16px; }
+        video { width: 100%; display: block; max-height: 280px; object-fit: cover; }
+        .modal-btns { display: flex; gap: 10px; justify-content: center; }
+        .btn-capture { padding: 10px 24px; background: var(--green); color: #0a0a12; border: none; border-radius: 10px; font-size: 0.88rem; font-weight: 700; font-family: 'DM Sans', sans-serif; cursor: pointer; transition: all 0.2s; }
+        .btn-capture:hover { background: #22c55e; }
+        .btn-cancel { padding: 10px 24px; background: rgba(255,255,255,0.06); color: var(--muted); border: 1px solid var(--border); border-radius: 10px; font-size: 0.88rem; font-weight: 600; font-family: 'DM Sans', sans-serif; cursor: pointer; transition: all 0.2s; }
+        .btn-cancel:hover { background: rgba(255,255,255,0.1); color: var(--text); }
+        .success-card { background: var(--card); border: 1px solid rgba(74,222,128,0.3); border-radius: 20px; padding: 28px 30px; text-align: center; animation: slideIn 0.4s ease; }
+        .success-icon { font-size: 3rem; margin-bottom: 12px; display: block; }
+        .success-card h2 { font-family: 'Syne', sans-serif; font-size: 1.3rem; font-weight: 800; color: var(--green); margin-bottom: 8px; }
+        .success-card p { color: var(--muted); font-size: 0.9rem; }
+        .actions-row { display: flex; gap: 10px; justify-content: center; margin-top: 20px; flex-wrap: wrap; }
+        .btn-link { padding: 10px 22px; border-radius: 12px; font-size: 0.88rem; font-weight: 600; text-decoration: none; transition: all 0.2s; font-family: 'DM Sans', sans-serif; display: inline-flex; align-items: center; gap: 7px; }
+        .btn-link-accent { background: var(--accent); color: #fff; }
+        .btn-link-accent:hover { background: #6a5dcc; }
+        .btn-link-ghost { background: rgba(255,255,255,0.05); color: var(--muted); border: 1px solid var(--border); }
+        .btn-link-ghost:hover { color: var(--text); background: rgba(255,255,255,0.1); }
+        
+    </style>
 </head>
 <body>
-    <div class="attendance-card">
-        <h2>Face Recognition Attendance</h2>
-        <p>Allow camera access and capture your face to mark attendance securely.</p>
+    <div class="page-wrap">
 
-        {% if message %}
-            <div class="alert status-alert alert-{{ 'success' if status == 'success' else 'danger' }}">
-                {{ message }}
-            </div>
-        {% else %}
-            <div class="alert alert-info status-alert">
-                Attendance will be marked automatically once your face is recognized.
-            </div>
-        {% endif %}
+        <a href="/" class="back-link"><i class="fas fa-arrow-left"></i> Back to Home</a>
 
-        <form method="POST" id="attendanceForm">
-    <input type="text" name="subject" placeholder="Enter Subject" required>
-    <input type="hidden" id="face_image" name="face_image">
-    <button type="button" onclick="openCamera()">Start Face Scan</button>
-</form>
+        <div class="header-card">
+            <div class="logo-wrap">👁️</div>
+            <h1>Mark Your Attendance</h1>
+            <p>Look into the camera and let Vision AI recognize you automatically.</p>
+        </div>
 
         {% if status == 'success' and student_name %}
-            <p class="mt-3">Next step: <a href="/student-dashboard">Go to Student Dashboard</a> or <a href="/">Back to Home</a>.</p>
+        <div class="success-card">
+            <span class="success-icon">✅</span>
+            <h2>Attendance Marked!</h2>
+            <p>{{ message }}</p>
+            <div class="actions-row">
+                <a href="/student-dashboard" class="btn-link btn-link-accent"><i class="fas fa-th-large"></i> Go to Dashboard</a>
+                <a href="/" class="btn-link btn-link-ghost"><i class="fas fa-home"></i> Home</a>
+            </div>
+        </div>
         {% else %}
-            <a href="/" class="btn btn-secondary mt-3">Back to Home</a>
+
+        {% if message %}
+        <div class="alert alert-{{ 'success' if status == 'success' else ('info' if status == 'info' else 'error') }}">
+            <i class="fas fa-{{ 'check-circle' if status == 'success' else ('info-circle' if status == 'info' else 'exclamation-circle') }}"></i>
+            {{ message }}
+        </div>
+        {% endif %}
+
+        <div class="form-card">
+            <!-- FIX: Added CSRF token — was missing, caused 403 Forbidden on POST -->
+            <form method="POST" id="attendanceForm">
+                <input type="hidden" name="_csrf" value="{{ csrf_token }}">
+                <input type="hidden" id="face_image" name="face_image">
+
+                <div class="form-group">
+                    <label class="form-label">Subject Name</label>
+                    <input type="text" name="subject" class="form-input"
+                           placeholder="e.g. Data Structures, Mathematics…" required
+                           autocomplete="off">
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">Face Capture</label>
+                    <div class="camera-area" id="cameraArea" onclick="openCamera()">
+                        <span class="camera-icon" id="cameraIcon">📸</span>
+                        <h3 id="cameraTitle">Click to Open Camera</h3>
+                        <p id="cameraDesc">Allow camera access and capture your face for recognition</p>
+                        <img id="facePreviewImg" class="face-preview-img" style="display:none;" alt="Face preview">
+                        <div id="previewOverlay" class="preview-overlay" style="display:none;">
+                            <span>✅</span>
+                            <p>Face captured — click to retake</p>
+                        </div>
+                    </div>
+                </div>
+
+                <button type="submit" class="btn-submit" id="submitBtn" disabled>
+                    <i class="fas fa-camera"></i> Recognize &amp; Mark Attendance
+                </button>
+
+                <div class="tip">
+                    <i class="fas fa-lightbulb"></i>
+                    Ensure good lighting and face the camera directly for best recognition results.
+                </div>
+            </form>
+        </div>
+
+        <div style="text-align:center;padding:4px 0;">
+            <span style="font-size:0.82rem;color:var(--muted);">Not enrolled? </span>
+            <a href="/student-register" style="color:var(--accent);font-size:0.82rem;font-weight:600;text-decoration:none;">Register first →</a>
+        </div>
+
         {% endif %}
     </div>
 
-    <div id="cameraModal" class="camera-modal">
-        <div class="camera-box">
-            <h3>📸 Capture Face for Attendance</h3>
-            <video id="video" autoplay playsinline></video>
-            <div class="camera-btns">
-                <button type="button" class="btn" onclick="captureAndSubmit()">Capture</button>
-                <button type="button" class="btn btn-secondary" onclick="closeCamera()">Cancel</button>
+    <!-- Camera Modal -->
+    <div id="cameraModal" class="modal-overlay">
+        <div class="modal-box">
+            <h3><i class="fas fa-camera" style="color:var(--accent)"></i> Capture Face</h3>
+            <div class="video-wrap"><video id="video" autoplay playsinline muted></video></div>
+            <div class="modal-btns">
+                <button onclick="capturePhoto()" class="btn-capture"><i class="fas fa-camera"></i> Capture</button>
+                <button onclick="closeCamera()" class="btn-cancel"><i class="fas fa-times"></i> Cancel</button>
             </div>
         </div>
     </div>
 
     <script>
         let stream;
-        const video = document.getElementById('video');
-        const faceInput = document.getElementById('face_image');
 
         function openCamera() {
-            document.getElementById('cameraModal').style.display = 'flex';
-            navigator.mediaDevices.getUserMedia({ video: true })
-                .then(s => {
-                    stream = s;
-                    video.srcObject = stream;
-                })
-                .catch(() => {
-                    alert('Camera access is required for face scan. Please allow access and try again.');
-                    closeCamera();
-                });
+            document.getElementById('cameraModal').classList.add('open');
+            navigator.mediaDevices.getUserMedia({
+                video: { facingMode: 'user', width: { ideal: 640 }, height: { ideal: 480 } }
+            }).then(function(s) {
+                stream = s;
+                const video = document.getElementById('video');
+                video.srcObject = stream;
+                video.play();
+            }).catch(function(err) {
+                let msg = 'Camera access required. ';
+                if (err.name === 'NotAllowedError')    msg += 'Please allow camera in browser settings.';
+                else if (err.name === 'NotFoundError') msg += 'No camera found.';
+                else msg += 'Check permissions and try again.';
+                alert(msg);
+                closeCamera();
+            });
         }
 
         function closeCamera() {
-            document.getElementById('cameraModal').style.display = 'none';
-            if (stream) {
-                stream.getTracks().forEach(track => track.stop());
-                stream = null;
-            }
+            document.getElementById('cameraModal').classList.remove('open');
+            if (stream) { stream.getTracks().forEach(function(t) { t.stop(); }); stream = null; }
+            document.getElementById('video').srcObject = null;
         }
 
-        function captureAndSubmit() {
-            if (!video.srcObject) {
-                alert('Video stream not available yet. Please wait a moment and try again.');
-                return;
-            }
-
+        function capturePhoto() {
+            const video  = document.getElementById('video');
             const canvas = document.createElement('canvas');
-            canvas.width = video.videoWidth || 640;
+            canvas.width  = video.videoWidth  || 640;
             canvas.height = video.videoHeight || 480;
-            const ctx = canvas.getContext('2d');
-            ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
-            faceInput.value = canvas.toDataURL('image/jpeg');
+            canvas.getContext('2d').drawImage(video, 0, 0, canvas.width, canvas.height);
+            const imageData = canvas.toDataURL('image/jpeg', 0.85);
+
+            document.getElementById('face_image').value = imageData;
+
+            const area = document.getElementById('cameraArea');
+            area.classList.add('captured');
+
+            const img = document.getElementById('facePreviewImg');
+            img.src = imageData;
+            img.style.display = 'block';
+
+            document.getElementById('previewOverlay').style.display = 'flex';
+            document.getElementById('cameraIcon').style.display     = 'none';
+            document.getElementById('cameraTitle').style.display    = 'none';
+            document.getElementById('cameraDesc').style.display     = 'none';
+            document.getElementById('submitBtn').disabled           = false;
+
             closeCamera();
-            document.getElementById('attendanceForm').submit();
         }
+
+        document.getElementById('attendanceForm').addEventListener('submit', function(e) {
+            if (!document.getElementById('face_image').value) {
+                e.preventDefault();
+                alert('Please capture your face first.');
+            }
+        });
     </script>
 </body>
 </html>

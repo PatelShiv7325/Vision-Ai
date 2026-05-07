@@ -1,17 +1,234 @@
-<table class="table">
-    <tr>
-        <th>Name</th>
-        <th>Subject</th>
-        <th>Date</th>
-        <th>Status</th>
-    </tr>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>View Attendance — Vision AI</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        :root {
+            --bg: #1a1a1f; --card: #26262e; --border: #2e2e38;
+            --accent-blue: #6366f1; --accent-green: #22c55e;
+            --text-primary: #e8e8f0; --text-secondary: #9090a8; --text-muted: #5a5a70;
+            --pill-bg: #2e2e3e;
+        }
+        body {
+            font-family: 'Inter', sans-serif;
+            background: var(--bg);
+            color: var(--text-primary);
+            min-height: 100vh;
+            padding: 32px 24px;
+        }
 
-    {% for row in data %}
-    <tr>
-        <td>{{ row[0] }}</td>
-        <td>{{ row[1] }}</td>
-        <td>{{ row[2] }}</td>
-        <td>{{ row[3] }}</td>
-    </tr>
-    {% endfor %}
-</table>
+        /* ── TOP NAV ── */
+        .top-nav {
+            display: flex; align-items: center; justify-content: space-between;
+            margin-bottom: 28px; flex-wrap: wrap; gap: 12px;
+        }
+
+        .back-btn {
+            display: inline-flex; align-items: center; gap: 8px;
+            color: var(--text-secondary); text-decoration: none;
+            font-size: 13px; font-weight: 500;
+            padding: 8px 16px; border-radius: 10px;
+            border: 1px solid var(--border); background: var(--card);
+            transition: all 0.2s;
+        }
+        .back-btn:hover { color: var(--text-primary); border-color: #3a3a48; }
+
+        .page-title {
+            font-size: 22px; font-weight: 700; color: var(--text-primary);
+        }
+
+        .top-right { display: flex; gap: 10px; align-items: center; }
+
+        .btn {
+            display: inline-flex; align-items: center; gap: 7px;
+            padding: 9px 18px; border-radius: 10px;
+            font-size: 13px; font-weight: 600; font-family: 'Inter', sans-serif;
+            cursor: pointer; border: 1.5px solid var(--border);
+            background: var(--card); color: var(--text-primary);
+            text-decoration: none; transition: all 0.2s;
+        }
+        .btn:hover { background: #2c2c36; border-color: #3a3a48; }
+        .btn-primary { background: var(--accent-blue); border-color: var(--accent-blue); color: #fff; }
+        .btn-primary:hover { background: #5254cc; border-color: #5254cc; }
+
+        /* ── SEARCH ── */
+        .search-bar {
+            display: flex; gap: 12px; margin-bottom: 18px; align-items: center; flex-wrap: wrap;
+        }
+
+        .search-input {
+            flex: 1; min-width: 200px; max-width: 360px;
+            background: var(--card); border: 1.5px solid var(--border);
+            border-radius: 10px; padding: 9px 14px;
+            font-size: 13px; font-family: 'Inter', sans-serif;
+            color: var(--text-primary); outline: none; transition: border-color 0.2s;
+        }
+        .search-input:focus { border-color: var(--accent-blue); }
+        .search-input::placeholder { color: var(--text-muted); }
+
+        .record-count {
+            font-size: 12px; color: var(--text-secondary);
+            padding: 8px 14px; background: var(--card);
+            border: 1px solid var(--border); border-radius: 8px;
+        }
+
+        /* ── TABLE CARD ── */
+        .card {
+            background: var(--card); border: 1px solid var(--border);
+            border-radius: 16px; padding: 24px; overflow-x: auto;
+        }
+
+        table { width: 100%; border-collapse: collapse; }
+        thead th {
+            padding: 10px 14px; text-align: left;
+            font-size: 11px; font-weight: 600; color: var(--text-muted);
+            text-transform: uppercase; letter-spacing: 0.8px;
+            border-bottom: 1px solid var(--border); white-space: nowrap;
+        }
+        tbody tr { border-bottom: 1px solid var(--border); transition: background 0.15s; }
+        tbody tr:last-child { border-bottom: none; }
+        tbody tr:hover { background: #2c2c36; }
+        tbody td { padding: 13px 14px; font-size: 13.5px; color: var(--text-primary); vertical-align: middle; }
+
+        .roll-badge {
+            background: var(--pill-bg); color: var(--accent-blue);
+            border-radius: 6px; padding: 3px 10px;
+            font-size: 12px; font-weight: 600; display: inline-block;
+        }
+
+        /* FIX: method badge handles all method types properly */
+        .method-badge {
+            display: inline-block; padding: 3px 10px;
+            border-radius: 6px; font-size: 12px; font-weight: 600;
+        }
+        .method-face   { background: rgba(99,102,241,0.15); color: #6366f1; }
+        .method-manual { background: rgba(245,158,11,0.12); color: #f59e0b; }
+        .method-bulk   { background: rgba(34,197,94,0.12);  color: #22c55e; }
+        .method-self   { background: rgba(94,223,197,0.12); color: #5edfc5; }
+        .method-other  { background: rgba(148,163,184,0.12); color: #94a3b8; }
+
+        .empty {
+            text-align: center; padding: 60px;
+            color: var(--text-muted); font-size: 14px;
+        }
+        .empty i { font-size: 2.5rem; margin-bottom: 10px; display: block; }
+
+        /* ── PAGINATION INFO ── */
+        .table-footer {
+            display: flex; align-items: center; justify-content: space-between;
+            padding-top: 16px; margin-top: 16px;
+            border-top: 1px solid var(--border);
+            font-size: 12px; color: var(--text-secondary);
+            flex-wrap: wrap; gap: 8px;
+        }
+
+        @media (max-width: 600px) {
+            body { padding: 20px 16px; }
+            .top-nav { flex-direction: column; align-items: flex-start; }
+        }
+    </style>
+</head>
+<body>
+
+    <!-- FIX: Navigation bar added — user was stranded on this page with no way back -->
+    <div class="top-nav">
+        <a href="/faculty-dashboard" class="back-btn">
+            <i class="fas fa-arrow-left"></i> Back to Dashboard
+        </a>
+        <div class="page-title">📋 Attendance Records</div>
+        <div class="top-right">
+            <a href="/api/attendance-export" class="btn">
+                <i class="fas fa-download"></i> Export CSV
+            </a>
+        </div>
+    </div>
+
+    <div class="search-bar">
+        <input type="text" class="search-input" id="searchInput"
+               placeholder="Search by student, subject, date…"
+               oninput="filterTable(this.value)">
+        <div class="record-count" id="recordCount">
+            {{ data | length }} record{{ 's' if data | length != 1 else '' }}
+        </div>
+    </div>
+
+    <div class="card">
+        {% if data %}
+        <table id="attTable">
+            <thead>
+                <tr>
+                    <th>#</th>
+                    <th>Student Name</th>
+                    <th>Roll No.</th>
+                    <th>Subject</th>
+                    <th>Date</th>
+                    <th>Time</th>
+                    <th>Method</th>
+                    <th>Marked By</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for row in data %}
+                <tr>
+                    <td>{{ loop.index }}</td>
+                    <td><strong>{{ row['student_name'] }}</strong></td>
+                    <td><span class="roll-badge">{{ row['student_roll'] }}</span></td>
+                    <td>{{ row['subject'] }}</td>
+                    <td>{{ row['date'] }}</td>
+                    <td>{{ row['time'] }}</td>
+                    <td>
+                        <!-- FIX: method badge class is derived safely with a default fallback -->
+                        {% set m = row['method'] | default('manual') | lower %}
+                        <span class="method-badge method-{{ m if m in ['face','manual','bulk','self'] else 'other' }}">
+                            {{ m | capitalize }}
+                        </span>
+                    </td>
+                    <td>{{ row['marked_by'] }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+
+        <div class="table-footer">
+            <span id="visibleCount">Showing {{ data | length }} of {{ data | length }} records</span>
+            <span>Last updated: <strong id="updateTime"></strong></span>
+        </div>
+
+        {% else %}
+        <div class="empty">
+            <i class="fas fa-calendar-times"></i>
+            No attendance records found.
+        </div>
+        {% endif %}
+    </div>
+
+    <script>
+        // Set current time
+        const d = new Date();
+        document.getElementById('updateTime').textContent =
+            d.toLocaleDateString('en-IN') + ' ' + d.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' });
+
+        // Live search / filter
+        function filterTable(query) {
+            const q    = query.toLowerCase();
+            const rows = document.querySelectorAll('#attTable tbody tr');
+            let visible = 0;
+            rows.forEach(function(row) {
+                const match = row.innerText.toLowerCase().includes(q);
+                row.style.display = match ? '' : 'none';
+                if (match) visible++;
+            });
+            const total = rows.length;
+            document.getElementById('visibleCount').textContent =
+                'Showing ' + visible + ' of ' + total + ' records';
+            document.getElementById('recordCount').textContent =
+                visible + ' record' + (visible !== 1 ? 's' : '');
+        }
+    </script>
+</body>
+</html>

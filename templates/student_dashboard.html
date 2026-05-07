@@ -676,6 +676,7 @@
         Subjects
     </button>
 
+    
     <div class="nav-section-label">Tools</div>
 
     <button class="nav-item" onclick="showPage('face', this)">
@@ -755,7 +756,7 @@
                 <div class="attendance-pct">
                     <div class="pct-num">{{ percent }}%</div>
                     <div class="pct-label">Overall Attendance</div>
-                    <div class="pct-bar"><div class="pct-bar-fill" style="width:{{ percent }}%"></div></div>
+                    <div class="pct-bar"><div class="pct-bar-fill" data-percent="{{ percent }}"></div></div>
                 </div>
             </div>
 
@@ -768,7 +769,7 @@
                 <div class="stat-card">
                     <div class="stat-label"><span class="stat-dot dot-green"></span> Present</div>
                     <div class="stat-num">{{ present }}</div>
-                    <div class="stat-bar"><div class="stat-bar-fill" style="width:{{ percent }}%"></div></div>
+                    <div class="stat-bar"><div class="stat-bar-fill" data-percent="{{ percent }}"></div></div>
                 </div>
                 <div class="stat-card">
                     <div class="stat-label"><span class="stat-dot dot-red"></span> Absent</div>
@@ -777,7 +778,17 @@
                 </div>
                 <div class="stat-card">
                     <div class="stat-label"><span class="stat-dot dot-yellow"></span> Subjects</div>
-                    <div class="stat-num">{{ attendance | map(attribute='subject') | unique | list | length }}</div>
+                    <div class="stat-num">
+                        {% set subjects = {} %}
+                          {% for a in attendance %}
+                             {% if a.subject not in subjects %}
+                               {% set _ = subjects.update({a.subject: {'present': 0, 'total': 0}}) %}
+                             {% endif %}
+                             {% set _ = subjects[a.subject].update({'present': subjects[a.subject].present + 1}) %}
+                             {% set _ = subjects[a.subject].update({'total': subjects[a.subject].total + 1}) %}
+                          {% endfor %}
+                        {{ subjects.keys() | list | length }}
+                    </div>
                     <div class="stat-sub">This semester</div>
                 </div>
             </div>
@@ -789,8 +800,14 @@
                         <div class="section-title-text">Subject-wise Attendance</div>
                     </div>
                     {% if attendance %}
-                        {% for subject, count in attendance | groupby('subject') %}
-                            {% set sub_count = count | list | length %}
+                        {% set subjects = {} %}
+                        {% for a in attendance %}
+                        {% if a.subject not in subjects %}
+                        {% set _ = subjects.update({a.subject: 0}) %}
+                        {% endif %}
+                        {% set _ = subjects.update({a.subject: subjects[a.subject] + 1}) %}
+                        {% endfor %}
+                        {% for subject, sub_count in subjects.items() %}
                             {% set sub_pct = ((sub_count / total) * 100) | round(0) | int if total > 0 else 0 %}
                             {% set pct_class = 'pct-high' if sub_pct >= 85 else ('pct-medium' if sub_pct >= 75 else 'pct-low') %}
                             <div class="subject-row">
@@ -1006,8 +1023,14 @@
                     <div class="section-title-text">Enrolled Subjects</div>
                 </div>
                 {% if attendance %}
-                    {% for subject, count in attendance | groupby('subject') %}
-                        {% set sub_count = count | list | length %}
+                    {% set subjects = {} %}
+                    {% for a in attendance %}
+                        {% if a.subject not in subjects %}
+                            {% set _ = subjects.update({a.subject: 0}) %}
+                        {% endif %}
+                        {% set _ = subjects.update({a.subject: subjects[a.subject] + 1}) %}
+                    {% endfor %}
+                    {% for subject, sub_count in subjects.items() %}
                         {% set sub_pct = ((sub_count / total) * 100) | round(0) | int if total > 0 else 0 %}
                         <div class="subject-card">
                             <div class="subject-card-left">
@@ -1161,6 +1184,8 @@
         btn.classList.add('active');
         // Update header
         document.getElementById('page-heading').textContent = pageTitles[name];
+        // Close sidebar on mobile
+        document.getElementById('sidebar').classList.remove('open');
     }
 
     // ── DOWNLOAD REPORT ──
@@ -1194,6 +1219,18 @@
     // ── CLOSE MODAL ON OVERLAY CLICK ──
     document.getElementById('logout-modal').addEventListener('click', function(e) {
         if (e.target === this) closeLogoutModal();
+    });
+
+    // ── SET PROGRESS BAR WIDTHS ──
+    document.addEventListener('DOMContentLoaded', function() {
+        // Set progress bar widths using data attributes
+        const progressBars = document.querySelectorAll('[data-percent]');
+        progressBars.forEach(bar => {
+            const percent = bar.getAttribute('data-percent');
+            if (percent) {
+                bar.style.width = percent + '%';
+            }
+        });
     });
 
     // ── UPDATE DATE ──
