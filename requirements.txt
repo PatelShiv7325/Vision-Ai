@@ -31,7 +31,7 @@ decorator==5.1.1
 deepface==0.0.99
 defusedxml==0.7.1
 distro==1.9.0
-dlib @ file:///C:/Users/PATEL%20SHIV/Downloads/dlib==19.24.6#sha256=20c62e606ca4c9961305f7be3d03990380d3e6c17f8d27798996e97a73271862
+dlib==19.24.6
 dnspython==2.8.0
 docopt==0.6.2
 et_xmlfile==2.0.0
