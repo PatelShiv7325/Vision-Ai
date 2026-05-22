@@ -235,6 +235,20 @@
 
         @media (max-width: 960px) { .left-panel { display:none; } .right-panel { padding: 40px 32px 60px; } }
         @media (max-width: 540px) { .right-panel { padding:28px 20px 48px; } .form-grid-2 { grid-template-columns:1fr; } }
+    
+        /* Fix browser autofill white background */
+        input:-webkit-autofill,
+        input:-webkit-autofill:hover,
+        input:-webkit-autofill:focus,
+        input:-webkit-autofill:active {
+            -webkit-box-shadow: 0 0 0 1000px var(--card2) inset !important;
+            -webkit-text-fill-color: var(--text) !important;
+            caret-color: var(--text) !important;
+            border-color: var(--s-accent) !important;
+            transition: background-color 9999s ease-in-out 0s !important;
+        }
+    
+        
     </style>
 </head>
 <body>
@@ -268,7 +282,7 @@
                 <div class="step-dot">01</div>
                 <div class="step-text">
                     <strong>Register your profile</strong>
-                    <span>Name, faculty ID, department, and credentials</span>
+                    <span>Name, faculty ID, subject, and credentials</span>
                 </div>
             </li>
             <li class="step-item">
@@ -337,9 +351,9 @@
                     </div>
                 </div>
                 <div class="field-group" style="grid-column:1/-1">
-                    <label class="field-label">Department <span style="color:var(--red)">*</span></label>
+                    <label class="field-label">Subject <span style="color:var(--red)">*</span></label>
                     <div class="field-wrap">
-                        <input type="text" name="department" id="deptInput" class="field-input" placeholder="e.g. Computer Science" required>
+                        <input type="text" name="subject" id="deptInput" class="field-input" placeholder="e.g. Computer Science" required>
                         <i class="fas fa-building field-icon"></i>
                     </div>
                     <div class="dept-suggestions">
@@ -459,7 +473,7 @@
         document.getElementById('facultyForm').addEventListener('submit', function(e) {
     const name  = this.name.value.trim();
     const fid   = this.faculty_id.value.trim();
-    const dept  = this.department.value.trim();
+    const dept  = this.subject.value.trim();
     const email = this.email.value.trim();
     const phone = this.phone.value.trim();
     const pwd   = this.password.value;
@@ -496,5 +510,11 @@
     }
 });
     </script>
+    <script>
+    // Prevent form resubmission on page refresh
+        if (window.history.replaceState) {
+            window.history.replaceState(null, null, window.location.href);
+    }
+</script>
 </body>
 </html>

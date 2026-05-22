@@ -1,6 +1,7 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
+    <meta name="csrf-token" content="{{ csrf_token }}">
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Student Dashboard - Vision AI</title>
@@ -676,7 +677,16 @@
         Subjects
     </button>
 
-    
+    <button class="nav-item" onclick="showPage('timetable', this)">
+        <div class="nav-icon"><i class="fas fa-calendar-week"></i></div>
+        Timetable
+    </button>
+
+    <button class="nav-item" onclick="showPage('goals', this)">
+        <div class="nav-icon"><i class="fas fa-bullseye"></i></div>
+        Goals & Alerts
+    </button>
+
     <div class="nav-section-label">Tools</div>
 
     <button class="nav-item" onclick="showPage('face', this)">
@@ -711,7 +721,7 @@
     <!-- Top Header -->
     <div class="top-header">
         <div class="header-left">
-            <h1 id="page-heading">My Dashboard</h1>
+            <h1 id="page-heading">Welcome, {{ student['name'] }} 👋</h1>
             <p id="page-date">Thursday, 16 April 2026</p>
         </div>
         <div class="header-actions">
@@ -743,13 +753,19 @@
                         <div class="profile-meta">
                             {{ student['email'] if student['email'] else '' }}
                             {% if student['phone'] %} · {{ student['phone'] }}{% endif %}
-                        </div>
+                        </div>  
                         <div class="profile-tags">
                             <span class="tag purple">Roll: {{ student['roll'] if student['roll'] else 'N/A' }}</span>
-                            {% if student['department'] %}<span class="tag">{{ student['department'] }}</span>{% endif %}
-                            {% if student['face_image'] %}
-                                <span class="tag green"><i class="fas fa-circle" style="font-size:7px;"></i> Face Enrolled</span>
-                            {% endif %}
+                            {% if student['standard'] %}
+                            <span class="tag" style="background:rgba(245,158,11,0.12);border-color:rgba(245,158,11,0.3);color:#f59e0b;">
+                                <i class="fas fa-layer-group" style="font-size:9px;"></i>
+                                Std {{ student['standard'] }}{% if student['division'] %} - {{ student['division'] }}{% endif %}
+                        </span>
+                        {% endif %}
+                        {% if student['subject'] %}<span class="tag">{{ student['subject'] }}</span>{% endif %}
+                        {% if student['face_image'] %}
+                            <span class="tag green"><i class="fas fa-circle" style="font-size:7px;"></i> Face Enrolled</span>
+                        {% endif %}
                         </div>
                     </div>
                 </div>
@@ -779,40 +795,48 @@
                 <div class="stat-card">
                     <div class="stat-label"><span class="stat-dot dot-yellow"></span> Subjects</div>
                     <div class="stat-num">
-                        {% set subjects = {} %}
-                          {% for a in attendance %}
-                             {% if a.subject not in subjects %}
-                               {% set _ = subjects.update({a.subject: {'present': 0, 'total': 0}}) %}
-                             {% endif %}
-                             {% set _ = subjects[a.subject].update({'present': subjects[a.subject].present + 1}) %}
-                             {% set _ = subjects[a.subject].update({'total': subjects[a.subject].total + 1}) %}
-                          {% endfor %}
-                        {{ subjects.keys() | list | length }}
+                        {%- set ns = namespace(subj_set=[]) -%}
+                        {%- for a in attendance -%}
+                            {%- if a.subject not in ns.subj_set -%}
+                                {%- set ns.subj_set = ns.subj_set + [a.subject] -%}
+                            {%- endif -%}
+                        {%- endfor -%}
+                        {{ ns.subj_set | length }}
                     </div>
                     <div class="stat-sub">This semester</div>
                 </div>
             </div>
 
             <div class="bottom-row">
+                <!-- FIX: per-subject attendance uses per-subject total, not global total -->
                 <div class="section-card">
                     <div class="section-header">
                         <div class="section-icon green"><i class="fas fa-chart-line"></i></div>
                         <div class="section-title-text">Subject-wise Attendance</div>
                     </div>
                     {% if attendance %}
+                        {%- set ns = namespace(subjects={}) -%}
+                        {%- for a in attendance -%}
+                            {%- if a.subject not in ns.subjects -%}
+                                {%- set ns.subjects = dict(ns.subjects, **{a.subject: namespace(present=0, total=0)}) -%}
+                            {%- endif -%}
+                        {%- endfor -%}
+                        {%- for a in attendance -%}
+                            {%- set _ = ns.subjects[a.subject] -%}
+                        {%- endfor -%}
                         {% set subjects = {} %}
                         {% for a in attendance %}
-                        {% if a.subject not in subjects %}
-                        {% set _ = subjects.update({a.subject: 0}) %}
-                        {% endif %}
-                        {% set _ = subjects.update({a.subject: subjects[a.subject] + 1}) %}
+                            {% if a.subject not in subjects %}
+                                {% set _ = subjects.update({a.subject: {'present': 0, 'total': 0}}) %}
+                            {% endif %}
+                            {% set _ = subjects[a.subject].update({'present': subjects[a.subject]['present'] + 1, 'total': subjects[a.subject]['total'] + 1}) %}
                         {% endfor %}
-                        {% for subject, sub_count in subjects.items() %}
-                            {% set sub_pct = ((sub_count / total) * 100) | round(0) | int if total > 0 else 0 %}
+                        {% for subject, sd in subjects.items() %}
+                            {% set sub_pct = ((sd['present'] / sd['total']) * 100) | round(0) | int if sd['total'] > 0 else 0 %}
                             {% set pct_class = 'pct-high' if sub_pct >= 85 else ('pct-medium' if sub_pct >= 75 else 'pct-low') %}
                             <div class="subject-row">
                                 <span class="subject-name">{{ subject }}</span>
-                                <span class="subject-count">{{ sub_count }} classes</span>
+                                <span class="subject-count">{{ sd['present'] }} / {{ sd['total'] }} classes</span>
                                 <span class="subject-pct {{ pct_class }}">{{ sub_pct }}%</span>
                             </div>
                         {% endfor %}
@@ -823,22 +847,52 @@
 
                 <div class="section-card">
                     <div class="section-header">
-                        <div class="section-icon yellow"><i class="fas fa-calendar"></i></div>
-                        <div class="section-title-text">Upcoming Classes</div>
+                        <div class="section-icon yellow"><i class="fas fa-calendar-day"></i></div>
+                        <div class="section-title-text">Today's Classes — {{ today_day }}</div>
+                        <button class="btn" style="margin-left:auto;padding:6px 12px;font-size:12px;"
+                                onclick="showPage('timetable', null)">
+                            <i class="fas fa-edit"></i> Edit
+                        </button>
                     </div>
-                    <div class="class-row">
-                        <div><div class="class-name">Data Structures</div><div class="class-time">2:00 PM · <span style="color:var(--accent-green);">Today</span></div></div>
-                    </div>
-                    <div class="class-row">
-                        <div><div class="class-name">Mathematics</div><div class="class-time">9:00 AM · <span class="class-date">Tomorrow</span></div></div>
-                    </div>
-                    <div class="class-row">
-                        <div><div class="class-name">OS Concepts</div><div class="class-time">11:00 AM · <span class="class-date">Fri</span></div></div>
-                    </div>
-                    <div class="class-row">
-                        <div><div class="class-name">Computer Networks</div><div class="class-time">2:00 PM · <span class="class-date">Fri</span></div></div>
-                        <span class="low-alert"><i class="fas fa-triangle-exclamation"></i> Low Attendance</span>
-                    </div>
+                    {% if today_classes %}
+    {% for cls in today_classes %}
+    <div style="display:flex;align-items:center;justify-content:space-between;
+                padding:10px 0;border-bottom:1px solid var(--border);"
+         data-start="{{ cls.start_time or '' }}"
+         data-end="{{ cls.end_time or '' }}"
+         data-marked="{{ 'yes' if cls.marked else 'no' }}"
+         data-subject="{{ cls.subject }}">
+        <div style="display:flex;align-items:center;gap:12px;">
+            <div class="cls-period-badge"
+                 style="width:32px;height:32px;border-radius:8px;
+                        background:rgba(99,102,241,0.12);
+                        display:flex;align-items:center;justify-content:center;
+                        font-size:13px;font-weight:700;color:var(--accent-blue);">
+                {{ cls.period }}
+            </div>
+            <div>
+                <div style="font-weight:600;font-size:13.5px;">{{ cls.subject }}</div>
+                <div class="cls-time-display" style="font-size:11.5px;color:var(--text-secondary);">
+                    {% if cls.start_time %}
+                        {{ cls.start_time }}{% if cls.end_time %} – {{ cls.end_time }}{% endif %}
+                    {% else %}Time not set{% endif %}
+                </div>
+            </div>
+        </div>
+        <span class="cls-status-badge"
+              style="border-radius:6px;padding:3px 10px;font-size:11px;font-weight:700;">
+        </span>
+    </div>
+    {% endfor %}
+{% else %}
+    <div class="empty-state">
+        <i class="fas fa-calendar-plus"></i>
+        <p>No classes set for today.<br>
+           <a href="#" onclick="showPage('timetable', null)"
+              style="color:var(--accent-blue);">Set up your timetable →</a>
+        </p>
+    </div>
+{% endif %}
                 </div>
             </div>
 
@@ -900,8 +954,17 @@
                         <div class="form-value">{{ student['phone'] if student['phone'] else '—' }}</div>
                     </div>
                     <div class="form-group">
-                        <div class="form-label">Department</div>
-                        <div class="form-value">{{ student['department'] if student['department'] else '—' }}</div>
+                        <div class="form-label">Subject</div>
+                        <div class="form-value">{{ student['subject'] if student['subject'] else '—' }}</div>
+                    </div>
+
+                    <div class="form-group">
+                        <div class="form-label">Standard & Division</div>
+                        <div class="form-value">
+                    {% if student['standard'] %}
+                        Standard {{ student['standard'] }}{% if student['division'] %} — Division {{ student['division'] }}{% endif %}
+                    {% else %}—{% endif %}
+                        </div>
                     </div>
                     <div class="form-group">
                         <div class="form-label">Face Status</div>
@@ -909,7 +972,7 @@
                     </div>
                 </div>
                 <div style="margin-top:20px;">
-                    <a href="/student-profile-edit" class="btn btn-primary"><i class="fas fa-edit"></i> Edit Profile</a>
+                    <button class="btn btn-primary" onclick="showPage('edit-profile', null)"><i class="fas fa-edit"></i> Edit Profile</button>
                 </div>
             </div>
         </div>
@@ -1017,36 +1080,190 @@
 
         <!-- ══════════════ SUBJECTS PAGE ══════════════ -->
         <div class="page" id="page-subjects">
-            <div class="section-card">
-                <div class="section-header">
-                    <div class="section-icon"><i class="fas fa-book"></i></div>
-                    <div class="section-title-text">Enrolled Subjects</div>
-                </div>
-                {% if attendance %}
-                    {% set subjects = {} %}
+    <div class="section-card">
+        <div class="section-header">
+            <div class="section-icon"><i class="fas fa-book"></i></div>
+            <div class="section-title-text">Enrolled Subjects</div>
+        </div>
+        {% if student['subject'] %}
+            {% set subj_list = student['subject'].split(',') %}
+            {% for subj in subj_list %}
+                {% set subj = subj.strip() %}
+                {% if subj %}
+                    {% set attended = namespace(cnt=0) %}
                     {% for a in attendance %}
-                        {% if a.subject not in subjects %}
-                            {% set _ = subjects.update({a.subject: 0}) %}
+                        {% if a.subject == subj %}
+                            {% set attended.cnt = attended.cnt + 1 %}
                         {% endif %}
-                        {% set _ = subjects.update({a.subject: subjects[a.subject] + 1}) %}
                     {% endfor %}
-                    {% for subject, sub_count in subjects.items() %}
-                        {% set sub_pct = ((sub_count / total) * 100) | round(0) | int if total > 0 else 0 %}
-                        <div class="subject-card">
-                            <div class="subject-card-left">
-                                <div class="subject-card-icon" style="background:rgba(99,102,241,0.15);color:var(--accent-blue)">
-                                    <i class="fas fa-book"></i>
-                                </div>
-                                <div>
-                                    <div class="subject-card-name">{{ subject }}</div>
-                                    <div class="subject-card-code">{{ sub_count }} classes attended</div>
+                    {% set total_att = attendance | length %}
+                    {% set sub_pct = ((attended.cnt / total_att) * 100) | round(0) | int if total_att > 0 else 0 %}
+                    <div class="subject-card">
+                        <div class="subject-card-left">
+                            <div class="subject-card-icon"
+                                 style="background:rgba(99,102,241,0.15);color:var(--accent-blue)">
+                                <i class="fas fa-book"></i>
+                            </div>
+                            <div>
+                                <div class="subject-card-name">{{ subj }}</div>
+                                <div class="subject-card-code">
+                                    {% if attended.cnt > 0 %}
+                                        {{ attended.cnt }} / {{ total_att }} classes attended
+                                    {% else %}
+                                        No attendance recorded yet
+                                    {% endif %}
                                 </div>
                             </div>
-                            <span class="subject-pct {{ 'pct-high' if sub_pct >= 85 else ('pct-medium' if sub_pct >= 75 else 'pct-low') }}">{{ sub_pct }}%</span>
                         </div>
+                        {% if attended.cnt > 0 %}
+                            <span class="subject-pct {{ 'pct-high' if sub_pct >= 85 else ('pct-medium' if sub_pct >= 75 else 'pct-low') }}">
+                                {{ sub_pct }}%
+                            </span>
+                        {% else %}
+                            <span style="font-size:12px;color:var(--text-muted);">—</span>
+                        {% endif %}
+                    </div>
+                {% endif %}
+            {% endfor %}
+        {% else %}
+            <div class="empty-state">
+                <i class="fas fa-book-open"></i>
+                <p>No subjects found in your profile.<br>
+                   <a href="#" onclick="showPage('edit-profile', null)"
+                      style="color:var(--accent-blue);">Update your profile →</a>
+                </p>
+            </div>
+        {% endif %}
+    </div>
+</div>
+
+        <!-- ══════════════ TIMETABLE PAGE ══════════════ -->
+        <div class="page" id="page-timetable">
+            <div class="section-card" style="max-width:820px;">
+                <div class="section-header">
+                    <div class="section-icon"><i class="fas fa-calendar-week"></i></div>
+                    <div class="section-title-text">Weekly Timetable</div>
+                    <button class="btn btn-primary" style="margin-left:auto;"
+                            onclick="saveTimetable()">
+                        <i class="fas fa-save"></i> Save Timetable
+                    </button>
+                </div>
+                <p style="font-size:13px;color:var(--text-secondary);margin-bottom:20px;">
+                    Set your weekly class schedule. The dashboard will show today's classes and mark attendance automatically.
+                </p>
+
+                <div id="timetable-grid">
+                    <!-- JS renders this -->
+                </div>
+
+                <div style="margin-top:16px;display:flex;gap:10px;flex-wrap:wrap;">
+                    <button class="btn" onclick="addTimetableRow()">
+                        <i class="fas fa-plus"></i> Add Period
+                    </button>
+                    <button class="btn" style="color:var(--accent-red);border-color:rgba(239,68,68,0.3);"
+                            onclick="clearTimetable()">
+                        <i class="fas fa-trash"></i> Clear All
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- ══════════════ GOALS & ALERTS PAGE ══════════════ -->
+        <div class="page" id="page-goals">
+            <div class="section-card" style="max-width:680px;">
+                <div class="section-header">
+                    <div class="section-icon"><i class="fas fa-bullseye"></i></div>
+                    <div class="section-title-text">Attendance Goals & Alerts</div>
+                </div>
+
+                <!-- Goal setting -->
+                <div style="background:var(--bg-base);border:1px solid var(--border);
+                            border-radius:12px;padding:20px 22px;margin-bottom:20px;">
+                    <div style="font-size:13px;font-weight:700;color:var(--text-secondary);
+                                text-transform:uppercase;letter-spacing:.7px;margin-bottom:16px;">
+                        Target Attendance
+                    </div>
+                    <div style="display:flex;align-items:center;gap:16px;margin-bottom:12px;flex-wrap:wrap;">
+                        <div style="display:flex;align-items:center;gap:10px;">
+                            <span style="font-size:13.5px;font-weight:500;">Target %</span>
+                            <input type="range" id="goal-slider" min="50" max="100" step="5"
+                                   value="{{ target_pct }}"
+                                   oninput="document.getElementById('goal-val').textContent=this.value+'%'"
+                                   style="width:160px;accent-color:var(--accent-blue);">
+                            <span id="goal-val" style="font-size:18px;font-weight:700;
+                                  color:var(--accent-blue);min-width:52px;">{{ target_pct }}%</span>
+                        </div>
+                    </div>
+                    <label style="display:flex;align-items:center;gap:10px;font-size:13.5px;
+                                  cursor:pointer;margin-bottom:16px;">
+                        <input type="checkbox" id="alert-email-cb"
+                               {% if alert_email %}checked{% endif %}
+                               style="accent-color:var(--accent-blue);width:16px;height:16px;">
+                        Send me an email alert when attendance drops below target
+                    </label>
+                    <button class="btn btn-primary" onclick="saveGoal()">
+                        <i class="fas fa-save"></i> Save Goal
+                    </button>
+                    <div id="goal-save-msg" style="display:none;margin-top:10px;font-size:13px;
+                         color:var(--accent-green);font-weight:600;">
+                        <i class="fas fa-check-circle"></i> Goal saved!
+                    </div>
+                </div>
+
+                <!-- Per-subject tracker -->
+                <div style="font-size:13px;font-weight:700;color:var(--text-secondary);
+                            text-transform:uppercase;letter-spacing:.7px;margin-bottom:14px;">
+                    Subject Tracker
+                </div>
+
+                {% if subject_goal_data %}
+                    {% for subj, gd in subject_goal_data.items() %}
+                    <div style="background:var(--bg-base);border:1px solid
+                                {% if gd.on_track %}rgba(34,197,94,0.25){% else %}rgba(239,68,68,0.25){% endif %};
+                                border-radius:12px;padding:16px 18px;margin-bottom:10px;">
+                        <div style="display:flex;justify-content:space-between;
+                                    align-items:center;margin-bottom:10px;">
+                            <div>
+                                <div style="font-weight:700;font-size:14px;">{{ subj }}</div>
+                                <div style="font-size:12px;color:var(--text-secondary);margin-top:2px;">
+                                    {{ gd.present }} / {{ gd.total }} classes attended
+                                </div>
+                            </div>
+                            <div style="text-align:right;">
+                                <div style="font-size:22px;font-weight:800;
+                                            color:{% if gd.on_track %}var(--accent-green){% else %}var(--accent-red){% endif %};">
+                                    {{ gd.pct }}%
+                                </div>
+                                <div style="font-size:11px;color:var(--text-secondary);">
+                                    Target: {{ target_pct }}%
+                                </div>
+                            </div>
+                        </div>
+                        <!-- Progress bar -->
+                        <div style="height:6px;border-radius:3px;background:var(--border);
+                                    margin-bottom:10px;overflow:hidden;">
+                            <div style="height:100%;border-radius:3px;width:{{ gd.pct }}%;
+                                        background:{% if gd.on_track %}var(--accent-green){% else %}var(--accent-red){% endif %};
+                                        transition:width .4s;"></div>
+                        </div>
+                        {% if gd.on_track %}
+                        <div style="font-size:12.5px;color:var(--accent-green);font-weight:600;">
+                            <i class="fas fa-check-circle"></i>
+                            On track — you can miss {{ gd.can_miss }} more class{{ 'es' if gd.can_miss != 1 else '' }} and stay above {{ target_pct }}%
+                        </div>
+                        {% else %}
+                        <div style="font-size:12.5px;color:var(--accent-red);font-weight:600;">
+                            <i class="fas fa-triangle-exclamation"></i>
+                            Below target — attend {{ gd.needed }} more consecutive class{{ 'es' if gd.needed != 1 else '' }} to reach {{ target_pct }}%
+                        </div>
+                        {% endif %}
+                    </div>
                     {% endfor %}
                 {% else %}
-                    <div class="empty-state"><i class="fas fa-book-open"></i><p>No subjects enrolled yet.</p></div>
+                    <div class="empty-state">
+                        <i class="fas fa-chart-pie"></i>
+                        <p>No attendance data yet. Once classes are marked, your tracker will appear here.</p>
+                    </div>
                 {% endif %}
             </div>
         </div>
@@ -1073,10 +1290,12 @@
                             Register your face to enable automatic attendance marking. Visit the admin or use the enrollment link below.
                         {% endif %}
                     </div>
+                    <!-- FIX: was </a> closing tag on a <button> element -->
                     <div style="display:flex;gap:10px;">
-                        <a href="/student-face-enroll" class="btn btn-primary"><i class="fas fa-camera"></i>
+                        <button class="btn btn-primary" onclick="showPage('face-enroll', null)">
+                            <i class="fas fa-camera"></i>
                             {% if student['face_image'] %}Re-Enroll Face{% else %}Enroll Face{% endif %}
-                        </a>
+                        </button>
                         {% if student['face_image'] %}
                             <button class="btn" onclick="showToast('Face data cleared! Please re-enroll.')"><i class="fas fa-trash"></i> Remove Face</button>
                         {% endif %}
@@ -1158,87 +1377,663 @@
             </div>
         </div>
 
+        <!-- ══════════════ EDIT PROFILE PAGE ══════════════ -->
+        <div class="page" id="page-edit-profile">
+            <div style="background:var(--bg-card);border:1px solid var(--border);border-radius:16px;padding:30px;max-width:640px;">
+                <div style="display:flex;align-items:center;gap:20px;margin-bottom:28px;padding-bottom:24px;border-bottom:1px solid var(--border);">
+                    <div style="width:80px;height:80px;border-radius:16px;background:linear-gradient(135deg,#6366f1,#8b5cf6);display:flex;align-items:center;justify-content:center;font-size:28px;font-weight:700;color:#fff;overflow:hidden;flex-shrink:0;border:2px solid var(--border-active);">
+                        {% if student['face_image'] %}
+                            <img src="{{ url_for('static', filename=student['face_image']) }}" style="width:100%;height:100%;object-fit:cover;">
+                        {% else %}
+                            {{ student['name'][:2].upper() if student['name'] else 'ST' }}
+                        {% endif %}
+                    </div>
+                    <div>
+                        <div style="font-size:17px;font-weight:700;margin-bottom:4px;">{{ student['name'] if student['name'] else 'Student Name' }}</div>
+                        <div style="font-size:12px;color:var(--text-secondary);margin-bottom:10px;">Roll No: {{ student['roll'] if student['roll'] else 'N/A' }}</div>
+                        <button class="btn" style="padding:7px 14px;font-size:12px;" onclick="showPage('face-enroll', null)">
+                            <i class="fas fa-camera"></i>
+                            {% if student['face_image'] %}Re-Enroll Face{% else %}Enroll Face{% endif %}
+                        </button>
+                    </div>
+                </div>
+                <form method="POST" action="/student-profile-edit">
+                    <input type="hidden" name="_csrf" value="{{ csrf_token }}">
+                    <div style="font-size:11px;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.8px;margin:4px 0 14px;display:flex;align-items:center;gap:10px;">
+                        Personal Information <span style="flex:1;height:1px;background:var(--border);display:block;"></span>
+                    </div>
+                    <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:16px;">
+                        <div style="display:flex;flex-direction:column;">
+                            <label style="font-size:11px;font-weight:600;color:var(--text-secondary);text-transform:uppercase;letter-spacing:0.6px;margin-bottom:7px;">Full Name</label>
+                            <input style="background:var(--bg-input);border:1.5px solid var(--border);border-radius:9px;padding:10px 14px;font-size:14px;font-family:'Inter',sans-serif;color:var(--text-primary);outline:none;"
+                                   type="text" name="name" value="{{ student['name'] if student['name'] else '' }}" placeholder="Enter your full name" required
+                                   onfocus="this.style.borderColor='var(--accent-blue)'" onblur="this.style.borderColor='var(--border)'">
+                        </div>
+                        <div style="display:flex;flex-direction:column;">
+                            <label style="font-size:11px;font-weight:600;color:var(--text-secondary);text-transform:uppercase;letter-spacing:0.6px;margin-bottom:7px;">Roll Number</label>
+                            <input style="background:rgba(99,102,241,0.05);border:1.5px solid rgba(99,102,241,0.2);border-radius:9px;padding:10px 14px;font-size:14px;font-family:'Inter',sans-serif;color:var(--text-secondary);outline:none;cursor:not-allowed;"
+                                   type="text" name="roll" value="{{ student['roll'] if student['roll'] else '' }}" readonly>
+                            <span style="font-size:11px;color:var(--text-muted);margin-top:5px;">Roll number cannot be changed</span>
+                        </div>
+                        <div style="display:flex;flex-direction:column;">
+                            <label style="font-size:11px;font-weight:600;color:var(--text-secondary);text-transform:uppercase;letter-spacing:0.6px;margin-bottom:7px;">Email Address</label>
+                            <input style="background:var(--bg-input);border:1.5px solid var(--border);border-radius:9px;padding:10px 14px;font-size:14px;font-family:'Inter',sans-serif;color:var(--text-primary);outline:none;"
+                                   type="email" name="email" value="{{ student['email'] if student['email'] else '' }}" placeholder="your@email.com"
+                                   onfocus="this.style.borderColor='var(--accent-blue)'" onblur="this.style.borderColor='var(--border)'">
+                        </div>
+                        <div style="display:flex;flex-direction:column;">
+                            <label style="font-size:11px;font-weight:600;color:var(--text-secondary);text-transform:uppercase;letter-spacing:0.6px;margin-bottom:7px;">Phone Number</label>
+                            <input style="background:var(--bg-input);border:1.5px solid var(--border);border-radius:9px;padding:10px 14px;font-size:14px;font-family:'Inter',sans-serif;color:var(--text-primary);outline:none;"
+                                   type="tel" name="phone" value="{{ student['phone'] if student['phone'] else '' }}" placeholder="10-digit mobile number" maxlength="10"
+                                   onfocus="this.style.borderColor='var(--accent-blue)'" onblur="this.style.borderColor='var(--border)'">
+                        </div>
+                        <div style="display:flex;flex-direction:column;grid-column:1/-1;">
+                            <label style="font-size:11px;font-weight:600;color:var(--text-secondary);text-transform:uppercase;letter-spacing:0.6px;margin-bottom:7px;">Subject</label>
+                            <input style="background:var(--bg-input);border:1.5px solid var(--border);border-radius:9px;padding:10px 14px;font-size:14px;font-family:'Inter',sans-serif;color:var(--text-primary);outline:none;"
+                                   type="text" name="subject" value="{{ student['subject'] if student['subject'] else '' }}" placeholder="e.g. Computer Science, Science, Commerce"
+                                   onfocus="this.style.borderColor='var(--accent-blue)'" onblur="this.style.borderColor='var(--border)'">
+                        </div>
+                    </div>
+                    <div style="display:flex;gap:10px;padding-top:6px;">
+                        <button type="submit" class="btn btn-primary" id="edit-save-btn">
+                            <i class="fas fa-save"></i> Save Changes
+                        </button>
+                        <button type="button" class="btn" onclick="showPage('profile', document.querySelectorAll('.nav-item')[1])">
+                            <i class="fas fa-times"></i> Cancel
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <!-- ══════════════ FACE ENROLL PAGE ══════════════ -->
+        <div class="page" id="page-face-enroll">
+            <div class="section-card" style="max-width:560px;">
+                <div style="display:flex;flex-direction:column;align-items:center;padding:20px 20px 10px;text-align:center;">
+                    <div style="font-size:20px;font-weight:700;margin-bottom:6px;">
+                        <i class="fas fa-camera" style="color:var(--accent-blue);margin-right:8px;"></i>
+                        Face {% if student['face_image'] %}Re-{% endif %}Enrollment
+                    </div>
+                    <p style="font-size:13px;color:var(--text-secondary);margin-bottom:24px;max-width:360px;">
+                        Position your face within the oval guide and click "Capture Photo". Make sure you're in a well-lit area.
+                    </p>
+                    <div id="enroll-status" style="width:100%;max-width:340px;border-radius:10px;padding:12px 16px;font-size:13px;font-weight:500;display:flex;align-items:center;gap:10px;margin-bottom:20px;background:rgba(99,102,241,0.1);border:1px solid rgba(99,102,241,0.25);color:#818cf8;">
+                        <i class="fas fa-circle-info"></i>
+                        <span id="enroll-status-msg">Click "Start Camera" to begin.</span>
+                    </div>
+                    <div id="enroll-camera-wrap" style="position:relative;width:280px;height:280px;border-radius:16px;overflow:hidden;background:#111;border:2px solid var(--border-active);margin-bottom:20px;">
+                        <video id="enroll-video" autoplay playsinline muted style="width:100%;height:100%;object-fit:cover;display:block;transform:scaleX(-1);"></video>
+                        <div style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;pointer-events:none;">
+                            <div style="width:160px;height:200px;border:2px dashed rgba(99,102,241,0.6);border-radius:50%;"></div>
+                            <div style="position:absolute;left:0;right:0;height:2px;background:linear-gradient(90deg,transparent,var(--accent-blue),transparent);animation:scan 2s linear infinite;"></div>
+                        </div>
+                    </div>
+                    <div id="enroll-preview-wrap" style="position:relative;width:280px;height:280px;border-radius:16px;overflow:hidden;border:2px solid var(--accent-green);margin-bottom:20px;display:none;">
+                        <img id="enroll-preview-img" src="" style="width:100%;height:100%;object-fit:cover;transform:scaleX(-1);">
+                        <div style="position:absolute;bottom:12px;left:50%;transform:translateX(-50%);background:rgba(34,197,94,0.9);color:#fff;border-radius:20px;padding:5px 14px;font-size:12px;font-weight:600;display:flex;align-items:center;gap:6px;">
+                            <i class="fas fa-check-circle"></i> Photo captured
+                        </div>
+                    </div>
+                    <canvas id="enroll-canvas" style="display:none;"></canvas>
+                    <form id="enroll-form-inline" method="POST" action="/student-face-enroll">
+                        <input type="hidden" name="_csrf" value="{{ csrf_token }}">
+                        <input type="hidden" name="face_image" id="enroll-face-input">
+                    </form>
+                    <div style="display:flex;gap:10px;flex-wrap:wrap;justify-content:center;margin-bottom:24px;">
+                        <button class="btn btn-primary" id="enroll-capture-btn" onclick="enrollCapture()">
+                            <i class="fas fa-camera"></i> Capture Photo
+                        </button>
+                        <button class="btn" id="enroll-submit-btn" onclick="enrollSubmit()" style="display:none;background:var(--accent-green);border-color:var(--accent-green);color:#fff;">
+                            <i class="fas fa-check"></i> Enroll Face
+                        </button>
+                        <button class="btn" id="enroll-retake-btn" onclick="enrollRetake()" style="display:none;">
+                            <i class="fas fa-redo"></i> Retake
+                        </button>
+                        <button type="button" class="btn" onclick="enrollStopCamera();showPage('face', document.querySelectorAll('.nav-item')[8])">
+                            <i class="fas fa-times"></i> Cancel
+                        </button>
+                    </div>
+                    <div style="width:100%;max-width:340px;text-align:left;">
+                        <div style="font-size:11px;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.8px;margin-bottom:10px;">Tips for best results</div>
+                        <div style="display:flex;align-items:center;gap:8px;font-size:12px;color:var(--text-secondary);margin-bottom:6px;"><i class="fas fa-sun" style="color:var(--accent-blue);width:14px;"></i> Use good, even lighting</div>
+                        <div style="display:flex;align-items:center;gap:8px;font-size:12px;color:var(--text-secondary);margin-bottom:6px;"><i class="fas fa-face-smile" style="color:var(--accent-blue);width:14px;"></i> Face the camera with neutral expression</div>
+                        <div style="display:flex;align-items:center;gap:8px;font-size:12px;color:var(--text-secondary);margin-bottom:6px;"><i class="fas fa-expand" style="color:var(--accent-blue);width:14px;"></i> Keep face within the oval guide</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
     </div><!-- /content -->
 </div><!-- /main -->
 
 <script>
-    // ── PAGE NAVIGATION ──
-    const pageTitles = {
-        dashboard:  'My Dashboard',
-        profile:    'My Profile',
-        attendance: 'Attendance',
-        reports:    'Reports',
-        subjects:   'Subjects',
-        face:       'Face Recognition',
-        settings:   'Settings'
-    };
+// ── PAGE TITLES MAP ── (FIX: was missing comma before 'timetable')
+const pageTitles = {
+    'dashboard':    'Welcome, {{ student["name"] }} 👋',
+    'profile':      'My Profile',
+    'attendance':   'Attendance',
+    'reports':      'Reports',
+    'subjects':     'Subjects',
+    'timetable':    'My Timetable',
+    'goals':        'Goals & Alerts',
+    'face':         'Face Recognition',
+    'settings':     'Settings',
+    'edit-profile': 'Edit Profile',
+    'face-enroll':  'Face Enrollment'
+};
 
-    function showPage(name, btn) {
-        // Hide all pages
-        document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
-        // Deactivate all nav items
-        document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
-        // Show target page
-        document.getElementById('page-' + name).classList.add('active');
-        // Mark nav item active
-        btn.classList.add('active');
-        // Update header
-        document.getElementById('page-heading').textContent = pageTitles[name];
-        // Close sidebar on mobile
-        document.getElementById('sidebar').classList.remove('open');
+// ── PAGE NAVIGATION ──
+// FIX: Removed the broken _origShowPage wrapper pattern.
+// loadTimetable and enrollStartCamera are called directly inside showPage.
+function showPage(name, btn) {
+    // Stop camera if leaving face-enroll
+    const faceEnrollPage = document.getElementById('page-face-enroll');
+    if (faceEnrollPage && faceEnrollPage.classList.contains('active')) {
+        enrollStopCamera();
     }
 
-    // ── DOWNLOAD REPORT ──
-    function downloadReport() {
-        showToast('Generating report... Download will start shortly.');
-        // Wire to real endpoint: window.location.href = '/student-download-report';
+    document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+    document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+
+    const targetPage = document.getElementById('page-' + name);
+    if (targetPage) targetPage.classList.add('active');
+    if (btn) btn.classList.add('active');
+
+    document.getElementById('page-heading').textContent = pageTitles[name] || name;
+    document.getElementById('sidebar').classList.remove('open');
+
+    // Trigger page-specific init
+    if (name === 'face-enroll') {
+        setTimeout(enrollStartCamera, 200);
+    }
+    if (name === 'timetable') {
+        loadTimetable();
     }
 
-    // ── VIEW ALL RECORDS ──
-    function viewAllRecords() {
-        // Activate Attendance page
-        const attendanceBtn = document.querySelectorAll('.nav-item')[2];
-        showPage('attendance', attendanceBtn);
-        showToast('Showing all attendance records.');
-    }
+    // Save current page to URL hash
+    window.location.hash = name;
+}
 
-    // ── LOGOUT MODAL ──
-    function openLogoutModal()  { document.getElementById('logout-modal').classList.add('show'); }
-    function closeLogoutModal() { document.getElementById('logout-modal').classList.remove('show'); }
-
-    // ── TOAST ──
-    let toastTimer;
-    function showToast(msg) {
-        const toast = document.getElementById('toast');
-        document.getElementById('toast-msg').textContent = msg;
-        toast.classList.add('show');
-        clearTimeout(toastTimer);
-        toastTimer = setTimeout(() => toast.classList.remove('show'), 3000);
-    }
-
-    // ── CLOSE MODAL ON OVERLAY CLICK ──
-    document.getElementById('logout-modal').addEventListener('click', function(e) {
-        if (e.target === this) closeLogoutModal();
+// ── RESTORE PAGE ON REFRESH ──
+// FIX: Merged into single DOMContentLoaded listener (was split into two)
+document.addEventListener('DOMContentLoaded', function () {
+    // Set progress bar widths
+    document.querySelectorAll('[data-percent]').forEach(function (bar) {
+        const pct = bar.getAttribute('data-percent');
+        if (pct) bar.style.width = pct + '%';
     });
 
-    // ── SET PROGRESS BAR WIDTHS ──
-    document.addEventListener('DOMContentLoaded', function() {
-        // Set progress bar widths using data attributes
-        const progressBars = document.querySelectorAll('[data-percent]');
-        progressBars.forEach(bar => {
-            const percent = bar.getAttribute('data-percent');
-            if (percent) {
-                bar.style.width = percent + '%';
-            }
-        });
-    });
-
-    // ── UPDATE DATE ──
-    const days = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
+    // Update date
+    const days   = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
     const months = ['January','February','March','April','May','June','July','August','September','October','November','December'];
-    const now = new Date();
+    const now    = new Date();
     document.getElementById('page-date').textContent =
         days[now.getDay()] + ', ' + now.getDate() + ' ' + months[now.getMonth()] + ' ' + now.getFullYear();
+
+    // Restore page from URL hash
+    const hash = window.location.hash.replace('#', '');
+    const validPages = Object.keys(pageTitles);
+    if (hash && validPages.includes(hash) && document.getElementById('page-' + hash)) {
+        document.querySelectorAll('.nav-item').forEach(function(navBtn) {
+            const oc = navBtn.getAttribute('onclick') || '';
+            if (oc.includes("'" + hash + "'")) {
+                showPage(hash, navBtn);
+            }
+        });
+    }
+});
+
+// ── DOWNLOAD REPORT ──
+function downloadReport() {
+    showToast('Generating report... Download will start shortly.');
+    // Wire to real endpoint: window.location.href = '/student-download-report';
+}
+
+// ── VIEW ALL RECORDS ──
+function viewAllRecords() {
+    const attendanceBtn = document.querySelectorAll('.nav-item')[2];
+    showPage('attendance', attendanceBtn);
+    showToast('Showing all attendance records.');
+}
+
+// ── LOGOUT MODAL ──
+function openLogoutModal()  { document.getElementById('logout-modal').classList.add('show'); }
+function closeLogoutModal() { document.getElementById('logout-modal').classList.remove('show'); }
+
+document.getElementById('logout-modal').addEventListener('click', function (e) {
+    if (e.target === this) closeLogoutModal();
+});
+
+// ── TOAST ──
+let toastTimer;
+function showToast(msg) {
+    const toast = document.getElementById('toast');
+    document.getElementById('toast-msg').textContent = msg;
+    toast.classList.add('show');
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(() => toast.classList.remove('show'), 3000);
+}
+
+// ── FACE ENROLL CAMERA ──
+let enrollStream   = null;
+let enrollCaptured = null;
+
+async function enrollStartCamera() {
+    try {
+        enrollStream = await navigator.mediaDevices.getUserMedia({
+            video: { width: { ideal: 640 }, height: { ideal: 480 }, facingMode: 'user' }
+        });
+        document.getElementById('enroll-video').srcObject = enrollStream;
+        await document.getElementById('enroll-video').play();
+        setEnrollStatus('Camera ready. Position your face and capture.', 'info');
+    } catch (e) {
+        setEnrollStatus('Camera access denied. Please allow camera permission.', 'error');
+        document.getElementById('enroll-capture-btn').disabled = true;
+    }
+}
+
+function enrollStopCamera() {
+    if (enrollStream) {
+        enrollStream.getTracks().forEach(t => t.stop());
+        enrollStream = null;
+    }
+}
+
+function setEnrollStatus(msg, type) {
+    const box = document.getElementById('enroll-status');
+    if (!box) return;
+    const colors = {
+        info:    { bg: 'rgba(99,102,241,0.1)',  border: 'rgba(99,102,241,0.25)',  color: '#818cf8' },
+        success: { bg: 'rgba(34,197,94,0.1)',   border: 'rgba(34,197,94,0.25)',   color: '#4ade80' },
+        error:   { bg: 'rgba(239,68,68,0.1)',   border: 'rgba(239,68,68,0.25)',   color: '#f87171' }
+    };
+    const c = colors[type] || colors.info;
+    box.style.background = c.bg;
+    box.style.border     = '1px solid ' + c.border;
+    box.style.color      = c.color;
+    document.getElementById('enroll-status-msg').textContent = msg;
+}
+
+function enrollCapture() {
+    if (!enrollStream) { setEnrollStatus('Camera not ready. Please wait.', 'error'); return; }
+    const video  = document.getElementById('enroll-video');
+    const canvas = document.getElementById('enroll-canvas');
+    const w = video.videoWidth || 640, h = video.videoHeight || 480;
+    canvas.width = w; canvas.height = h;
+    const ctx = canvas.getContext('2d');
+    ctx.translate(w, 0); ctx.scale(-1, 1);
+    ctx.drawImage(video, 0, 0, w, h);
+    enrollCaptured = canvas.toDataURL('image/jpeg', 0.92);
+    document.getElementById('enroll-face-input').value       = enrollCaptured;
+    document.getElementById('enroll-preview-img').src        = enrollCaptured;
+    document.getElementById('enroll-camera-wrap').style.display  = 'none';
+    document.getElementById('enroll-preview-wrap').style.display = 'block';
+    document.getElementById('enroll-capture-btn').style.display  = 'none';
+    document.getElementById('enroll-submit-btn').style.display   = 'inline-flex';
+    document.getElementById('enroll-retake-btn').style.display   = 'inline-flex';
+    setEnrollStatus('Photo captured! Click "Enroll Face" to register.', 'success');
+}
+
+function enrollRetake() {
+    enrollCaptured = null;
+    document.getElementById('enroll-face-input').value       = '';
+    document.getElementById('enroll-camera-wrap').style.display  = 'block';
+    document.getElementById('enroll-preview-wrap').style.display = 'none';
+    document.getElementById('enroll-capture-btn').style.display  = 'inline-flex';
+    document.getElementById('enroll-submit-btn').style.display   = 'none';
+    document.getElementById('enroll-retake-btn').style.display   = 'none';
+    setEnrollStatus('Camera ready. Position your face and capture.', 'info');
+}
+
+async function enrollSubmit() {
+    if (!enrollCaptured) { setEnrollStatus('Please capture a photo first.', 'error'); return; }
+    const btn = document.getElementById('enroll-submit-btn');
+    btn.disabled = true;
+    btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Enrolling…';
+    setEnrollStatus('Processing your face… please wait.', 'info');
+
+    const csrfToken = document.querySelector('meta[name="csrf-token"]').getAttribute('content');
+    try {
+        const res  = await fetch('/student-face-enroll', {
+            method:  'POST',
+            headers: { 'Content-Type': 'application/json', 'X-CSRF-Token': csrfToken },
+            body:    JSON.stringify({ face_image: enrollCaptured })
+        });
+        const data = await res.json();
+        if (data.success) {
+            setEnrollStatus('Face enrolled successfully! Redirecting…', 'success');
+            setTimeout(() => location.reload(), 1500);
+        } else {
+            setEnrollStatus(data.error || 'Enrollment failed. Please try again.', 'error');
+            btn.disabled = false;
+            btn.innerHTML = '<i class="fas fa-check"></i> Enroll Face';
+        }
+    } catch (err) {
+        setEnrollStatus('Network error. Please try again.', 'error');
+        btn.disabled = false;
+        btn.innerHTML = '<i class="fas fa-check"></i> Enroll Face';
+    }
+}
+
+// ── TIMETABLE ──
+const DAYS    = ['Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
+const PERIODS = [1,2,3,4,5,6,7,8];
+let ttStandard = [];   // from faculty (read-only)
+let ttPersonal = [];   // student's own additions
+
+async function loadTimetable() {
+    try {
+        // Load faculty timetable for student's standard
+        const r1   = await fetch('/api/student/timetable/standard');
+        const d1   = await r1.json();
+        ttStandard = d1.success ? d1.timetable : [];
+
+        // Load student's personal entries
+        const r2   = await fetch('/api/timetable');
+        const d2   = await r2.json();
+        ttPersonal = d2.success ? d2.timetable : [];
+
+        renderStudentTimetableGrid();
+    } catch(e) { console.error('loadTimetable error:', e); }
+}
+
+function renderStudentTimetableGrid() {
+    const grid = document.getElementById('timetable-grid');
+    if (!grid) return;
+
+    const inputStyle = `background:var(--bg-card);border:1px solid var(--border);
+        border-radius:7px;padding:7px 10px;font-size:13px;color:var(--text-primary);
+        outline:none;width:100%;font-family:inherit;`;
+
+    // ── Standard timetable (read-only, grouped by day) ──
+    let html = '';
+
+    if (ttStandard.length > 0) {
+        html += `<div style="margin-bottom:20px;">
+            <div style="font-size:12px;font-weight:700;color:var(--accent-green);
+                text-transform:uppercase;letter-spacing:.8px;margin-bottom:12px;
+                display:flex;align-items:center;gap:8px;">
+                <i class="fas fa-chalkboard-teacher"></i>
+                Class Timetable (Set by Faculty — Read Only)
+            </div>`;
+
+        // Group by day
+        const byDay = {};
+        DAYS.forEach(d => byDay[d] = []);
+        ttStandard.forEach(e => {
+            const day = e.day || e.day_of_week || '';
+            if (byDay[day]) byDay[day].push(e);
+        });
+
+        DAYS.forEach(day => {
+            const periods = byDay[day];
+            if (periods.length === 0) return;
+
+            html += `<div style="margin-bottom:14px;">
+                <div style="font-size:12px;font-weight:700;color:var(--text-secondary);
+                    margin-bottom:8px;padding:6px 12px;background:var(--bg-card);
+                    border-radius:8px;border:1px solid var(--border);">
+                    ${day}
+                </div>
+                <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:8px;">`;
+
+            periods.sort((a,b) => (a.period||a.period_number||0) - (b.period||b.period_number||0))
+                   .forEach(p => {
+                const per  = p.period || p.period_number || '?';
+                const subj = p.subject || '';
+                const st   = p.start_time || '';
+                const et   = p.end_time   || '';
+                html += `<div style="padding:10px 12px;background:rgba(34,197,94,0.06);
+                    border:1px solid rgba(34,197,94,0.2);border-radius:10px;">
+                    <div style="font-size:10px;color:var(--accent-green);font-weight:700;margin-bottom:4px;">
+                        Period ${per}
+                    </div>
+                    <div style="font-size:13.5px;font-weight:600;">${subj}</div>
+                    ${st ? `<div style="font-size:11px;color:var(--text-secondary);margin-top:3px;">${st}${et ? ' – '+et : ''}</div>` : ''}
+                </div>`;
+            });
+
+            html += `</div></div>`;
+        });
+
+        html += `</div>`;
+    } else {
+        html += `<div style="padding:14px 16px;background:rgba(99,102,241,0.07);
+            border:1px solid rgba(99,102,241,0.15);border-radius:10px;
+            font-size:13px;color:var(--text-secondary);margin-bottom:20px;">
+            <i class="fas fa-info-circle" style="color:var(--accent-blue);margin-right:8px;"></i>
+            No class timetable set by faculty yet for your standard.
+        </div>`;
+    }
+
+    // ── Personal entries (editable) ──
+    html += `<div>
+        <div style="font-size:12px;font-weight:700;color:var(--accent-blue);
+            text-transform:uppercase;letter-spacing:.8px;margin-bottom:12px;
+            display:flex;align-items:center;gap:8px;">
+            <i class="fas fa-user-edit"></i>
+            My Personal Periods
+        </div>`;
+
+    if (ttPersonal.length === 0) {
+        html += `<div style="padding:20px;text-align:center;color:var(--text-muted);
+            font-size:13px;">No personal periods added yet. Click "Add Period" below.</div>`;
+    } else {
+        html += `<table style="width:100%;border-collapse:collapse;font-size:13px;">
+            <thead><tr>
+                <th style="padding:8px 12px;text-align:left;color:var(--text-muted);
+                    font-size:11px;text-transform:uppercase;border-bottom:1px solid var(--border);">Day</th>
+                <th style="padding:8px 12px;text-align:left;color:var(--text-muted);
+                    font-size:11px;text-transform:uppercase;border-bottom:1px solid var(--border);width:70px;">Period</th>
+                <th style="padding:8px 12px;text-align:left;color:var(--text-muted);
+                    font-size:11px;text-transform:uppercase;border-bottom:1px solid var(--border);">Subject</th>
+                <th style="padding:8px 12px;text-align:left;color:var(--text-muted);
+                    font-size:11px;text-transform:uppercase;border-bottom:1px solid var(--border);width:110px;">Start</th>
+                <th style="padding:8px 12px;text-align:left;color:var(--text-muted);
+                    font-size:11px;text-transform:uppercase;border-bottom:1px solid var(--border);width:110px;">End</th>
+                <th style="padding:8px 12px;border-bottom:1px solid var(--border);width:50px;"></th>
+            </tr></thead>
+            <tbody id="tt-personal-tbody">`;
+
+        ttPersonal.forEach((e, i) => {
+            const dayOpts = DAYS.map(d =>
+                `<option value="${d}" ${d === e.day ? 'selected' : ''}>${d}</option>`
+            ).join('');
+            const perOpts = PERIODS.map(p =>
+                `<option value="${p}" ${p == e.period ? 'selected' : ''}>${p}</option>`
+            ).join('');
+
+            html += `<tr style="border-bottom:1px solid var(--border);">
+                <td style="padding:7px 12px;">
+                    <select onchange="ttUpdate(${i},'day',this.value)" style="${inputStyle}">${dayOpts}</select>
+                </td>
+                <td style="padding:7px 12px;">
+                    <select onchange="ttUpdate(${i},'period',this.value)" style="${inputStyle}">${perOpts}</select>
+                </td>
+                <td style="padding:7px 12px;">
+                    <input type="text" value="${e.subject||''}"
+                           onchange="ttUpdate(${i},'subject',this.value)"
+                           placeholder="Subject" style="${inputStyle}">
+                </td>
+                <td style="padding:7px 12px;">
+                    <input type="time" value="${e.start_time||''}"
+                           onchange="ttUpdate(${i},'start_time',this.value)" style="${inputStyle}">
+                </td>
+                <td style="padding:7px 12px;">
+                    <input type="time" value="${e.end_time||''}"
+                           onchange="ttUpdate(${i},'end_time',this.value)" style="${inputStyle}">
+                </td>
+                <td style="padding:7px 12px;text-align:center;">
+                    <button onclick="ttRemove(${i})"
+                            style="background:none;border:none;color:var(--accent-red);
+                                   cursor:pointer;font-size:14px;">
+                        <i class="fas fa-trash"></i>
+                    </button>
+                </td>
+            </tr>`;
+        });
+
+        html += `</tbody></table>`;
+    }
+
+    html += `</div>`;
+    grid.innerHTML = html;
+}
+
+function ttUpdate(i, field, val) {
+    if (ttPersonal[i]) ttPersonal[i][field] = val;
+}
+
+function ttRemove(i) {
+    ttPersonal.splice(i, 1);
+    renderStudentTimetableGrid();
+}
+
+function addTimetableRow() {
+    ttPersonal.push({ day: 'Monday', period: 1, subject: '', start_time: '', end_time: '' });
+    renderStudentTimetableGrid();
+}
+
+function clearTimetable() {
+    if (!confirm('Clear all your personal periods?')) return;
+    ttPersonal = [];
+    renderStudentTimetableGrid();
+}
+
+async function saveTimetable() {
+    const csrfToken = document.querySelector('meta[name="csrf-token"]').getAttribute('content');
+    try {
+        const res  = await fetch('/api/timetable/save', {
+            method:  'POST',
+            headers: { 'Content-Type': 'application/json', 'X-CSRF-Token': csrfToken },
+            body:    JSON.stringify({ entries: ttPersonal })
+        });
+        const data = await res.json();
+        if (data.success) {
+            showToast('Personal timetable saved!');
+        } else {
+            showToast('Error: ' + (data.error || 'Could not save.'));
+        }
+    } catch(e) {
+        showToast('Network error.');
+    }
+}
+
+// ── ATTENDANCE GOAL ──
+async function saveGoal() {
+    const csrfToken   = document.querySelector('meta[name="csrf-token"]').getAttribute('content');
+    const target_pct  = parseInt(document.getElementById('goal-slider').value);
+    const alert_email = document.getElementById('alert-email-cb').checked;
+
+    try {
+        const res  = await fetch('/api/attendance-goal/save', {
+            method:  'POST',
+            headers: { 'Content-Type': 'application/json', 'X-CSRF-Token': csrfToken },
+            body:    JSON.stringify({ target_pct, alert_email })
+        });
+        const data = await res.json();
+        const msg  = document.getElementById('goal-save-msg');
+        if (data.success) {
+            msg.style.display = 'flex';
+            msg.innerHTML     = '<i class="fas fa-check-circle"></i> Goal saved!';
+            msg.style.color   = 'var(--accent-green)';
+            showToast('Goal saved! Page will refresh to update tracker.');
+            setTimeout(() => location.reload(), 2000);
+        } else {
+            msg.style.display = 'flex';
+            msg.innerHTML     = '<i class="fas fa-times-circle"></i> ' + (data.error || 'Error saving.');
+            msg.style.color   = 'var(--accent-red)';
+        }
+    } catch (e) {
+        showToast('Network error. Could not save goal.');
+    }
+}
+
+// ── TODAY'S CLASSES — time-based status + AM/PM format ──
+function fmt12(t) {
+    if (!t || t === '--:--') return '';
+    const parts = t.split(':');
+    if (parts.length < 2) return t;
+    let h = parseInt(parts[0]), m = parseInt(parts[1]);
+    const ampm = h >= 12 ? 'PM' : 'AM';
+    h = h % 12 || 12;
+    return h + ':' + String(m).padStart(2, '0') + ' ' + ampm;
+}
+
+function updateClassStatuses() {
+    const now     = new Date();
+    const nowMins = now.getHours() * 60 + now.getMinutes();
+
+    document.querySelectorAll('[data-start]').forEach(function(row) {
+        const marked  = row.getAttribute('data-marked') === 'yes';
+        const start   = row.getAttribute('data-start') || '';
+        const end     = row.getAttribute('data-end')   || '';
+        const badge   = row.querySelector('.cls-status-badge');
+        const timeLbl = row.querySelector('.cls-time-display');
+        const perBadge= row.querySelector('.cls-period-badge');
+
+        // Format time display as AM/PM
+        if (start && timeLbl) {
+            timeLbl.textContent = fmt12(start) + (end ? ' – ' + fmt12(end) : '');
+        }
+
+        if (!badge) return;
+
+        if (marked) {
+            badge.textContent        = '✓ Present';
+            badge.style.background   = 'rgba(34,197,94,0.12)';
+            badge.style.color        = 'var(--accent-green)';
+            if (perBadge) {
+                perBadge.style.background = 'rgba(34,197,94,0.15)';
+                perBadge.style.color      = 'var(--accent-green)';
+            }
+            return;
+        }
+
+        // Parse start/end minutes
+        let startMins = -1, endMins = -1;
+        if (start) {
+            const sp = start.split(':');
+            startMins = parseInt(sp[0]) * 60 + parseInt(sp[1] || 0);
+        }
+        if (end) {
+            const ep = end.split(':');
+            endMins = parseInt(ep[0]) * 60 + parseInt(ep[1] || 0);
+        }
+
+        if (endMins > 0 && nowMins > endMins) {
+            // Period is over and not marked = Absent
+            badge.textContent      = '✗ Absent';
+            badge.style.background = 'rgba(239,68,68,0.12)';
+            badge.style.color      = 'var(--accent-red)';
+            if (perBadge) {
+                perBadge.style.background = 'rgba(239,68,68,0.12)';
+                perBadge.style.color      = 'var(--accent-red)';
+            }
+        } else if (startMins > 0 && nowMins >= startMins && (endMins < 0 || nowMins <= endMins)) {
+            // Currently ongoing
+            badge.textContent      = '● Ongoing';
+            badge.style.background = 'rgba(245,158,11,0.12)';
+            badge.style.color      = 'var(--accent-yellow)';
+            if (perBadge) {
+                perBadge.style.background = 'rgba(245,158,11,0.15)';
+                perBadge.style.color      = 'var(--accent-yellow)';
+            }
+        } else {
+            // Not started yet
+            badge.textContent      = 'Upcoming';
+            badge.style.background = 'rgba(99,102,241,0.1)';
+            badge.style.color      = 'var(--accent-blue)';
+        }
+    });
+}
+
+// Run on load and update every minute
+document.addEventListener('DOMContentLoaded', function() {
+    updateClassStatuses();
+    setInterval(updateClassStatuses, 60000);
+});
+
 </script>
 </body>
 </html>

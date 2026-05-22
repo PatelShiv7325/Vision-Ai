@@ -3,6 +3,7 @@ database/db.py  ·  Vision AI v5  ·  ALL BUGS FIXED
 ====================================================
 FIXES in this version:
   - emotion_tracking and batch_attendance tables now created in init_db()
+  - student_timetable and attendance_goals tables added correctly inside _SCHEMA
   - All DB migrations are idempotent (no duplicate column errors)
   - check_account_locked / record_failed_login use hard whitelist (no SQLi)
   - get_attendance_summary returns correct keys
@@ -47,7 +48,7 @@ CREATE TABLE IF NOT EXISTS students (
     face_encoding  BLOB,
     standard       TEXT,
     division       TEXT,
-    department     TEXT,
+    subject        TEXT,
     gender         TEXT,
     is_active      INTEGER  DEFAULT 1,
     last_login     DATETIME,
@@ -60,7 +61,7 @@ CREATE TABLE IF NOT EXISTS faculty (
     id             INTEGER  PRIMARY KEY AUTOINCREMENT,
     name           TEXT     NOT NULL,
     faculty_id     TEXT     UNIQUE NOT NULL,
-    department     TEXT     NOT NULL,
+    subject        TEXT     NOT NULL,
     email          TEXT     UNIQUE NOT NULL,
     password       TEXT     NOT NULL,
     designation    TEXT,
@@ -197,6 +198,26 @@ CREATE TABLE IF NOT EXISTS batch_attendance (
     marked_by       TEXT,
     created_at      DATETIME DEFAULT CURRENT_TIMESTAMP
 );
+
+CREATE TABLE IF NOT EXISTS student_timetable (
+    id           INTEGER  PRIMARY KEY AUTOINCREMENT,
+    student_roll TEXT     NOT NULL,
+    day          TEXT     NOT NULL,
+    period       INTEGER  NOT NULL,
+    subject      TEXT     NOT NULL,
+    start_time   TEXT,
+    end_time     TEXT,
+    created_at   DATETIME DEFAULT CURRENT_TIMESTAMP,
+    UNIQUE(student_roll, day, period)
+);
+
+CREATE TABLE IF NOT EXISTS attendance_goals (
+    id           INTEGER  PRIMARY KEY AUTOINCREMENT,
+    student_roll TEXT     NOT NULL UNIQUE,
+    target_pct   INTEGER  NOT NULL DEFAULT 75,
+    alert_email  INTEGER  NOT NULL DEFAULT 1,
+    updated_at   DATETIME DEFAULT CURRENT_TIMESTAMP
+);
 """
 
 _INDEXES = """
@@ -215,6 +236,8 @@ CREATE INDEX IF NOT EXISTS idx_reset_tok   ON reset_tokens(email, token, user_ty
 CREATE INDEX IF NOT EXISTS idx_timetable   ON timetable(standard, division, day_of_week, period_number);
 CREATE INDEX IF NOT EXISTS idx_emotion     ON emotion_tracking(student_roll, date);
 CREATE INDEX IF NOT EXISTS idx_batch_att   ON batch_attendance(subject, date);
+CREATE INDEX IF NOT EXISTS idx_stu_tt      ON student_timetable(student_roll, day);
+CREATE INDEX IF NOT EXISTS idx_att_goals   ON attendance_goals(student_roll);
 """
 
 _MIGRATIONS = [
@@ -224,12 +247,13 @@ _MIGRATIONS = [
     ("students",      "locked_until",    "DATETIME"),
     ("students",      "standard",        "TEXT"),
     ("students",      "division",        "TEXT"),
-    ("students",      "department",      "TEXT"),
+    ("students",      "subject",         "TEXT"),
     ("students",      "gender",          "TEXT"),
     ("faculty",       "is_active",       "INTEGER DEFAULT 1"),
     ("faculty",       "last_login",      "DATETIME"),
     ("faculty",       "login_attempts",  "INTEGER DEFAULT 0"),
     ("faculty",       "locked_until",    "DATETIME"),
+    ("faculty",       "subject",         "TEXT NOT NULL DEFAULT ''"),
     ("attendance",    "lbph_conf",       "REAL"),
     ("attendance",    "hist_score",      "REAL"),
     ("attendance",    "location",        "TEXT"),
@@ -286,15 +310,18 @@ def purge_ghost_student(db, roll=None, email=None):
 
 def _purge_student_by_roll(db, roll):
     """Delete all data for a roll number unconditionally to allow re-registration."""
-    # Delete from all student-related tables
-    for tbl, col in [("attendance", "student_roll"), ("face_attempts", "roll"),
-                     ("emotion_tracking", "student_roll"), ("batch_attendance", "marked_by")]:
+    for tbl, col in [
+        ("attendance",       "student_roll"),
+        ("face_attempts",    "roll"),
+        ("emotion_tracking", "student_roll"),
+        ("student_timetable","student_roll"),
+        ("attendance_goals", "student_roll"),
+    ]:
         try:
             db.execute(f"DELETE FROM {tbl} WHERE {col}=?", (roll,))
         except Exception:
             pass
-    
-    # Delete from cross-reference tables
+
     for tbl in ("notifications", "security_events", "audit_log"):
         try:
             db.execute(
@@ -302,9 +329,10 @@ def _purge_student_by_roll(db, roll):
             )
         except Exception:
             pass
-    
-    # Get email before deleting student record for reset token cleanup
-    email_row = db.execute("SELECT email FROM students WHERE roll=?", (roll,)).fetchone()
+
+    email_row = db.execute(
+        "SELECT email FROM students WHERE roll=?", (roll,)
+    ).fetchone()
     if email_row:
         try:
             db.execute(
@@ -313,20 +341,23 @@ def _purge_student_by_roll(db, roll):
             )
         except Exception:
             pass
-    
-    # Delete student record (this removes face_encoding and face_image reference)
+
     db.execute("DELETE FROM students WHERE roll=?", (roll,))
 
-    # Remove face image file
-    faces_dir = os.path.normpath(
-        os.path.join(os.path.dirname(BASE_DIR), "static", "faces")
-    )
-    face_path = os.path.join(faces_dir, f"{roll}.jpg")
-    if os.path.exists(face_path):
-        try:
-            os.remove(face_path)
-        except OSError:
-            pass
+    possible_dirs = [
+        os.path.normpath(os.path.join(os.path.dirname(BASE_DIR), "static", "faces")),
+        os.path.normpath(os.path.join(BASE_DIR, "..", "static", "faces")),
+        os.path.normpath(os.path.join(BASE_DIR, "static", "faces")),
+    ]
+    for faces_dir in possible_dirs:
+        for ext in ["jpg", "jpeg", "png"]:
+            face_path = os.path.join(faces_dir, f"{roll}.{ext}")
+            if os.path.exists(face_path):
+                try:
+                    os.remove(face_path)
+                    print(f"[Purge] Deleted face file: {face_path}")
+                except OSError:
+                    pass
 
 
 # ── Security helpers ──────────────────────────────────────────────────
@@ -418,15 +449,18 @@ def detect_liveness(face_img):
 
         gray = cv2.cvtColor(face_img, cv2.COLOR_BGR2GRAY) if len(face_img.shape) == 3 else face_img
 
-        texture_score = float(gray.std())
-        edges = cv2.Canny(gray, 50, 150)
-        edge_density = float(edges.sum()) / (255.0 * gray.shape[0] * gray.shape[1])
-        blurred = cv2.GaussianBlur(gray, (5, 5), 0)
+        texture_score    = float(gray.std())
+        edges            = cv2.Canny(gray, 50, 150)
+        edge_density     = float(edges.sum()) / (255.0 * gray.shape[0] * gray.shape[1])
+        blurred          = cv2.GaussianBlur(gray, (5, 5), 0)
         reflection_score = float(abs(gray.astype(float) - blurred.astype(float)).mean())
 
-        liveness_score = (texture_score / 100.0) * 0.3 + (edge_density * 10.0) * 0.4 + (reflection_score / 50.0) * 0.3
+        liveness_score = (
+            (texture_score / 100.0) * 0.3
+            + (edge_density * 10.0)  * 0.4
+            + (reflection_score / 50.0) * 0.3
+        )
         liveness_score = min(1.0, max(0.0, liveness_score))
-
         return liveness_score > 0.5, liveness_score, "texture_analysis"
 
     except Exception as e:
@@ -442,20 +476,19 @@ def detect_emotion(face_image):
 
         if isinstance(face_image, bytes):
             face_array = np.frombuffer(face_image, dtype=np.uint8)
-            face_img = cv2.imdecode(face_array, cv2.IMREAD_COLOR)
+            face_img   = cv2.imdecode(face_array, cv2.IMREAD_COLOR)
         else:
             face_img = face_image
 
         if face_img is None:
             return "neutral", 0.5, 0.7
 
-        gray = cv2.cvtColor(face_img, cv2.COLOR_BGR2GRAY)
+        gray     = cv2.cvtColor(face_img, cv2.COLOR_BGR2GRAY)
         emotions = ["happy", "neutral", "focused", "tired", "engaged"]
-        h = abs(hash(gray.tobytes())) % len(emotions)
-        emotion = emotions[h]
-        confidence = 0.65 + (abs(hash(gray.tobytes())) % 30) / 100.0
-        engagement_score = 0.5 + (abs(hash(gray.tobytes())) % 50) / 100.0
-
+        h        = abs(hash(gray.tobytes())) % len(emotions)
+        emotion  = emotions[h]
+        confidence       = 0.65 + (abs(hash(gray.tobytes())) % 30) / 100.0
+        engagement_score = 0.50 + (abs(hash(gray.tobytes())) % 50) / 100.0
         return emotion, min(confidence, 0.95), min(engagement_score, 1.0)
 
     except Exception as e:
@@ -473,9 +506,9 @@ def record_emotion_tracking(db, student_roll, subject, emotion, confidence,
                (student_roll, subject, date, time, emotion, confidence,
                 engagement_score, face_image, marked_by)
                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)""",
-            (student_roll, subject, now.strftime('%Y-%m-%d'),
-             now.strftime('%H:%M:%S'), emotion, confidence,
-             engagement_score, face_image, marked_by)
+            (student_roll, subject,
+             now.strftime("%Y-%m-%d"), now.strftime("%H:%M:%S"),
+             emotion, confidence, engagement_score, face_image, marked_by)
         )
     except Exception as e:
         print(f"[EmotionTracking] Error: {e}")
@@ -491,9 +524,10 @@ def create_batch_attendance_record(db, subject, total_students, present_count,
                (subject, date, time, total_students, present_count, absent_count,
                 avg_engagement, session_image, marked_by)
                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)""",
-            (subject, now.strftime('%Y-%m-%d'), now.strftime('%H:%M:%S'),
-             total_students, present_count, absent_count, avg_engagement,
-             session_image, marked_by)
+            (subject,
+             now.strftime("%Y-%m-%d"), now.strftime("%H:%M:%S"),
+             total_students, present_count, absent_count,
+             avg_engagement, session_image, marked_by)
         )
     except Exception as e:
         print(f"[BatchAttendance] Error: {e}")
@@ -501,13 +535,13 @@ def create_batch_attendance_record(db, subject, total_students, present_count,
 
 def get_batch_attendance_analytics(db, subject, days=7):
     """Get analytics for batch attendance over specified days"""
-    start_date = (datetime.now() - timedelta(days=days)).strftime('%Y-%m-%d')
+    start_date = (datetime.now() - timedelta(days=days)).strftime("%Y-%m-%d")
     try:
         rows = db.execute(
             """SELECT date, total_students, present_count, absent_count, avg_engagement
-               FROM batch_attendance
-               WHERE subject=? AND date>=?
-               ORDER BY date DESC""",
+               FROM   batch_attendance
+               WHERE  subject=? AND date>=?
+               ORDER  BY date DESC""",
             (subject, start_date)
         ).fetchall()
         return [dict(r) for r in rows]
@@ -518,13 +552,13 @@ def get_batch_attendance_analytics(db, subject, days=7):
 
 def get_student_emotion_trends(db, student_roll, days=7):
     """Get emotion trends for a specific student"""
-    start_date = (datetime.now() - timedelta(days=days)).strftime('%Y-%m-%d')
+    start_date = (datetime.now() - timedelta(days=days)).strftime("%Y-%m-%d")
     try:
         rows = db.execute(
             """SELECT date, time, subject, emotion, confidence, engagement_score
-               FROM emotion_tracking
-               WHERE student_roll=? AND date>=?
-               ORDER BY date DESC, time DESC""",
+               FROM   emotion_tracking
+               WHERE  student_roll=? AND date>=?
+               ORDER  BY date DESC, time DESC""",
             (student_roll, start_date)
         ).fetchall()
         return [dict(r) for r in rows]
@@ -564,7 +598,7 @@ def record_failed_login(db, table, id_field, id_value):
         ).fetchone()
         if not row:
             return
-        attempts = (row["login_attempts"] or 0) + 1
+        attempts     = (row["login_attempts"] or 0) + 1
         locked_until = None
         if attempts >= 5:
             locked_until = (datetime.now() + timedelta(minutes=15)).isoformat()
@@ -622,7 +656,6 @@ def delete_student_completely(student_roll):
         ).fetchone()
         if not student:
             return False, f"Student {student_roll} not found."
-
         _purge_student_by_roll(db, student_roll)
         db.commit()
         return True, f"Student {student['name']} ({student_roll}) deleted completely."
@@ -640,14 +673,15 @@ def clear_all_students():
 
         for tbl in ("attendance", "face_attempts"):
             db.execute(f"DELETE FROM {tbl}")
-        try:
-            db.execute("DELETE FROM emotion_tracking")
-        except Exception:
-            pass
-        db.execute("DELETE FROM notifications  WHERE user_type='student'")
+        for tbl in ("emotion_tracking", "student_timetable", "attendance_goals"):
+            try:
+                db.execute(f"DELETE FROM {tbl}")
+            except Exception:
+                pass
+        db.execute("DELETE FROM notifications   WHERE user_type='student'")
         db.execute("DELETE FROM security_events WHERE user_type='student'")
-        db.execute("DELETE FROM audit_log       WHERE user_type='student'")
-        db.execute("DELETE FROM reset_tokens    WHERE user_type='student'")
+        db.execute("DELETE FROM audit_log        WHERE user_type='student'")
+        db.execute("DELETE FROM reset_tokens     WHERE user_type='student'")
         db.execute("DELETE FROM students")
         db.commit()
 
@@ -678,33 +712,37 @@ def delete_faculty_completely(faculty_id):
         ).fetchone()
         if not faculty:
             return False, f"Faculty {faculty_id} not found."
-        
-        # Delete from all faculty-related tables
+
         db.execute(
             "DELETE FROM reset_tokens WHERE email=? AND user_type='faculty'",
             (faculty["email"],)
         )
-        db.execute("DELETE FROM notifications WHERE user_type='faculty' AND user_id=?",
-                   (faculty_id,))
-        db.execute("DELETE FROM security_events WHERE user_type='faculty' AND user_id=?",
-                   (faculty_id,))
-        db.execute("DELETE FROM audit_log WHERE user_type='faculty' AND user_id=?",
-                   (faculty_id,))
-        
-        # Delete from attendance where this faculty marked attendance
-        db.execute("DELETE FROM attendance WHERE marked_by=?", (faculty_id,))
-        
-        # Delete from batch_attendance where this faculty marked attendance
-        db.execute("DELETE FROM batch_attendance WHERE marked_by=?", (faculty_id,))
-        
-        # Delete from emotion_tracking where this faculty marked attendance
-        db.execute("DELETE FROM emotion_tracking WHERE marked_by=?", (faculty_id,))
-        
-        # Delete from timetable where this faculty is assigned
+        db.execute(
+            "DELETE FROM notifications WHERE user_type='faculty' AND user_id=?",
+            (faculty_id,)
+        )
+        db.execute(
+            "DELETE FROM security_events WHERE user_type='faculty' AND user_id=?",
+            (faculty_id,)
+        )
+        db.execute(
+            "DELETE FROM audit_log WHERE user_type='faculty' AND user_id=?",
+            (faculty_id,)
+        )
+        db.execute(
+            "UPDATE attendance SET marked_by='deleted_faculty' WHERE marked_by=?",
+            (faculty_id,)
+        )
+        db.execute(
+            "UPDATE batch_attendance SET marked_by='deleted_faculty' WHERE marked_by=?",
+            (faculty_id,)
+        )
+        db.execute(
+            "UPDATE emotion_tracking SET marked_by='deleted_faculty' WHERE marked_by=?",
+            (faculty_id,)
+        )
         db.execute("DELETE FROM timetable WHERE faculty_id=?", (faculty_id,))
-        
-        # Delete faculty record
-        db.execute("DELETE FROM faculty WHERE faculty_id=?", (faculty_id,))
+        db.execute("DELETE FROM faculty WHERE faculty_id=?",   (faculty_id,))
         db.commit()
         return True, f"Faculty {faculty['name']} ({faculty_id}) deleted completely."
     except Exception as e:
@@ -731,7 +769,7 @@ def get_student_timetable(db, standard, division):
             (standard, division),
         ).fetchall()
         for row in rows:
-            d = dict(row)
+            d   = dict(row)
             day = d.get("day_of_week", "")
             if day in timetable:
                 timetable[day].append(d)
@@ -820,8 +858,8 @@ def verify_database_integrity():
             pass
 
         ok = (orphaned_attendance == 0
-              and orphaned_subjects == 0
-              and orphaned_attempts == 0)
+              and orphaned_subjects  == 0
+              and orphaned_attempts  == 0)
         return {
             "orphaned_attendance": orphaned_attendance,
             "orphaned_subjects":   orphaned_subjects,
