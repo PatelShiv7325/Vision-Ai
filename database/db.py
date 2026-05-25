@@ -18,7 +18,10 @@ import os
 from datetime import datetime, timedelta
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
-DB_PATH  = os.path.normpath(os.path.join(BASE_DIR, "db.sqlite3"))
+
+# Use environment variable for persistent storage on Render
+_DATA_DIR = os.environ.get("DATA_DIR", BASE_DIR)
+DB_PATH = os.path.normpath(os.path.join(_DATA_DIR, "db.sqlite3"))
 
 
 # ── Connection ────────────────────────────────────────────────────────

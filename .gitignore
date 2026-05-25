@@ -1,0 +1,9 @@
+.venv/
+venv/
+__pycache__/
+*.pyc
+*.pyo
+database/db.sqlite3
+static/faces/
+.env
+email_config.py

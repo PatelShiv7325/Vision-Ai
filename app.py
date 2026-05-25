@@ -36,10 +36,10 @@ from datetime import datetime, timedelta
 from functools import wraps
 import cv2
 import numpy as np
-from PIL import Image
+from PIL import Image 
 import io
 import smtplib
-from email.mime.text import MIMEText
+from email.mime.text import MIMEText 
 from email.mime.multipart import MIMEMultipart
 
 try:
@@ -65,6 +65,10 @@ app.config["SESSION_COOKIE_SAMESITE"]     = "Lax"
 app.config["SESSION_COOKIE_SECURE"]       = os.environ.get("PRODUCTION", "0") == "1"
 app.config["PERMANENT_SESSION_LIFETIME"]  = timedelta(hours=8)
 app.config["MAX_CONTENT_LENGTH"]          = 10 * 1024 * 1024   # 10 MB
+
+# Persistent storage path for Render deployment
+DATA_DIR        = os.environ.get("DATA_DIR", "")
+FACES_STATIC_DIR = os.path.join(DATA_DIR, "static", "faces") if DATA_DIR else os.path.join(os.path.dirname(os.path.abspath(__file__)), "static", "faces")
 
 
 # ── CBSE Standard → Subjects map ──────────────────────────────────────
@@ -618,7 +622,7 @@ def student_register():
         try:
             db = get_db()
 
-            faces_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), "static", "faces")
+            faces_dir = FACES_STATIC_DIR
             for ext in ["jpg", "jpeg", "png"]:
                 fp = os.path.join(faces_dir, f"{roll}.{ext}")
                 if os.path.exists(fp):
@@ -741,9 +745,9 @@ def student_register():
                         )
                     )
 
-            os.makedirs("static/faces", exist_ok=True)
+            os.makedirs(FACES_STATIC_DIR, exist_ok=True)
             face_filename = f"faces/{roll}.jpg"
-            with open(f"static/{face_filename}", "wb") as f:
+            with open(os.path.join(FACES_STATIC_DIR, f"{roll}.jpg"), "wb") as f:
                 f.write(img_data)
 
             db.execute(
@@ -1348,9 +1352,9 @@ def student_face_enroll():
             flash(msg, "error")
             return redirect(url_for("student_dashboard"))
 
-        os.makedirs("static/faces", exist_ok=True)
+        os.makedirs(FACES_STATIC_DIR, exist_ok=True)
         face_filename = f"faces/{roll}.jpg"
-        with open(f"static/{face_filename}", "wb") as f:
+        with open(os.path.join(FACES_STATIC_DIR, f"{roll}.jpg"), "wb") as f:
             f.write(img_data)
 
         db.execute(
@@ -1691,46 +1695,33 @@ def mark_attendance_bulk():
             "SELECT subject FROM faculty WHERE faculty_id=?",
             (session["faculty_id"],)
         ).fetchone()
-        faculty_subject = (faculty["subject"] or "").strip().lower() if faculty else ""
+        faculty_subject = (faculty["subject"] or "").strip() if faculty else subject
 
-        marked  = 0
-        skipped = 0
+        marked = 0
         for roll in rolls:
-            roll    = str(roll).strip()
+            roll = str(roll).strip()
             student = db.execute(
                 "SELECT * FROM students WHERE roll=? AND is_active=1", (roll,)
             ).fetchone()
-            if student:
-                faculty_subject = (faculty["subject"] or "").strip().lower() if faculty else ""
-                student_subjects = [s.strip().lower()
-                    for s in (student["subject"] or "").split(",")]
-                if faculty_subject and faculty_subject not in student_subjects:
-                    skipped += 1
-                    continue
-
-                existing = db.execute(
-                    "SELECT id FROM attendance WHERE student_roll=? AND subject=? AND date=?",
-                    (roll, subject, now.strftime("%Y-%m-%d"))
-                ).fetchone()
-                if not existing:
-                    faculty = db.execute(
-                        "SELECT subject FROM faculty WHERE faculty_id=?",
-                        (session["faculty_id"],)
-                    ).fetchone()
-                    faculty_subject = faculty["subject"].strip() if faculty else subject
-
+            if not student:
+                continue
+            existing = db.execute(
+                "SELECT id FROM attendance WHERE student_roll=? AND subject=? AND date=?",
+                (roll, faculty_subject, now.strftime("%Y-%m-%d"))
+            ).fetchone()
+            if not existing:
                 db.execute(
                     "INSERT INTO attendance "
                     "(student_roll, student_name, subject, date, time, marked_by, method) "
                     "VALUES (?,?,?,?,?,?,?)",
-                    (roll, student["name"], faculty_subject, ...)
+                    (roll, student["name"], faculty_subject,
+                     now.strftime("%Y-%m-%d"), now.strftime("%H:%M:%S"),
+                     session["faculty_id"], "bulk")
                 )
                 marked += 1
         db.commit()
-        msg = f"Attendance marked for {marked} student(s)."
-        if skipped:
-            msg += f" {skipped} skipped (different subject)."
-        return jsonify({"success": True, "marked": marked, "message": msg})
+        return jsonify({"success": True, "marked": marked,
+                        "message": f"Attendance marked for {marked} student(s)."})
     except Exception as e:
         db.rollback()
         return jsonify({"success": False, "error": str(e)})
@@ -2312,7 +2303,7 @@ def delete_all_data():
         db.commit()
 
         for student in students:
-            face_path = f"static/faces/{student['roll']}.jpg"
+            face_path = os.path.join(FACES_STATIC_DIR, f"{student['roll']}.jpg")
             if os.path.exists(face_path):
                 try:
                     os.remove(face_path)

@@ -8,9 +8,6 @@ blinker==1.9.0
 opencv-python-headless==4.10.0.84
 numpy==1.26.4
 Pillow==10.4.0
-face-recognition==1.3.0
-dlib==19.24.6
-mediapipe==0.10.35
 
 python-dotenv==1.0.1
 requests==2.32.3
