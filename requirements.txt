@@ -1,23 +1,25 @@
-﻿bcrypt==4.2.1
-beautifulsoup4==4.12.3
-blinker==1.9.0
-cffi==1.17.1
-click==8.1.8
-cryptography==44.0.1
-dlib==19.24.6
-face-recognition==1.3.0
-face_recognition_models==0.3.0
-Flask==3.0.3
-flask-cors==5.0.0
-gunicorn==23.0.0
-Jinja2==3.1.5
-loguru==0.7.3
-mediapipe==0.10.14
-numpy==1.26.4
+﻿# Core Web Framework
+Flask==3.1.0
+Werkzeug==3.1.0
+itsdangerous==2.2.0
+Jinja2==3.1.4
+click==8.1.7
+blinker==1.8.2
+
+# Face Recognition
 opencv-python-headless==4.10.0.84
-openpyxl==3.1.5
-pillow==11.0.0
-protobuf==4.25.3
+numpy==1.26.4
+Pillow==10.4.0
+face-recognition==1.3.0
+dlib==19.24.6
+
+# MediaPipe
+mediapipe==0.10.35
+
+# Email
+secure-smtplib
+
+# Utilities
 python-dotenv==1.0.1
 requests==2.32.3
-Werkzeug==3.0.6
+gunicorn==22.0.0
