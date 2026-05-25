@@ -528,6 +528,62 @@
 </head>
 <body>
 
+<!-- ── STUDENT DETAIL MODAL ── -->
+<div class="modal-overlay" id="student-detail-modal">
+    <div class="modal-box" style="width:460px;text-align:left;">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;">
+            <div style="display:flex;align-items:center;gap:14px;">
+                <div id="sd-avatar" style="width:52px;height:52px;border-radius:14px;background:linear-gradient(135deg,var(--accent),var(--accent2));display:flex;align-items:center;justify-content:center;font-size:18px;font-weight:800;color:#07070f;flex-shrink:0;"></div>
+                <div>
+                    <div id="sd-name" style="font-size:17px;font-weight:800;color:var(--text);"></div>
+                    <div id="sd-roll" style="font-size:12px;color:var(--sub);font-family:'JetBrains Mono',monospace;margin-top:2px;"></div>
+                </div>
+            </div>
+            <button onclick="closeStudentDetail()" style="background:none;border:none;color:var(--sub);font-size:1.2rem;cursor:pointer;padding:4px 8px;border-radius:6px;" onmouseover="this.style.color='var(--accent)'" onmouseout="this.style.color='var(--sub)'"><i class="fas fa-times"></i></button>
+        </div>
+
+        <div style="height:1px;background:var(--border);margin-bottom:18px;"></div>
+
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:18px;">
+            <div style="background:var(--bg-card2);border:1px solid var(--border-mid);border-radius:10px;padding:12px 14px;">
+                <div style="font-size:10px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:0.7px;margin-bottom:5px;">Email</div>
+                <div id="sd-email" style="font-size:13px;color:var(--text);word-break:break-all;"></div>
+            </div>
+            <div style="background:var(--bg-card2);border:1px solid var(--border-mid);border-radius:10px;padding:12px 14px;">
+                <div style="font-size:10px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:0.7px;margin-bottom:5px;">Phone</div>
+                <div id="sd-phone" style="font-size:13px;color:var(--text);"></div>
+            </div>
+            <div style="background:var(--bg-card2);border:1px solid var(--border-mid);border-radius:10px;padding:12px 14px;">
+                <div style="font-size:10px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:0.7px;margin-bottom:5px;">Standard & Division</div>
+                <div id="sd-std" style="font-size:13px;color:var(--text);"></div>
+            </div>
+            <div style="background:var(--bg-card2);border:1px solid var(--border-mid);border-radius:10px;padding:12px 14px;">
+                <div style="font-size:10px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:0.7px;margin-bottom:5px;">Subject</div>
+                <div id="sd-subject" style="font-size:13px;color:var(--text);"></div>
+            </div>
+            <div style="background:var(--bg-card2);border:1px solid var(--border-mid);border-radius:10px;padding:12px 14px;">
+                <div style="font-size:10px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:0.7px;margin-bottom:5px;">Gender</div>
+                <div id="sd-gender" style="font-size:13px;color:var(--text);"></div>
+            </div>
+            <div style="background:var(--bg-card2);border:1px solid var(--border-mid);border-radius:10px;padding:12px 14px;">
+                <div style="font-size:10px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:0.7px;margin-bottom:5px;">Attendance Count</div>
+                <div id="sd-att" style="font-size:13px;color:var(--accent);font-weight:700;"></div>
+            </div>
+        </div>
+
+        <div id="sd-face-row" style="display:flex;align-items:center;gap:10px;padding:12px 14px;border-radius:10px;margin-bottom:18px;"></div>
+
+        <div style="display:flex;gap:10px;">
+            <button onclick="closeStudentDetail();showPage('students',document.querySelectorAll('.nav-item')[2])" class="btn btn-primary" style="flex:1;justify-content:center;">
+                <i class="fas fa-users"></i> View in Students List
+            </button>
+            <button onclick="closeStudentDetail()" class="btn" style="flex:1;justify-content:center;">
+                <i class="fas fa-times"></i> Close
+            </button>
+        </div>
+    </div>
+</div>
+
 <script>const CSRF_TOKEN = "{{ csrf_token }}";</script>
 
 <!-- ── TOAST ── -->
@@ -669,15 +725,15 @@
         <!-- ══ DASHBOARD ══ -->
         <div class="page active" id="page-dashboard">
             <div class="stats-row">
-                <div class="stat-card">
+                <div class="stat-card" onclick="showPage('students', document.querySelectorAll('.nav-item')[2])" style="cursor:pointer;" title="Click to view all students">
                     <div class="stat-label"><span class="stat-dot dot-accent"></span> Total Students</div>
                     <div class="stat-num">{{ total_students }}</div>
-                    <div class="stat-sub"><span class="hl-green">Registered</span></div>
+                    <div class="stat-sub"><span class="hl-green">Registered</span> <i class="fas fa-arrow-right" style="font-size:10px;margin-left:4px;"></i></div>
                 </div>
-                <div class="stat-card">
+               <div class="stat-card" onclick="showPage('reports', document.querySelectorAll('.nav-item')[4])" style="cursor:pointer;" title="Click to view all attendance records">
                     <div class="stat-label"><span class="stat-dot dot-green"></span> Total Attendance</div>
                     <div class="stat-num">{{ total_attendance }}</div>
-                    <div class="stat-sub">All time records</div>
+                    <div class="stat-sub">All time records <i class="fas fa-arrow-right" style="font-size:10px;margin-left:4px;"></i></div>
                 </div>
                 <div class="stat-card">
                     <div class="stat-label"><span class="stat-dot dot-yellow"></span> Recent Records</div>
@@ -721,17 +777,23 @@
                         <div class="section-title-text">Students Overview</div>
                     </div>
                     <div style="display:flex;flex-direction:column;gap:9px;">
-                        {% for s in students[:4] %}
-                        <div style="padding:12px 14px;background:var(--bg-card2);border-radius:10px;border:1px solid var(--border);display:flex;justify-content:space-between;align-items:center;transition:border-color 0.2s;" onmouseover="this.style.borderColor='var(--border-mid)'" onmouseout="this.style.borderColor='var(--border)'">
+                       {% for s in students[:4] %}
+                       <div onclick="openStudentDetail('{{ s['roll'] }}','{{ s['name'] }}','{{ s['email'] }}','{{ s['standard'] or '' }}','{{ s['division'] or '' }}','{{ s['subject'] or '' }}','{{ s['phone'] or '' }}','{{ s['gender'] or '' }}',{{ student_stats.get(s['roll'], 0) }},'{{ 'yes' if s['face_image'] else 'no' }}')"
+                            style="padding:12px 14px;background:var(--bg-card2);border-radius:10px;border:1px solid var(--border);display:flex;justify-content:space-between;align-items:center;transition:all 0.2s;cursor:pointer;"
+                            onmouseover="this.style.borderColor='var(--border-act)';this.style.background='rgba(0,212,170,0.06)'"
+                            onmouseout="this.style.borderColor='var(--border)';this.style.background='var(--bg-card2)'">
                             <div>
                                 <div style="font-weight:700;font-size:14px;">{{ s['name'] }}</div>
                                 <div style="font-size:12px;color:var(--sub);margin-top:2px;font-family:'JetBrains Mono',monospace;">{{ s['roll'] }}</div>
                             </div>
-                            {% if s['face_image'] %}
-                            <span class="face-yes"><i class="fas fa-check-circle"></i></span>
-                            {% else %}
-                            <span class="face-no"><i class="fas fa-times-circle"></i></span>
-                            {% endif %}
+                            <div style="display:flex;align-items:center;gap:10px;">
+                                {% if s['face_image'] %}
+                                <span class="face-yes"><i class="fas fa-check-circle"></i></span>
+                                {% else %}
+                                <span class="face-no"><i class="fas fa-times-circle"></i></span>
+                                {% endif %}
+                                <i class="fas fa-chevron-right" style="font-size:11px;color:var(--muted);"></i>
+                            </div>
                         </div>
                         {% else %}
                         <div class="empty-state"><i class="fas fa-users"></i><p>No students yet</p></div>
@@ -1289,6 +1351,32 @@ function showToast(msg, isError) {
     clearTimeout(toastTimer);
     toastTimer = setTimeout(() => t.classList.remove('show'), 3500);
 }
+
+// ── STUDENT DETAIL MODAL ──────────────────────────────────────────────
+function openStudentDetail(roll, name, email, standard, division, subject, phone, gender, attCount, faceStatus) {
+    const initials = name.split(' ').map(w => w[0]).join('').toUpperCase().slice(0, 2);
+    document.getElementById('sd-avatar').textContent   = initials;
+    document.getElementById('sd-name').textContent     = name;
+    document.getElementById('sd-roll').textContent     = 'Roll: ' + roll;
+    document.getElementById('sd-email').textContent    = email || '—';
+    document.getElementById('sd-phone').textContent    = phone || '—';
+    document.getElementById('sd-std').textContent      = standard ? ('Std ' + standard + (division ? ' — Div ' + division : '')) : '—';
+    document.getElementById('sd-subject').textContent  = subject || '—';
+    document.getElementById('sd-gender').textContent   = gender || '—';
+    document.getElementById('sd-att').textContent      = attCount + ' class' + (attCount !== 1 ? 'es' : '') + ' attended';
+    const faceRow = document.getElementById('sd-face-row');
+    if (faceStatus === 'yes') {
+        faceRow.style.background   = 'var(--green-bg)';
+        faceRow.style.border       = '1px solid rgba(67,233,123,0.2)';
+        faceRow.innerHTML          = '<i class="fas fa-check-circle" style="color:var(--green)"></i><span style="font-size:13px;color:var(--green);font-weight:600;">Face enrolled — ready for recognition</span>';
+    } else {
+        faceRow.style.background   = 'var(--red-bg)';
+        faceRow.style.border       = '1px solid rgba(255,107,107,0.2)';
+        faceRow.innerHTML          = '<i class="fas fa-times-circle" style="color:var(--red)"></i><span style="font-size:13px;color:var(--red);font-weight:600;">Face not enrolled — cannot use face recognition</span>';
+    }
+    document.getElementById('student-detail-modal').classList.add('show');
+}
+function closeStudentDetail() { document.getElementById('student-detail-modal').classList.remove('show'); }
 
 // ── LOGOUT MODAL ──────────────────────────────────────────────────────
 function openLogoutModal()  { document.getElementById('logout-modal').classList.add('show'); }
