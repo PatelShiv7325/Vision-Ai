@@ -1798,62 +1798,95 @@ function renderFacultyTimetableGrid() {
         border-radius:7px;padding:7px 10px;font-size:13px;color:var(--text);
         outline:none;width:100%;font-family:inherit;height:36px;`;
 
-    let html = `<div style="overflow-x:auto;">
-    <table style="width:100%;border-collapse:collapse;font-size:13px;">
-        <thead><tr>
-            <th style="padding:10px 12px;text-align:left;color:var(--muted);font-size:11px;
-                text-transform:uppercase;letter-spacing:.8px;border-bottom:1px solid var(--border);">Day</th>
-            <th style="padding:10px 12px;text-align:left;color:var(--muted);font-size:11px;
-                text-transform:uppercase;letter-spacing:.8px;border-bottom:1px solid var(--border);width:80px;">Period</th>
-            <th style="padding:10px 12px;text-align:left;color:var(--muted);font-size:11px;
-                text-transform:uppercase;letter-spacing:.8px;border-bottom:1px solid var(--border);">Subject</th>
-            <th style="padding:10px 12px;text-align:left;color:var(--muted);font-size:11px;
-                text-transform:uppercase;letter-spacing:.8px;border-bottom:1px solid var(--border);width:120px;">Start</th>
-            <th style="padding:10px 12px;text-align:left;color:var(--muted);font-size:11px;
-                text-transform:uppercase;letter-spacing:.8px;border-bottom:1px solid var(--border);width:120px;">End</th>
-            <th style="padding:10px 12px;border-bottom:1px solid var(--border);width:50px;"></th>
-        </tr></thead>
-        <tbody>`;
+    const dayOrder = ['Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
+    const grouped  = {};
+    dayOrder.forEach(d => grouped[d] = []);
 
-    ftEntries.forEach((e, i) => {
-        const dayOpts = FT_DAYS.map(d =>
-            `<option value="${d}" ${d === e.day ? 'selected' : ''}>${d}</option>`
-        ).join('');
-        const perOpts = FT_PERIODS.map(p =>
-            `<option value="${p}" ${p == e.period ? 'selected' : ''}>${p}</option>`
-        ).join('');
-
-        html += `<tr style="border-bottom:1px solid var(--border);">
-            <td style="padding:8px 12px;">
-                <select onchange="ftUpdate(${i},'day',this.value)" style="${inputStyle}">${dayOpts}</select>
-            </td>
-            <td style="padding:8px 12px;">
-                <select onchange="ftUpdate(${i},'period',this.value)" style="${inputStyle}">${perOpts}</select>
-            </td>
-            <td style="padding:8px 12px;">
-                <input type="text" value="${e.subject || ''}"
-                       onchange="ftUpdate(${i},'subject',this.value)"
-                       placeholder="e.g. Mathematics" style="${inputStyle}">
-            </td>
-            <td style="padding:8px 12px;">
-                <input type="time" value="${e.start_time || ''}"
-                       onchange="ftUpdate(${i},'start_time',this.value)" style="${inputStyle}">
-            </td>
-            <td style="padding:8px 12px;">
-                <input type="time" value="${e.end_time || ''}"
-                       onchange="ftUpdate(${i},'end_time',this.value)" style="${inputStyle}">
-            </td>
-            <td style="padding:8px 12px;text-align:center;">
-                <button onclick="ftRemove(${i})"
-                        style="background:none;border:none;color:var(--red);
-                               cursor:pointer;font-size:14px;padding:4px;">
-                    <i class="fas fa-trash"></i>
-                </button>
-            </td>
-        </tr>`;
+    ftEntries.forEach((e, globalIdx) => {
+        const day = e.day || 'Monday';
+        if (!grouped[day]) grouped[day] = [];
+        grouped[day].push({ ...e, _idx: globalIdx });
     });
 
-    html += `</tbody></table></div>`;
+    let html = '';
+
+    dayOrder.forEach(day => {
+        const periods = grouped[day];
+        if (periods.length === 0) return;
+
+        periods.sort((a, b) => (a.period || 0) - (b.period || 0));
+
+        html += `
+        <div style="margin-bottom:20px;background:var(--bg-card2);
+                    border:1px solid var(--border-mid);border-radius:12px;overflow:hidden;">
+            <div style="padding:10px 16px;background:rgba(0,212,170,0.08);
+                        border-bottom:1px solid var(--border-mid);
+                        display:flex;align-items:center;gap:8px;">
+                <i class="fas fa-calendar-day" style="color:var(--accent);font-size:13px;"></i>
+                <span style="font-size:13px;font-weight:700;color:var(--accent);">${day}</span>
+                <span style="font-size:11px;color:var(--sub);">
+                    — ${periods.length} period${periods.length !== 1 ? 's' : ''}
+                </span>
+            </div>
+            <table style="width:100%;border-collapse:collapse;font-size:13px;">
+                <thead>
+                    <tr style="border-bottom:1px solid var(--border);">
+                        <th style="padding:8px 14px;text-align:left;color:var(--muted);
+                            font-size:10.5px;text-transform:uppercase;letter-spacing:.8px;
+                            width:80px;">Period</th>
+                        <th style="padding:8px 14px;text-align:left;color:var(--muted);
+                            font-size:10.5px;text-transform:uppercase;letter-spacing:.8px;">Subject</th>
+                        <th style="padding:8px 14px;text-align:left;color:var(--muted);
+                            font-size:10.5px;text-transform:uppercase;letter-spacing:.8px;
+                            width:120px;">Start</th>
+                        <th style="padding:8px 14px;text-align:left;color:var(--muted);
+                            font-size:10.5px;text-transform:uppercase;letter-spacing:.8px;
+                            width:120px;">End</th>
+                        <th style="padding:8px 14px;width:50px;"></th>
+                    </tr>
+                </thead>
+                <tbody>`;
+
+        periods.forEach(e => {
+            const i = e._idx;
+            const perOpts = [1,2,3,4,5,6,7,8].map(p =>
+                `<option value="${p}" ${p == e.period ? 'selected' : ''}>${p}</option>`
+            ).join('');
+
+            html += `
+                <tr style="border-bottom:1px solid var(--border);">
+                    <td style="padding:8px 14px;">
+                        <select onchange="ftUpdate(${i},'period',this.value)"
+                                style="${inputStyle}">${perOpts}</select>
+                    </td>
+                    <td style="padding:8px 14px;">
+                        <input type="text" value="${e.subject || ''}"
+                               onchange="ftUpdate(${i},'subject',this.value)"
+                               placeholder="e.g. Mathematics" style="${inputStyle}">
+                    </td>
+                    <td style="padding:8px 14px;">
+                        <input type="time" value="${e.start_time || ''}"
+                               onchange="ftUpdate(${i},'start_time',this.value)"
+                               style="${inputStyle}">
+                    </td>
+                    <td style="padding:8px 14px;">
+                        <input type="time" value="${e.end_time || ''}"
+                               onchange="ftUpdate(${i},'end_time',this.value)"
+                               style="${inputStyle}">
+                    </td>
+                    <td style="padding:8px 14px;text-align:center;">
+                        <button onclick="ftRemove(${i})"
+                                style="background:none;border:none;color:var(--red);
+                                       cursor:pointer;font-size:14px;padding:4px;">
+                            <i class="fas fa-trash"></i>
+                        </button>
+                    </td>
+                </tr>`;
+        });
+
+        html += `</tbody></table></div>`;
+    });
+
     grid.innerHTML = html;
 }
 
