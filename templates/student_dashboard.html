@@ -1744,6 +1744,7 @@ function renderStudentTimetableGrid() {
     const inputStyle = `background:var(--bg-card);border:1px solid var(--border);
         border-radius:7px;padding:7px 10px;font-size:13px;color:var(--text-primary);
         outline:none;width:100%;font-family:inherit;`;
+}
 
     // ── Standard timetable (read-only, grouped by day) ──
     let html = '';
@@ -1806,118 +1807,6 @@ function renderStudentTimetableGrid() {
         </div>`;
     }
 
-    // ── Personal entries (editable) ──
-    html += `<div>
-        <div style="font-size:12px;font-weight:700;color:var(--accent-blue);
-            text-transform:uppercase;letter-spacing:.8px;margin-bottom:12px;
-            display:flex;align-items:center;gap:8px;">
-            <i class="fas fa-user-edit"></i>
-            My Personal Periods
-        </div>`;
-
-    if (ttPersonal.length === 0) {
-        html += `<div style="padding:20px;text-align:center;color:var(--text-muted);
-            font-size:13px;">No personal periods added yet. Click "Add Period" below.</div>`;
-    } else {
-        html += `<table style="width:100%;border-collapse:collapse;font-size:13px;">
-            <thead><tr>
-                <th style="padding:8px 12px;text-align:left;color:var(--text-muted);
-                    font-size:11px;text-transform:uppercase;border-bottom:1px solid var(--border);">Day</th>
-                <th style="padding:8px 12px;text-align:left;color:var(--text-muted);
-                    font-size:11px;text-transform:uppercase;border-bottom:1px solid var(--border);width:70px;">Period</th>
-                <th style="padding:8px 12px;text-align:left;color:var(--text-muted);
-                    font-size:11px;text-transform:uppercase;border-bottom:1px solid var(--border);">Subject</th>
-                <th style="padding:8px 12px;text-align:left;color:var(--text-muted);
-                    font-size:11px;text-transform:uppercase;border-bottom:1px solid var(--border);width:110px;">Start</th>
-                <th style="padding:8px 12px;text-align:left;color:var(--text-muted);
-                    font-size:11px;text-transform:uppercase;border-bottom:1px solid var(--border);width:110px;">End</th>
-                <th style="padding:8px 12px;border-bottom:1px solid var(--border);width:50px;"></th>
-            </tr></thead>
-            <tbody id="tt-personal-tbody">`;
-
-        ttPersonal.forEach((e, i) => {
-            const dayOpts = DAYS.map(d =>
-                `<option value="${d}" ${d === e.day ? 'selected' : ''}>${d}</option>`
-            ).join('');
-            const perOpts = PERIODS.map(p =>
-                `<option value="${p}" ${p == e.period ? 'selected' : ''}>${p}</option>`
-            ).join('');
-
-            html += `<tr style="border-bottom:1px solid var(--border);">
-                <td style="padding:7px 12px;">
-                    <select onchange="ttUpdate(${i},'day',this.value)" style="${inputStyle}">${dayOpts}</select>
-                </td>
-                <td style="padding:7px 12px;">
-                    <select onchange="ttUpdate(${i},'period',this.value)" style="${inputStyle}">${perOpts}</select>
-                </td>
-                <td style="padding:7px 12px;">
-                    <input type="text" value="${e.subject||''}"
-                           onchange="ttUpdate(${i},'subject',this.value)"
-                           placeholder="Subject" style="${inputStyle}">
-                </td>
-                <td style="padding:7px 12px;">
-                    <input type="time" value="${e.start_time||''}"
-                           onchange="ttUpdate(${i},'start_time',this.value)" style="${inputStyle}">
-                </td>
-                <td style="padding:7px 12px;">
-                    <input type="time" value="${e.end_time||''}"
-                           onchange="ttUpdate(${i},'end_time',this.value)" style="${inputStyle}">
-                </td>
-                <td style="padding:7px 12px;text-align:center;">
-                    <button onclick="ttRemove(${i})"
-                            style="background:none;border:none;color:var(--accent-red);
-                                   cursor:pointer;font-size:14px;">
-                        <i class="fas fa-trash"></i>
-                    </button>
-                </td>
-            </tr>`;
-        });
-
-        html += `</tbody></table>`;
-    }
-
-    html += `</div>`;
-    grid.innerHTML = html;
-}
-
-function ttUpdate(i, field, val) {
-    if (ttPersonal[i]) ttPersonal[i][field] = val;
-}
-
-function ttRemove(i) {
-    ttPersonal.splice(i, 1);
-    renderStudentTimetableGrid();
-}
-
-function addTimetableRow() {
-    ttPersonal.push({ day: 'Monday', period: 1, subject: '', start_time: '', end_time: '' });
-    renderStudentTimetableGrid();
-}
-
-function clearTimetable() {
-    if (!confirm('Clear all your personal periods?')) return;
-    ttPersonal = [];
-    renderStudentTimetableGrid();
-}
-
-async function saveTimetable() {
-    const csrfToken = document.querySelector('meta[name="csrf-token"]').getAttribute('content');
-    try {
-        const res  = await fetch('/api/timetable/save', {
-            method:  'POST',
-            headers: { 'Content-Type': 'application/json', 'X-CSRF-Token': csrfToken },
-            body:    JSON.stringify({ entries: ttPersonal })
-        });
-        const data = await res.json();
-        if (data.success) {
-            showToast('Personal timetable saved!');
-        } else {
-            showToast('Error: ' + (data.error || 'Could not save.'));
-        }
-    } catch(e) {
-        showToast('Network error.');
-    }
-}
 
 // ── ATTENDANCE GOAL ──
 async function saveGoal() {

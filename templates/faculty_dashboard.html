@@ -667,9 +667,6 @@
     <button class="nav-item active" onclick="showPage('dashboard', this)">
         <div class="nav-icon"><i class="fas fa-th-large"></i></div> Dashboard
     </button>
-    <button class="nav-item" onclick="showPage('profile', this)">
-        <div class="nav-icon"><i class="fas fa-user"></i></div> My Profile
-    </button>
     <button class="nav-item" onclick="showPage('students', this)">
         <div class="nav-icon"><i class="fas fa-users"></i></div>
         Students <span class="nav-badge">{{ total_students }}</span>
@@ -713,11 +710,30 @@
             <p id="page-date"></p>
         </div>
         <div class="header-actions">
-            <a href="/api/attendance-export" class="btn"><i class="fas fa-download"></i> Export CSV</a>
-            <button class="btn btn-primary" onclick="showPage('mark', document.querySelectorAll('.nav-item')[3])">
-                <i class="fas fa-plus"></i> Mark Attendance
-            </button>
-        </div>
+    <a href="/api/attendance-export" class="btn"><i class="fas fa-download"></i> Export CSV</a>
+    <button class="btn btn-primary" onclick="showPage('mark', document.querySelectorAll('.nav-item')[3])">
+        <i class="fas fa-plus"></i> Mark Attendance
+    </button>
+    <div onclick="showPage('profile', document.querySelectorAll('.nav-item')[1])" 
+         title="{{ faculty['name'] }}"
+         style="
+            width: 40px; height: 40px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, var(--accent), var(--accent2));
+            display: flex; align-items: center; justify-content: center;
+            font-size: 15px; font-weight: 800; color: #07070f;
+            cursor: pointer;
+            border: 2px solid var(--accent);
+            box-shadow: 0 0 14px var(--accent-glow);
+            overflow: hidden;
+            flex-shrink: 0;
+            transition: transform 0.2s, box-shadow 0.2s;
+         "
+         onmouseover="this.style.transform='scale(1.08)';this.style.boxShadow='0 0 22px var(--accent-glow)'"
+         onmouseout="this.style.transform='scale(1)';this.style.boxShadow='0 0 14px var(--accent-glow)'">
+        {{ faculty['name'][0] | upper }}
+    </div>
+</div>
     </div>
 
     <div class="content">
@@ -1303,7 +1319,6 @@
 // ── PAGE NAVIGATION ──────────────────────────────────────────────────
 const pageTitles = {
     dashboard: 'Welcome, {{ faculty["name"] }} 👋',
-    profile:   'My Profile',
     students:  'All Students',
     mark:      'Mark Attendance',
     reports:   'Reports',
