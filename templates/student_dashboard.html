@@ -30,6 +30,35 @@
             --pill-bg:        #2e2e3e;
         }
 
+        body.light-mode .nav-item.active {
+            color: var(--accent-blue);
+            background: rgba(99,102,241,0.15);
+            border-color: var(--accent-blue);
+            font-weight: 700;
+        }
+
+        body.light-mode .nav-item.active .nav-icon {
+            background: rgba(99,102,241,0.2);
+            color: var(--accent-blue);
+        }
+
+        body.light-mode {
+            --bg-base:        #f0f0ff;
+            --bg-sidebar:     #e8e8ff;
+            --bg-card:        #ffffff;
+            --bg-card-hover:  #f0f0ff;
+            --bg-input:       #f5f5ff;
+            --border:         #d0d0e8;
+            --border-active:  #a0a0d8;
+            --text-primary:   #1a1a2e;
+            --text-secondary: #5a5a80;
+            --text-muted:     #9090b0;
+            --active-bg:      #e0e0ff;
+            --pill-bg:        #e8e8ff;
+            --active-bg:      #e0e0ff;
+            --pill-bg:        #e8e8ff;
+        }
+
         body {
             font-family: 'Inter', sans-serif;
             background: var(--bg-base);
@@ -110,7 +139,8 @@
         .nav-item.active {
             background: var(--active-bg);
             border-color: var(--active-border);
-            color: #fff;
+            color: var(--accent-blue); 
+        
         }
 
         .nav-icon {
@@ -617,12 +647,206 @@
             .sidebar.open { transform: translateX(0); }
             .main { margin-left: 0; }
         }
+
+        /* ── CUSTOM SCROLLBAR ── */
+::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+}
+
+::-webkit-scrollbar-track {
+    background: var(--bg-base);
+    border-radius: 10px;
+}
+
+::-webkit-scrollbar-thumb {
+    background: linear-gradient(180deg, #6366f1, #8b5cf6);
+    border-radius: 10px;
+    transition: background 0.2s;
+}
+
+::-webkit-scrollbar-thumb:hover {
+    background: linear-gradient(180deg, #5254cc, #7c3aed);
+}
+
+::-webkit-scrollbar-corner {
+    background: var(--bg-base);
+}
+
+/* Sidebar scrollbar */
+.sidebar::-webkit-scrollbar { width: 4px; }
+.sidebar::-webkit-scrollbar-track { background: transparent; }
+.sidebar::-webkit-scrollbar-thumb { background: rgba(99,102,241,0.3); border-radius: 10px; }
+.sidebar::-webkit-scrollbar-thumb:hover { background: rgba(99,102,241,0.6); }
+
     </style>
 </head>
 <body>
 
 <!-- ── TOAST ── -->
 <div class="toast" id="toast"><i class="fas fa-check-circle" style="color:var(--accent-green)"></i> <span id="toast-msg"></span></div>
+
+<!-- ── CHANGE PASSWORD MODAL ── -->
+<div class="modal-overlay" id="pwd-modal" style="z-index:300;">
+    <div class="modal-box" style="width:460px;text-align:left;padding:32px;position:relative;">
+        <button onclick="closePwdModal()"
+                style="position:absolute;top:14px;right:14px;background:none;border:none;
+                       color:var(--text-secondary);font-size:1.1rem;cursor:pointer;
+                       padding:4px 8px;border-radius:6px;"
+                onmouseover="this.style.color='var(--accent-blue)'"
+                onmouseout="this.style.color='var(--text-secondary)'">
+            <i class="fas fa-times"></i>
+        </button>
+
+        <!-- Icon -->
+        <div style="width:52px;height:52px;border-radius:14px;
+                    background:rgba(245,158,11,0.15);border:1.5px solid rgba(245,158,11,0.3);
+                    display:flex;align-items:center;justify-content:center;
+                    font-size:26px;margin-bottom:16px;">🔒</div>
+
+        <div style="font-size:20px;font-weight:700;margin-bottom:4px;">Change Password</div>
+        <p style="font-size:13px;color:var(--text-secondary);margin-bottom:24px;">
+            Enter your current password, then set a new one.
+        </p>
+
+        <!-- Alerts -->
+        <div id="pwd-err" style="display:none;background:rgba(239,68,68,0.1);
+             border:1px solid rgba(239,68,68,0.25);border-radius:9px;
+             padding:11px 14px;font-size:13px;color:var(--accent-red);
+             align-items:center;gap:8px;margin-bottom:16px;">
+            <i class="fas fa-exclamation-circle"></i><span id="pwd-err-msg"></span>
+        </div>
+        <div id="pwd-succ" style="display:none;background:rgba(34,197,94,0.1);
+             border:1px solid rgba(34,197,94,0.25);border-radius:9px;
+             padding:11px 14px;font-size:13px;color:var(--accent-green);
+             align-items:center;gap:8px;margin-bottom:16px;">
+            <i class="fas fa-check-circle"></i><span id="pwd-succ-msg"></span>
+        </div>
+
+        <form id="pwd-change-form" onsubmit="submitPwdChange(event)">
+            <input type="hidden" name="_csrf" value="{{ csrf_token }}">
+
+            <!-- Current Password -->
+            <div style="margin-bottom:16px;">
+                <label style="font-size:11px;font-weight:700;color:var(--text-secondary);
+                              text-transform:uppercase;letter-spacing:0.6px;
+                              display:flex;align-items:center;gap:4px;margin-bottom:7px;">
+                    Current Password
+                    <span style="color:var(--accent-red);font-size:13px;">*</span>
+                </label>
+                <div style="position:relative;">
+                    <i class="fas fa-lock"
+                       style="position:absolute;left:13px;top:50%;transform:translateY(-50%);
+                              color:var(--text-muted);font-size:13px;pointer-events:none;"></i>
+                    <input type="password" id="pwd-old"
+                           placeholder="Enter current password" required
+                           style="width:100%;background:var(--bg-input);
+                                  border:1.5px solid var(--border);border-radius:10px;
+                                  padding:11px 42px 11px 40px;font-size:14px;
+                                  font-family:'Inter',sans-serif;color:var(--text-primary);
+                                  outline:none;transition:border-color 0.2s;"
+                           onfocus="this.style.borderColor='var(--accent-blue)'"
+                           onblur="this.style.borderColor='var(--border)'">
+                    <button type="button" onclick="togglePwdEye('pwd-old','eye-old')"
+                            style="position:absolute;right:12px;top:50%;transform:translateY(-50%);
+                                   background:none;border:none;color:var(--text-muted);
+                                   cursor:pointer;font-size:13px;padding:3px;">
+                        <i class="fas fa-eye" id="eye-old"></i>
+                    </button>
+                </div>
+            </div>
+
+            <!-- New Password -->
+            <div style="margin-bottom:16px;">
+                <label style="font-size:11px;font-weight:700;color:var(--text-secondary);
+                              text-transform:uppercase;letter-spacing:0.6px;
+                              display:flex;align-items:center;gap:4px;margin-bottom:7px;">
+                    New Password
+                    <span style="color:var(--accent-red);font-size:13px;">*</span>
+                </label>
+                <div style="position:relative;">
+                    <i class="fas fa-key"
+                       style="position:absolute;left:13px;top:50%;transform:translateY(-50%);
+                              color:var(--text-muted);font-size:13px;pointer-events:none;"></i>
+                    <input type="password" id="pwd-new"
+                           placeholder="Create new password" required
+                           style="width:100%;background:var(--bg-input);
+                                  border:1.5px solid var(--border);border-radius:10px;
+                                  padding:11px 42px 11px 40px;font-size:14px;
+                                  font-family:'Inter',sans-serif;color:var(--text-primary);
+                                  outline:none;transition:border-color 0.2s;"
+                           onfocus="this.style.borderColor='var(--accent-blue)'"
+                           onblur="this.style.borderColor='var(--border)'"
+                           oninput="pwdStrength(this.value);pwdMatch()">
+                    <button type="button" onclick="togglePwdEye('pwd-new','eye-new')"
+                            style="position:absolute;right:12px;top:50%;transform:translateY(-50%);
+                                   background:none;border:none;color:var(--text-muted);
+                                   cursor:pointer;font-size:13px;padding:3px;">
+                        <i class="fas fa-eye" id="eye-new"></i>
+                    </button>
+                </div>
+                <!-- Strength bar -->
+                <div style="height:3px;border-radius:2px;background:var(--border);
+                            margin-top:8px;overflow:hidden;">
+                    <div id="pwd-strength-bar"
+                         style="height:100%;border-radius:2px;width:0%;
+                                transition:width 0.3s,background 0.3s;"></div>
+                </div>
+                <div id="pwd-strength-hint"
+                     style="font-size:12px;color:var(--text-secondary);
+                            margin-top:5px;display:flex;align-items:center;gap:5px;">
+                    <i class="fas fa-shield-alt"></i> Min 8 characters
+                </div>
+            </div>
+
+            <!-- Confirm Password -->
+            <div style="margin-bottom:24px;">
+                <label style="font-size:11px;font-weight:700;color:var(--text-secondary);
+                              text-transform:uppercase;letter-spacing:0.6px;
+                              display:flex;align-items:center;gap:4px;margin-bottom:7px;">
+                    Confirm New Password
+                    <span style="color:var(--accent-red);font-size:13px;">*</span>
+                </label>
+                <div style="position:relative;">
+                    <i class="fas fa-check-double"
+                       style="position:absolute;left:13px;top:50%;transform:translateY(-50%);
+                              color:var(--text-muted);font-size:13px;pointer-events:none;"></i>
+                    <input type="password" id="pwd-conf"
+                           placeholder="Repeat new password" required
+                           style="width:100%;background:var(--bg-input);
+                                  border:1.5px solid var(--border);border-radius:10px;
+                                  padding:11px 42px 11px 40px;font-size:14px;
+                                  font-family:'Inter',sans-serif;color:var(--text-primary);
+                                  outline:none;transition:border-color 0.2s;"
+                           onfocus="this.style.borderColor='var(--accent-blue)'"
+                           onblur="this.style.borderColor='var(--border)'"
+                           oninput="pwdMatch()">
+                    <button type="button" onclick="togglePwdEye('pwd-conf','eye-conf')"
+                            style="position:absolute;right:12px;top:50%;transform:translateY(-50%);
+                                   background:none;border:none;color:var(--text-muted);
+                                   cursor:pointer;font-size:13px;padding:3px;">
+                        <i class="fas fa-eye" id="eye-conf"></i>
+                    </button>
+                </div>
+                <div id="pwd-match-hint"
+                     style="font-size:12px;margin-top:5px;display:none;
+                            align-items:center;gap:5px;"></div>
+            </div>
+
+            <!-- Submit -->
+            <button type="submit" id="pwd-submit-btn" class="btn btn-primary"
+                    style="width:100%;justify-content:center;padding:13px;font-size:14px;">
+                <div id="pwd-submit-spinner"
+                     style="display:none;width:15px;height:15px;
+                            border:2px solid rgba(255,255,255,0.3);
+                            border-top-color:#fff;border-radius:50%;
+                            animation:spin 0.7s linear infinite;margin-right:6px;"></div>
+                <i class="fas fa-save" id="pwd-submit-icon"></i>
+                <span id="pwd-submit-text" style="margin-left:6px;">Update Password</span>
+            </button>
+        </form>
+    </div>
+</div>
 
 <!-- ── LOGOUT MODAL ── -->
 <div class="modal-overlay" id="logout-modal">
@@ -654,17 +878,11 @@
         Dashboard
     </button>
 
-    <button class="nav-item" onclick="showPage('profile', this)">
-        <div class="nav-icon"><i class="fas fa-user"></i></div>
-        My Profile
-    </button>
-
-    <button class="nav-item" onclick="showPage('attendance', this)">
+    <button class="nav-item" onclick="showPage('attendance', this); clearBadge('attendance-badge', 'student_seen_attendance')">
         <div class="nav-icon"><i class="fas fa-calendar-check"></i></div>
         Attendance
         <span class="nav-badge" id="attendance-badge">{{ attendance|length if attendance else 0 }}</span>
     </button>
-
     <div class="nav-section-label">Academics</div>
 
     <button class="nav-item" onclick="showPage('reports', this)">
@@ -725,13 +943,42 @@
             <p id="page-date">Thursday, 16 April 2026</p>
         </div>
         <div class="header-actions">
-            <button class="btn" onclick="downloadReport()">
-                <i class="fas fa-download"></i> Download Report
-            </button>
-            <button class="btn btn-primary" onclick="viewAllRecords()">
-                <i class="fas fa-eye"></i> View All Records
-            </button>
-        </div>
+    <button class="btn" id="theme-toggle" onclick="toggleTheme()" title="Toggle Light/Dark Mode">
+        <i class="fas fa-sun" id="theme-icon"></i>
+    </button>
+    <button class="btn" onclick="downloadReport()">
+        <i class="fas fa-download"></i> Download Report
+    </button>
+    <button class="btn btn-primary" onclick="viewAllRecords()">
+        <i class="fas fa-eye"></i> View All Records
+    </button>
+    <!-- Profile avatar icon — shows face image if enrolled, else initials -->
+    <div onclick="showPage('profile', null)"
+         title="{{ student['name'] }}"
+         style="
+            width: 40px; height: 40px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, #6366f1, #8b5cf6);
+            display: flex; align-items: center; justify-content: center;
+            font-size: 15px; font-weight: 800; color: #fff;
+            cursor: pointer;
+            border: 2px solid var(--accent-blue);
+            box-shadow: 0 0 14px rgba(99,102,241,0.4);
+            overflow: hidden;
+            flex-shrink: 0;
+            transition: transform 0.2s, box-shadow 0.2s;
+         "
+         onmouseover="this.style.transform='scale(1.08)';this.style.boxShadow='0 0 22px rgba(99,102,241,0.6)'"
+         onmouseout="this.style.transform='scale(1)';this.style.boxShadow='0 0 14px rgba(99,102,241,0.4)'">
+        {% if student['face_image'] %}
+            <img src="{{ url_for('static', filename=student['face_image']) }}"
+                 style="width:100%;height:100%;object-fit:cover;"
+                 onerror="this.style.display='none';this.parentElement.textContent='{{ student['name'][0].upper() if student['name'] else 'S' }}'">
+        {% else %}
+            {{ student['name'][0].upper() if student['name'] else 'S' }}
+        {% endif %}
+    </div>
+</div>
     </div>
 
     <div class="content">
@@ -1134,7 +1381,7 @@
                 </p>
             </div>
         {% endif %}
-    </div>
+    </div>  
 </div>
 
         <!-- ══════════════ TIMETABLE PAGE ══════════════ -->
@@ -1201,11 +1448,18 @@
                                style="accent-color:var(--accent-blue);width:16px;height:16px;">
                         Send me an email alert when attendance drops below target
                     </label>
-                    <button class="btn btn-primary" onclick="saveGoal()">
-                        <i class="fas fa-save"></i> Save Goal
+                    <button class="btn btn-primary" id="save-goal-btn" onclick="saveGoal()" aria-busy="false">
+                        <i class="fas fa-save" id="save-goal-icon"></i>
+                        <span id="save-goal-text">Save Goal</span>
+                        <div id="save-goal-spinner" style="display:none;width:16px;height:16px;border:2px solid rgba(255,255,255,0.15);border-top-color:#ffffff;border-radius:50%;animation:spin 0.7s linear infinite;margin-left:10px;vertical-align:middle;pointer-events:none"></div>
                     </button>
+                    <style>
+                    @keyframes spin { to { transform:rotate(360deg); } }
+                    /* Ensure button text and spinner align */
+                    #save-goal-btn { display:inline-flex; align-items:center; gap:8px; }
+                    </style>
                     <div id="goal-save-msg" style="display:none;margin-top:10px;font-size:13px;
-                         color:var(--accent-green);font-weight:600;">
+                        color:var(--accent-green);font-weight:600;">
                         <i class="fas fa-check-circle"></i> Goal saved!
                     </div>
                 </div>
@@ -1305,77 +1559,123 @@
         </div>
 
         <!-- ══════════════ SETTINGS PAGE ══════════════ -->
-        <div class="page" id="page-settings">
-            <div class="section-card" style="max-width:580px;">
-                <div class="section-header">
-                    <div class="section-icon"><i class="fas fa-cog"></i></div>
-                    <div class="section-title-text">Account Settings</div>
-                </div>
+<div class="page" id="page-settings">
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:18px;align-items:start;">
 
-                <div class="settings-group">
-                    <div class="settings-group-title">Notifications</div>
-                    <div class="setting-row">
-                        <div>
-                            <div class="setting-label">Attendance Alerts</div>
-                            <div class="setting-desc">Get notified when attendance drops below 75%</div>
-                        </div>
-                        <label class="toggle-switch">
-                            <input type="checkbox" checked onchange="showToast('Attendance alerts ' + (this.checked ? 'enabled' : 'disabled'))">
-                            <span class="toggle-slider"></span>
-                        </label>
-                    </div>
-                    <div class="setting-row">
-                        <div>
-                            <div class="setting-label">Class Reminders</div>
-                            <div class="setting-desc">Reminder 15 minutes before each class</div>
-                        </div>
-                        <label class="toggle-switch">
-                            <input type="checkbox" onchange="showToast('Class reminders ' + (this.checked ? 'enabled' : 'disabled'))">
-                            <span class="toggle-slider"></span>
-                        </label>
-                    </div>
-                    <div class="setting-row">
-                        <div>
-                            <div class="setting-label">Email Reports</div>
-                            <div class="setting-desc">Receive weekly attendance report via email</div>
-                        </div>
-                        <label class="toggle-switch">
-                            <input type="checkbox" checked onchange="showToast('Email reports ' + (this.checked ? 'enabled' : 'disabled'))">
-                            <span class="toggle-slider"></span>
-                        </label>
-                    </div>
-                </div>
+        <!-- Account Settings Card -->
+        <div class="section-card" style="margin-bottom:0;">
+            <div class="section-header">
+                <div class="section-icon"><i class="fas fa-cog"></i></div>
+                <div class="section-title-text">Account Settings</div>
+            </div>
 
-                <div class="settings-group">
-                    <div class="settings-group-title">Privacy</div>
-                    <div class="setting-row">
-                        <div>
-                            <div class="setting-label">Face Recognition</div>
-                            <div class="setting-desc">Allow Vision AI to mark attendance via face scan</div>
-                        </div>
-                        <label class="toggle-switch">
-                            <input type="checkbox" checked onchange="showToast('Face recognition ' + (this.checked ? 'enabled' : 'disabled'))">
-                            <span class="toggle-slider"></span>
-                        </label>
-                    </div>
-                    <div class="setting-row">
-                        <div>
-                            <div class="setting-label">Profile Visibility</div>
-                            <div class="setting-desc">Show your profile to classmates</div>
-                        </div>
-                        <label class="toggle-switch">
-                            <input type="checkbox" onchange="showToast('Profile visibility ' + (this.checked ? 'enabled' : 'disabled'))">
-                            <span class="toggle-slider"></span>
-                        </label>
-                    </div>
-                </div>
+            <div class="settings-group">
+                <div class="settings-group-title">Notifications</div>
+                <div class="setting-row">
+            <div>
+                <div class="setting-label">Attendance Alerts</div>
+                <div class="setting-desc">Get notified when attendance drops below 75%</div>
+            </div>
+    <label class="toggle-switch">
+        <input type="checkbox" id="toggle-attendance-alerts"
+               onchange="saveSetting('attendance_alerts', this.checked); showToast('Attendance alerts ' + (this.checked ? 'enabled' : 'disabled'))">
+        <span class="toggle-slider"></span>
+    </label>
+</div>
+<div class="setting-row">
+    <div>
+        <div class="setting-label">Class Reminders</div>
+        <div class="setting-desc">Reminder 15 minutes before each class</div>
+    </div>
+    <label class="toggle-switch">
+        <input type="checkbox" id="toggle-class-reminders"
+               onchange="saveSetting('class_reminders', this.checked); showToast('Class reminders ' + (this.checked ? 'enabled' : 'disabled'))">
+        <span class="toggle-slider"></span>
+    </label>
+</div>
+<div class="setting-row">
+    <div>
+        <div class="setting-label">Email Reports</div>
+        <div class="setting-desc">Receive weekly attendance report via email</div>
+    </div>
+    <label class="toggle-switch">
+        <input type="checkbox" id="toggle-email-reports"
+               onchange="saveSetting('email_reports', this.checked); showToast('Email reports ' + (this.checked ? 'enabled' : 'disabled'))">
+        <span class="toggle-slider"></span>
+    </label>
+</div>
+</div>
 
-                <div style="display:flex;gap:10px;margin-top:8px;">
-                    <a href="/change-password" class="btn"><i class="fas fa-lock"></i> Change Password</a>
-                    <button class="btn" onclick="showToast('Settings saved successfully!')"><i class="fas fa-save"></i> Save Settings</button>
+
+            <div class="settings-group">
+                <div class="settings-group-title">Privacy</div>
+                <div class="setting-row">
+                    <div>
+                        <div class="setting-label">Face Recognition</div>
+                        <div class="setting-desc">Allow Vision AI to mark attendance via face scan</div>
+                    </div>
+                    <label class="toggle-switch">
+                        <input type="checkbox" checked onchange="showToast('Face recognition ' + (this.checked ? 'enabled' : 'disabled'))">
+                        <span class="toggle-slider"></span>
+                    </label>
+                </div>
+                <div class="setting-row">
+                    <div>
+                        <div class="setting-label">Profile Visibility</div>
+                        <div class="setting-desc">Show your profile to classmates</div>
+                    </div>
+                    <label class="toggle-switch">
+                        <input type="checkbox" onchange="showToast('Profile visibility ' + (this.checked ? 'enabled' : 'disabled'))">
+                        <span class="toggle-slider"></span>
+                    </label>
                 </div>
             </div>
+
+            <button class="btn btn-primary" onclick="showToast('Settings saved successfully!')"
+                    style="width:100%;justify-content:center;">
+                <i class="fas fa-save"></i> Save Settings
+            </button>
         </div>
+
+        <!-- Change Password Card -->
+        <div class="section-card" style="margin-bottom:0;">
+            <div class="section-header">
+                <div class="section-icon"><i class="fas fa-lock"></i></div>
+                <div class="section-title-text">Change Password</div>
+            </div>
+            <p style="font-size:13px;color:var(--text-secondary);margin-bottom:20px;line-height:1.6;">
+                Keep your account secure by updating your password regularly. Use at least 8 characters with uppercase, numbers and symbols.
+            </p>
+
+            <div class="settings-group">
+                <div class="settings-group-title">Security</div>
+                <div class="setting-row">
+                    <div>
+                        <div class="setting-label">Password</div>
+                        <div class="setting-desc">Update your current login password</div>
+                    </div>
+                    <i class="fas fa-check-circle" style="color:var(--accent-blue);font-size:16px;"></i>
+                </div>
+                <div class="setting-row">
+                    <div>
+                        <div class="setting-label">Two-Factor Auth</div>
+                        <div class="setting-desc">Extra security for your account</div>
+                    </div>
+                    <label class="toggle-switch">
+                        <input type="checkbox" onchange="showToast('2FA ' + (this.checked ? 'enabled' : 'disabled'))">
+                        <span class="toggle-slider"></span>
+                    </label>
+                </div>
+            </div>
+
+            <button onclick="openPwdModal()" class="btn btn-primary"
+                    style="width:100%;justify-content:center;">
+                <i class="fas fa-lock"></i> Change Password
+            </button>
+        </div>
+
+    </div>
+</div>
 
         <!-- ══════════════ EDIT PROFILE PAGE ══════════════ -->
         <div class="page" id="page-edit-profile">
@@ -1507,7 +1807,6 @@
 </div><!-- /main -->
 
 <script>
-// ── PAGE TITLES MAP ── (FIX: was missing comma before 'timetable')
 const pageTitles = {
     'dashboard':    'Welcome, {{ student["name"] }} 👋',
     'profile':      'My Profile',
@@ -1523,54 +1822,48 @@ const pageTitles = {
 };
 
 // ── PAGE NAVIGATION ──
-// FIX: Removed the broken _origShowPage wrapper pattern.
-// loadTimetable and enrollStartCamera are called directly inside showPage.
 function showPage(name, btn) {
-    // Stop camera if leaving face-enroll
     const faceEnrollPage = document.getElementById('page-face-enroll');
     if (faceEnrollPage && faceEnrollPage.classList.contains('active')) {
         enrollStopCamera();
     }
-
     document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
     document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
-
     const targetPage = document.getElementById('page-' + name);
     if (targetPage) targetPage.classList.add('active');
     if (btn) btn.classList.add('active');
-
-    document.getElementById('page-heading').textContent = pageTitles[name] || name;
+    const heading = document.getElementById('page-heading');
+    if (heading) heading.textContent = pageTitles[name] || name;
     document.getElementById('sidebar').classList.remove('open');
-
-    // Trigger page-specific init
-    if (name === 'face-enroll') {
-        setTimeout(enrollStartCamera, 200);
-    }
-    if (name === 'timetable') {
-        loadTimetable();
-    }
-
-    // Save current page to URL hash
+    if (name === 'face-enroll') setTimeout(enrollStartCamera, 200);
+    if (name === 'settings') loadSettings();
+    if (name === 'timetable') loadTimetable();
     window.location.hash = name;
 }
 
-// ── RESTORE PAGE ON REFRESH ──
-// FIX: Merged into single DOMContentLoaded listener (was split into two)
+// ── DOM READY ──
 document.addEventListener('DOMContentLoaded', function () {
-    // Set progress bar widths
     document.querySelectorAll('[data-percent]').forEach(function (bar) {
         const pct = bar.getAttribute('data-percent');
         if (pct) bar.style.width = pct + '%';
     });
 
-    // Update date
     const days   = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
     const months = ['January','February','March','April','May','June','July','August','September','October','November','December'];
     const now    = new Date();
-    document.getElementById('page-date').textContent =
-        days[now.getDay()] + ', ' + now.getDate() + ' ' + months[now.getMonth()] + ' ' + now.getFullYear();
+    const dateEl = document.getElementById('page-date');
+    if (dateEl) dateEl.textContent = days[now.getDay()] + ', ' + now.getDate() + ' ' + months[now.getMonth()] + ' ' + now.getFullYear();
 
-    // Restore page from URL hash
+    updateClassStatuses();
+    setInterval(updateClassStatuses, 60000);
+
+    const saved = localStorage.getItem('student_theme');
+    if (saved === 'light') {
+        document.body.classList.add('light-mode');
+        const icon = document.getElementById('theme-icon');
+        if (icon) icon.className = 'fas fa-moon';
+    }
+
     const hash = window.location.hash.replace('#', '');
     const validPages = Object.keys(pageTitles);
     if (hash && validPages.includes(hash) && document.getElementById('page-' + hash)) {
@@ -1583,10 +1876,44 @@ document.addEventListener('DOMContentLoaded', function () {
     }
 });
 
+// ── NOTIFICATION BADGES ──
+function clearBadge(badgeId, storageKey) {
+    const badge = document.getElementById(badgeId);
+    if (!badge) return;
+    const currentCount = parseInt(badge.textContent) || 0;
+    localStorage.setItem(storageKey, currentCount);
+    badge.style.display = 'none';
+}
+
+function updateBadge(badgeId, storageKey, currentCount) {
+    const badge = document.getElementById(badgeId);
+    if (!badge) return;
+    const lastSeen = parseInt(localStorage.getItem(storageKey)) || 0;
+    if (currentCount > lastSeen) {
+        badge.textContent = currentCount - lastSeen;
+        badge.style.display = 'inline-block';
+    } else {
+        badge.style.display = 'none';
+    }
+}
+
+// Run on load
+document.addEventListener('DOMContentLoaded', function() {
+    updateBadge('attendance-badge', 'student_seen_attendance', {{ attendance|length if attendance else 0 }});
+});
+
+// ── THEME TOGGLE ──
+function toggleTheme() {
+    const body = document.body;
+    const icon = document.getElementById('theme-icon');
+    const isLight = body.classList.toggle('light-mode');
+    if (icon) icon.className = isLight ? 'fas fa-moon' : 'fas fa-sun';
+    localStorage.setItem('student_theme', isLight ? 'light' : 'dark');
+}
+
 // ── DOWNLOAD REPORT ──
 function downloadReport() {
     showToast('Generating report... Download will start shortly.');
-    // Wire to real endpoint: window.location.href = '/student-download-report';
 }
 
 // ── VIEW ALL RECORDS ──
@@ -1599,9 +1926,9 @@ function viewAllRecords() {
 // ── LOGOUT MODAL ──
 function openLogoutModal()  { document.getElementById('logout-modal').classList.add('show'); }
 function closeLogoutModal() { document.getElementById('logout-modal').classList.remove('show'); }
-
-document.getElementById('logout-modal').addEventListener('click', function (e) {
-    if (e.target === this) closeLogoutModal();
+document.addEventListener('DOMContentLoaded', function() {
+    const lm = document.getElementById('logout-modal');
+    if (lm) lm.addEventListener('click', function(e) { if (e.target === lm) closeLogoutModal(); });
 });
 
 // ── TOAST ──
@@ -1614,15 +1941,57 @@ function showToast(msg) {
     toastTimer = setTimeout(() => toast.classList.remove('show'), 3000);
 }
 
-// ── FACE ENROLL CAMERA ──
-let enrollStream   = null;
-let enrollCaptured = null;
+// ── TODAY'S CLASSES STATUS ──
+function fmt12(t) {
+    if (!t || t === '--:--') return '';
+    const parts = t.split(':');
+    if (parts.length < 2) return t;
+    let h = parseInt(parts[0]), m = parseInt(parts[1]);
+    const ampm = h >= 12 ? 'PM' : 'AM';
+    h = h % 12 || 12;
+    return h + ':' + String(m).padStart(2, '0') + ' ' + ampm;
+}
+
+function updateClassStatuses() {
+    const now     = new Date();
+    const nowMins = now.getHours() * 60 + now.getMinutes();
+    document.querySelectorAll('[data-start]').forEach(function(row) {
+        const marked   = row.getAttribute('data-marked') === 'yes';
+        const start    = row.getAttribute('data-start') || '';
+        const end      = row.getAttribute('data-end')   || '';
+        const badge    = row.querySelector('.cls-status-badge');
+        const timeLbl  = row.querySelector('.cls-time-display');
+        const perBadge = row.querySelector('.cls-period-badge');
+        if (start && timeLbl) timeLbl.textContent = fmt12(start) + (end ? ' – ' + fmt12(end) : '');
+        if (!badge) return;
+        if (marked) {
+            badge.textContent = '✓ Present';
+            badge.style.background = 'rgba(34,197,94,0.12)';
+            badge.style.color = 'var(--accent-green)';
+            if (perBadge) { perBadge.style.background = 'rgba(34,197,94,0.15)'; perBadge.style.color = 'var(--accent-green)'; }
+            return;
+        }
+        let startMins = -1, endMins = -1;
+        if (start) { const sp = start.split(':'); startMins = parseInt(sp[0]) * 60 + parseInt(sp[1] || 0); }
+        if (end)   { const ep = end.split(':');   endMins   = parseInt(ep[0]) * 60 + parseInt(ep[1] || 0); }
+        if (endMins > 0 && nowMins > endMins) {
+            badge.textContent = '✗ Absent'; badge.style.background = 'rgba(239,68,68,0.12)'; badge.style.color = 'var(--accent-red)';
+            if (perBadge) { perBadge.style.background = 'rgba(239,68,68,0.12)'; perBadge.style.color = 'var(--accent-red)'; }
+        } else if (startMins > 0 && nowMins >= startMins && (endMins < 0 || nowMins <= endMins)) {
+            badge.textContent = '● Ongoing'; badge.style.background = 'rgba(245,158,11,0.12)'; badge.style.color = 'var(--accent-yellow)';
+            if (perBadge) { perBadge.style.background = 'rgba(245,158,11,0.15)'; perBadge.style.color = 'var(--accent-yellow)'; }
+        } else {
+            badge.textContent = 'Upcoming'; badge.style.background = 'rgba(99,102,241,0.1)'; badge.style.color = 'var(--accent-blue)';
+        }
+    });
+}
+
+// ── FACE ENROLL ──
+let enrollStream = null, enrollCaptured = null;
 
 async function enrollStartCamera() {
     try {
-        enrollStream = await navigator.mediaDevices.getUserMedia({
-            video: { width: { ideal: 640 }, height: { ideal: 480 }, facingMode: 'user' }
-        });
+        enrollStream = await navigator.mediaDevices.getUserMedia({ video: { width: { ideal: 640 }, height: { ideal: 480 }, facingMode: 'user' } });
         document.getElementById('enroll-video').srcObject = enrollStream;
         await document.getElementById('enroll-video').play();
         setEnrollStatus('Camera ready. Position your face and capture.', 'info');
@@ -1633,10 +2002,7 @@ async function enrollStartCamera() {
 }
 
 function enrollStopCamera() {
-    if (enrollStream) {
-        enrollStream.getTracks().forEach(t => t.stop());
-        enrollStream = null;
-    }
+    if (enrollStream) { enrollStream.getTracks().forEach(t => t.stop()); enrollStream = null; }
 }
 
 function setEnrollStatus(msg, type) {
@@ -1649,14 +2015,14 @@ function setEnrollStatus(msg, type) {
     };
     const c = colors[type] || colors.info;
     box.style.background = c.bg;
-    box.style.border     = '1px solid ' + c.border;
-    box.style.color      = c.color;
+    box.style.border = '1px solid ' + c.border;
+    box.style.color = c.color;
     document.getElementById('enroll-status-msg').textContent = msg;
 }
 
 function enrollCapture() {
     if (!enrollStream) { setEnrollStatus('Camera not ready. Please wait.', 'error'); return; }
-    const video  = document.getElementById('enroll-video');
+    const video = document.getElementById('enroll-video');
     const canvas = document.getElementById('enroll-canvas');
     const w = video.videoWidth || 640, h = video.videoHeight || 480;
     canvas.width = w; canvas.height = h;
@@ -1664,8 +2030,8 @@ function enrollCapture() {
     ctx.translate(w, 0); ctx.scale(-1, 1);
     ctx.drawImage(video, 0, 0, w, h);
     enrollCaptured = canvas.toDataURL('image/jpeg', 0.92);
-    document.getElementById('enroll-face-input').value       = enrollCaptured;
-    document.getElementById('enroll-preview-img').src        = enrollCaptured;
+    document.getElementById('enroll-face-input').value = enrollCaptured;
+    document.getElementById('enroll-preview-img').src = enrollCaptured;
     document.getElementById('enroll-camera-wrap').style.display  = 'none';
     document.getElementById('enroll-preview-wrap').style.display = 'block';
     document.getElementById('enroll-capture-btn').style.display  = 'none';
@@ -1676,7 +2042,7 @@ function enrollCapture() {
 
 function enrollRetake() {
     enrollCaptured = null;
-    document.getElementById('enroll-face-input').value       = '';
+    document.getElementById('enroll-face-input').value = '';
     document.getElementById('enroll-camera-wrap').style.display  = 'block';
     document.getElementById('enroll-preview-wrap').style.display = 'none';
     document.getElementById('enroll-capture-btn').style.display  = 'inline-flex';
@@ -1691,14 +2057,9 @@ async function enrollSubmit() {
     btn.disabled = true;
     btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Enrolling…';
     setEnrollStatus('Processing your face… please wait.', 'info');
-
     const csrfToken = document.querySelector('meta[name="csrf-token"]').getAttribute('content');
     try {
-        const res  = await fetch('/student-face-enroll', {
-            method:  'POST',
-            headers: { 'Content-Type': 'application/json', 'X-CSRF-Token': csrfToken },
-            body:    JSON.stringify({ face_image: enrollCaptured })
-        });
+        const res  = await fetch('/student-face-enroll', { method: 'POST', headers: { 'Content-Type': 'application/json', 'X-CSRF-Token': csrfToken }, body: JSON.stringify({ face_image: enrollCaptured }) });
         const data = await res.json();
         if (data.success) {
             setEnrollStatus('Face enrolled successfully! Redirecting…', 'success');
@@ -1716,212 +2077,320 @@ async function enrollSubmit() {
 }
 
 // ── TIMETABLE ──
-const DAYS    = ['Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
-const PERIODS = [1,2,3,4,5,6,7,8];
-let ttStandard = [];   // from faculty (read-only)
-let ttPersonal = [];   // student's own additions
+let ttStandard = [], ttPersonal = [];
 
 async function loadTimetable() {
+    const grid = document.getElementById('timetable-grid');
+    if (grid) grid.innerHTML = '<div style="padding:20px;color:var(--text-secondary);font-size:13px;text-align:center;"><i class="fas fa-spinner fa-spin"></i> Loading timetable...</div>';
     try {
-        // Load faculty timetable for student's standard
-        const r1   = await fetch('/api/student/timetable/standard');
-        const d1   = await r1.json();
+        const r1 = await fetch('/api/student/timetable/standard');
+        const d1 = await r1.json();
         ttStandard = d1.success ? d1.timetable : [];
-
-        // Load student's personal entries
-        const r2   = await fetch('/api/timetable');
-        const d2   = await r2.json();
+    } catch(e) { ttStandard = []; }
+    try {
+        const r2 = await fetch('/api/timetable');
+        const d2 = await r2.json();
         ttPersonal = d2.success ? d2.timetable : [];
-
-        renderStudentTimetableGrid();
-    } catch(e) { console.error('loadTimetable error:', e); }
+    } catch(e) { ttPersonal = []; }
+    renderStudentTimetableGrid();
 }
 
 function renderStudentTimetableGrid() {
     const grid = document.getElementById('timetable-grid');
     if (!grid) return;
-
-    const inputStyle = `background:var(--bg-card);border:1px solid var(--border);
-        border-radius:7px;padding:7px 10px;font-size:13px;color:var(--text-primary);
-        outline:none;width:100%;font-family:inherit;`;
-}
-
-    // ── Standard timetable (read-only, grouped by day) ──
+    const ALL_DAYS = ['Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
     let html = '';
 
     if (ttStandard.length > 0) {
-        html += `<div style="margin-bottom:20px;">
-            <div style="font-size:12px;font-weight:700;color:var(--accent-green);
-                text-transform:uppercase;letter-spacing:.8px;margin-bottom:12px;
-                display:flex;align-items:center;gap:8px;">
-                <i class="fas fa-chalkboard-teacher"></i>
-                Class Timetable (Set by Faculty — Read Only)
+        html += `<div style="margin-bottom:24px;">
+            <div style="font-size:12px;font-weight:700;color:var(--accent-green);text-transform:uppercase;letter-spacing:.8px;margin-bottom:16px;display:flex;align-items:center;gap:8px;padding:10px 14px;background:rgba(34,197,94,0.08);border:1px solid rgba(34,197,94,0.2);border-radius:10px;">
+                <i class="fas fa-chalkboard-teacher"></i> Class Timetable — Set by Faculty (Read Only)
             </div>`;
-
-        // Group by day
         const byDay = {};
-        DAYS.forEach(d => byDay[d] = []);
-        ttStandard.forEach(e => {
-            const day = e.day || e.day_of_week || '';
-            if (byDay[day]) byDay[day].push(e);
-        });
-
-        DAYS.forEach(day => {
+        ALL_DAYS.forEach(d => byDay[d] = []);
+        ttStandard.forEach(e => { const day = e.day || e.day_of_week || ''; if (byDay[day] !== undefined) byDay[day].push(e); });
+        let hasAny = false;
+        ALL_DAYS.forEach(day => {
             const periods = byDay[day];
-            if (periods.length === 0) return;
-
-            html += `<div style="margin-bottom:14px;">
-                <div style="font-size:12px;font-weight:700;color:var(--text-secondary);
-                    margin-bottom:8px;padding:6px 12px;background:var(--bg-card);
-                    border-radius:8px;border:1px solid var(--border);">
-                    ${day}
+            if (!periods || periods.length === 0) return;
+            hasAny = true;
+            html += `<div style="margin-bottom:16px;">
+                <div style="font-size:13px;font-weight:700;color:var(--text-primary);margin-bottom:10px;padding:8px 14px;background:var(--bg-card);border-radius:8px;border:1px solid var(--border);display:flex;align-items:center;gap:8px;">
+                    <i class="fas fa-calendar-day" style="color:var(--accent-blue);font-size:11px;"></i> ${day}
+                    <span style="font-size:11px;color:var(--text-muted);font-weight:400;">— ${periods.length} period${periods.length !== 1 ? 's' : ''}</span>
                 </div>
-                <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:8px;">`;
-
-            periods.sort((a,b) => (a.period||a.period_number||0) - (b.period||b.period_number||0))
-                   .forEach(p => {
-                const per  = p.period || p.period_number || '?';
-                const subj = p.subject || '';
-                const st   = p.start_time || '';
-                const et   = p.end_time   || '';
-                html += `<div style="padding:10px 12px;background:rgba(34,197,94,0.06);
-                    border:1px solid rgba(34,197,94,0.2);border-radius:10px;">
-                    <div style="font-size:10px;color:var(--accent-green);font-weight:700;margin-bottom:4px;">
-                        Period ${per}
-                    </div>
-                    <div style="font-size:13.5px;font-weight:600;">${subj}</div>
-                    ${st ? `<div style="font-size:11px;color:var(--text-secondary);margin-top:3px;">${st}${et ? ' – '+et : ''}</div>` : ''}
+                <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(170px,1fr));gap:10px;padding:0 4px;">`;
+            periods.sort((a,b) => (a.period||a.period_number||0)-(b.period||b.period_number||0)).forEach(p => {
+                const per = p.period || p.period_number || '?';
+                const subj = p.subject || '—';
+                const st = p.start_time || '', et = p.end_time || '';
+                html += `<div style="padding:12px 14px;background:rgba(34,197,94,0.06);border:1px solid rgba(34,197,94,0.18);border-radius:10px;transition:all 0.2s;" onmouseover="this.style.borderColor='rgba(34,197,94,0.4)'" onmouseout="this.style.borderColor='rgba(34,197,94,0.18)'">
+                    <div style="font-size:10px;color:var(--accent-green);font-weight:700;margin-bottom:6px;text-transform:uppercase;letter-spacing:.5px;">Period ${per}</div>
+                    <div style="font-size:14px;font-weight:700;color:var(--text-primary);margin-bottom:4px;">${subj}</div>
+                    ${st ? `<div style="font-size:11px;color:var(--text-secondary);display:flex;align-items:center;gap:4px;"><i class="fas fa-clock" style="font-size:9px;"></i> ${fmt12(st)}${et ? ' – ' + fmt12(et) : ''}</div>` : ''}
                 </div>`;
             });
-
             html += `</div></div>`;
         });
-
+        if (!hasAny) html += `<div style="padding:16px;text-align:center;color:var(--text-muted);font-size:13px;">No periods found in the faculty timetable.</div>`;
         html += `</div>`;
     } else {
-        html += `<div style="padding:14px 16px;background:rgba(99,102,241,0.07);
-            border:1px solid rgba(99,102,241,0.15);border-radius:10px;
-            font-size:13px;color:var(--text-secondary);margin-bottom:20px;">
-            <i class="fas fa-info-circle" style="color:var(--accent-blue);margin-right:8px;"></i>
-            No class timetable set by faculty yet for your standard.
+        html += `<div style="padding:16px 18px;background:rgba(99,102,241,0.07);border:1px solid rgba(99,102,241,0.15);border-radius:10px;font-size:13px;color:var(--text-secondary);margin-bottom:24px;display:flex;align-items:center;gap:10px;">
+            <i class="fas fa-info-circle" style="color:var(--accent-blue);font-size:15px;"></i>
+            No class timetable set by faculty yet for your standard. Once faculty sets the timetable, it will appear here automatically.
         </div>`;
     }
 
+    html += `<div style="height:1px;background:var(--border);margin:8px 0 20px;"></div>`;
+
+    const inputStyle = `background:var(--bg-card);border:1px solid var(--border);border-radius:7px;padding:7px 10px;font-size:13px;color:var(--text-primary);outline:none;width:100%;font-family:inherit;`;
+
+    html += `<div>
+        <div style="font-size:12px;font-weight:700;color:var(--accent-blue);text-transform:uppercase;letter-spacing:.8px;margin-bottom:14px;display:flex;align-items:center;gap:8px;">
+            <i class="fas fa-user-edit"></i> My Personal Extra Periods
+            <span style="font-size:11px;color:var(--text-muted);font-weight:400;text-transform:none;letter-spacing:0;">(optional — add periods not in faculty timetable)</span>
+        </div>`;
+
+    if (ttPersonal.length === 0) {
+        html += `<div style="padding:20px;text-align:center;color:var(--text-muted);font-size:13px;background:var(--bg-card);border-radius:10px;border:1px dashed var(--border);">
+            No personal periods added yet.<br><span style="font-size:12px;">Use "Add Period" below to add extra classes.</span>
+        </div>`;
+    } else {
+        html += `<div style="overflow-x:auto;"><table style="width:100%;border-collapse:collapse;font-size:13px;">
+            <thead><tr style="background:var(--bg-card);">
+                <th style="padding:10px 12px;text-align:left;color:var(--text-muted);font-size:11px;text-transform:uppercase;border-bottom:1px solid var(--border);">Day</th>
+                <th style="padding:10px 12px;text-align:left;color:var(--text-muted);font-size:11px;text-transform:uppercase;border-bottom:1px solid var(--border);width:80px;">Period</th>
+                <th style="padding:10px 12px;text-align:left;color:var(--text-muted);font-size:11px;text-transform:uppercase;border-bottom:1px solid var(--border);">Subject</th>
+                <th style="padding:10px 12px;text-align:left;color:var(--text-muted);font-size:11px;text-transform:uppercase;border-bottom:1px solid var(--border);width:120px;">Start</th>
+                <th style="padding:10px 12px;text-align:left;color:var(--text-muted);font-size:11px;text-transform:uppercase;border-bottom:1px solid var(--border);width:120px;">End</th>
+                <th style="padding:10px 12px;border-bottom:1px solid var(--border);width:50px;"></th>
+            </tr></thead><tbody>`;
+        ttPersonal.forEach((e, i) => {
+            const dayOpts = ALL_DAYS.map(d => `<option value="${d}" ${d === e.day ? 'selected' : ''}>${d}</option>`).join('');
+            const perOpts = [1,2,3,4,5,6,7,8].map(p => `<option value="${p}" ${p == e.period ? 'selected' : ''}>${p}</option>`).join('');
+            html += `<tr style="border-bottom:1px solid var(--border);">
+                <td style="padding:8px 12px;"><select onchange="ttUpdate(${i},'day',this.value)" style="${inputStyle}">${dayOpts}</select></td>
+                <td style="padding:8px 12px;"><select onchange="ttUpdate(${i},'period',this.value)" style="${inputStyle}">${perOpts}</select></td>
+                <td style="padding:8px 12px;"><input type="text" value="${e.subject||''}" onchange="ttUpdate(${i},'subject',this.value)" placeholder="Subject" style="${inputStyle}"></td>
+                <td style="padding:8px 12px;"><input type="time" value="${e.start_time||''}" onchange="ttUpdate(${i},'start_time',this.value)" style="${inputStyle}"></td>
+                <td style="padding:8px 12px;"><input type="time" value="${e.end_time||''}" onchange="ttUpdate(${i},'end_time',this.value)" style="${inputStyle}"></td>
+                <td style="padding:8px 12px;text-align:center;"><button onclick="ttRemove(${i})" style="background:none;border:none;color:var(--accent-red);cursor:pointer;font-size:15px;" title="Remove"><i class="fas fa-trash"></i></button></td>
+            </tr>`;
+        });
+        html += `</tbody></table></div>`;
+    }
+    html += `</div>`;
+    grid.innerHTML = html;
+}
+
+function ttUpdate(i, field, val) { if (ttPersonal[i]) ttPersonal[i][field] = val; }
+function ttRemove(i) { ttPersonal.splice(i, 1); renderStudentTimetableGrid(); }
+function addTimetableRow() { ttPersonal.push({ day: 'Monday', period: 1, subject: '', start_time: '', end_time: '' }); renderStudentTimetableGrid(); }
+function clearTimetable() { if (!confirm('Clear all your personal periods?')) return; ttPersonal = []; renderStudentTimetableGrid(); }
+
+async function saveTimetable() {
+    const csrfToken = document.querySelector('meta[name="csrf-token"]').getAttribute('content');
+    try {
+        const res  = await fetch('/api/timetable/save', { method: 'POST', headers: { 'Content-Type': 'application/json', 'X-CSRF-Token': csrfToken }, body: JSON.stringify({ entries: ttPersonal }) });
+        const data = await res.json();
+        showToast(data.success ? 'Personal timetable saved!' : 'Error: ' + (data.error || 'Could not save.'));
+    } catch(e) { showToast('Network error. Could not save timetable.'); }
+}
 
 // ── ATTENDANCE GOAL ──
 async function saveGoal() {
-    const csrfToken   = document.querySelector('meta[name="csrf-token"]').getAttribute('content');
-    const target_pct  = parseInt(document.getElementById('goal-slider').value);
+    const csrfToken  = document.querySelector('meta[name="csrf-token"]').getAttribute('content');
+    const target_pct = parseInt(document.getElementById('goal-slider').value);
     const alert_email = document.getElementById('alert-email-cb').checked;
-
+    const btn = document.getElementById('save-goal-btn');
+    btn.disabled = true;
+    btn.setAttribute('aria-busy', 'true');
+    document.getElementById('save-goal-icon').style.opacity    = '0.25';
+    document.getElementById('save-goal-text').textContent      = 'Saving…';
+    document.getElementById('save-goal-spinner').style.display = 'inline-block';
     try {
-        const res  = await fetch('/api/attendance-goal/save', {
-            method:  'POST',
-            headers: { 'Content-Type': 'application/json', 'X-CSRF-Token': csrfToken },
-            body:    JSON.stringify({ target_pct, alert_email })
-        });
+        const res  = await fetch('/api/attendance-goal/save', { method: 'POST', headers: { 'Content-Type': 'application/json', 'X-CSRF-Token': csrfToken }, body: JSON.stringify({ target_pct, alert_email }) });
         const data = await res.json();
         const msg  = document.getElementById('goal-save-msg');
         if (data.success) {
-            msg.style.display = 'flex';
-            msg.innerHTML     = '<i class="fas fa-check-circle"></i> Goal saved!';
-            msg.style.color   = 'var(--accent-green)';
+            msg.style.display = 'flex'; msg.innerHTML = '<i class="fas fa-check-circle"></i> Goal saved!'; msg.style.color = 'var(--accent-green)';
             showToast('Goal saved! Page will refresh to update tracker.');
             setTimeout(() => location.reload(), 2000);
         } else {
-            msg.style.display = 'flex';
-            msg.innerHTML     = '<i class="fas fa-times-circle"></i> ' + (data.error || 'Error saving.');
-            msg.style.color   = 'var(--accent-red)';
+            msg.style.display = 'flex'; msg.innerHTML = '<i class="fas fa-times-circle"></i> ' + (data.error || 'Error saving.'); msg.style.color = 'var(--accent-red)';
         }
     } catch (e) {
         showToast('Network error. Could not save goal.');
+    } finally {
+        btn.disabled = false;
+        btn.setAttribute('aria-busy', 'false');
+        document.getElementById('save-goal-icon').style.opacity    = '1';
+        document.getElementById('save-goal-text').textContent      = 'Save Goal';
+        document.getElementById('save-goal-spinner').style.display = 'none';
     }
 }
 
-// ── TODAY'S CLASSES — time-based status + AM/PM format ──
-function fmt12(t) {
-    if (!t || t === '--:--') return '';
-    const parts = t.split(':');
-    if (parts.length < 2) return t;
-    let h = parseInt(parts[0]), m = parseInt(parts[1]);
-    const ampm = h >= 12 ? 'PM' : 'AM';
-    h = h % 12 || 12;
-    return h + ':' + String(m).padStart(2, '0') + ' ' + ampm;
+// ── CHANGE PASSWORD MODAL ──────────────────────────────────────────
+function openPwdModal() {
+    document.getElementById('pwd-modal').classList.add('show');
+    document.getElementById('pwd-change-form').reset();
+    document.getElementById('pwd-err').style.display   = 'none';
+    document.getElementById('pwd-succ').style.display  = 'none';
+    document.getElementById('pwd-strength-bar').style.width = '0%';
+    document.getElementById('pwd-strength-hint').innerHTML  = '<i class="fas fa-shield-alt"></i> Min 8 characters';
+    document.getElementById('pwd-match-hint').style.display = 'none';
+    document.getElementById('pwd-submit-btn').disabled = false;
+    document.getElementById('pwd-submit-icon').style.display    = 'inline';
+    document.getElementById('pwd-submit-spinner').style.display = 'none';
+    document.getElementById('pwd-submit-text').textContent      = 'Update Password';
+}
+function closePwdModal() { document.getElementById('pwd-modal').classList.remove('show'); }
+document.addEventListener('DOMContentLoaded', function() {
+    const pm = document.getElementById('pwd-modal');
+    if (pm) pm.addEventListener('click', function(e) { if (e.target === pm) closePwdModal(); });
+});
+
+function togglePwdEye(inputId, iconId) {
+    const inp  = document.getElementById(inputId);
+    const icon = document.getElementById(iconId);
+    const show = inp.type === 'password';
+    inp.type   = show ? 'text' : 'password';
+    icon.className = show ? 'fas fa-eye-slash' : 'fas fa-eye';
 }
 
-function updateClassStatuses() {
-    const now     = new Date();
-    const nowMins = now.getHours() * 60 + now.getMinutes();
+function pwdStrength(val) {
+    let score = 0;
+    if (val.length >= 8)          score++;
+    if (/[A-Z]/.test(val))        score++;
+    if (/[0-9]/.test(val))        score++;
+    if (/[^A-Za-z0-9]/.test(val)) score++;
+    const bar    = document.getElementById('pwd-strength-bar');
+    const hint   = document.getElementById('pwd-strength-hint');
+    const colors = ['#ef4444','#f59e0b','#6366f1','#22c55e'];
+    const labels = ['Weak','Fair','Good','Strong'];
+    bar.style.width      = (score / 4 * 100) + '%';
+    bar.style.background = colors[score - 1] || 'var(--border)';
+    hint.innerHTML = score === 4
+        ? '<i class="fas fa-check-circle" style="color:#22c55e"></i> <span style="color:#22c55e">Strong password</span>'
+        : '<i class="fas fa-shield-alt"></i> ' + (labels[score - 1] || 'Too short');
+    pwdMatch();
+}
 
-    document.querySelectorAll('[data-start]').forEach(function(row) {
-        const marked  = row.getAttribute('data-marked') === 'yes';
-        const start   = row.getAttribute('data-start') || '';
-        const end     = row.getAttribute('data-end')   || '';
-        const badge   = row.querySelector('.cls-status-badge');
-        const timeLbl = row.querySelector('.cls-time-display');
-        const perBadge= row.querySelector('.cls-period-badge');
+function pwdMatch() {
+    const nv   = document.getElementById('pwd-new').value;
+    const cv   = document.getElementById('pwd-conf').value;
+    const hint = document.getElementById('pwd-match-hint');
+    if (!cv) { hint.style.display = 'none'; return; }
+    hint.style.display = 'flex';
+    hint.innerHTML = nv === cv
+        ? '<i class="fas fa-check-circle" style="color:#22c55e"></i> <span style="color:#22c55e">Passwords match</span>'
+        : '<i class="fas fa-times-circle" style="color:#ef4444"></i> <span style="color:#ef4444">Passwords do not match</span>';
+}
 
-        // Format time display as AM/PM
-        if (start && timeLbl) {
-            timeLbl.textContent = fmt12(start) + (end ? ' – ' + fmt12(end) : '');
-        }
+async function submitPwdChange(e) {
+    e.preventDefault();
+    const oldPwd  = document.getElementById('pwd-old').value;
+    const newPwd  = document.getElementById('pwd-new').value;
+    const confPwd = document.getElementById('pwd-conf').value;
+    const errBox  = document.getElementById('pwd-err');
+    const errMsg  = document.getElementById('pwd-err-msg');
+    const sucBox  = document.getElementById('pwd-succ');
 
-        if (!badge) return;
+    errBox.style.display = 'none';
+    sucBox.style.display = 'none';
 
-        if (marked) {
-            badge.textContent        = '✓ Present';
-            badge.style.background   = 'rgba(34,197,94,0.12)';
-            badge.style.color        = 'var(--accent-green)';
-            if (perBadge) {
-                perBadge.style.background = 'rgba(34,197,94,0.15)';
-                perBadge.style.color      = 'var(--accent-green)';
-            }
-            return;
-        }
+    if (!oldPwd)             { errMsg.textContent = 'Please enter your current password.'; errBox.style.display = 'flex'; return; }
+    if (newPwd.length < 8)  { errMsg.textContent = 'New password must be at least 8 characters.'; errBox.style.display = 'flex'; return; }
+    if (newPwd !== confPwd) { errMsg.textContent = 'New passwords do not match.'; errBox.style.display = 'flex'; return; }
+    if (oldPwd === newPwd)  { errMsg.textContent = 'New password must differ from current password.'; errBox.style.display = 'flex'; return; }
 
-        // Parse start/end minutes
-        let startMins = -1, endMins = -1;
-        if (start) {
-            const sp = start.split(':');
-            startMins = parseInt(sp[0]) * 60 + parseInt(sp[1] || 0);
-        }
-        if (end) {
-            const ep = end.split(':');
-            endMins = parseInt(ep[0]) * 60 + parseInt(ep[1] || 0);
-        }
+    const btn = document.getElementById('pwd-submit-btn');
+    btn.disabled = true;
+    document.getElementById('pwd-submit-icon').style.display    = 'none';
+    document.getElementById('pwd-submit-spinner').style.display = 'inline-block';
+    document.getElementById('pwd-submit-text').textContent      = 'Updating…';
 
-        if (endMins > 0 && nowMins > endMins) {
-            // Period is over and not marked = Absent
-            badge.textContent      = '✗ Absent';
-            badge.style.background = 'rgba(239,68,68,0.12)';
-            badge.style.color      = 'var(--accent-red)';
-            if (perBadge) {
-                perBadge.style.background = 'rgba(239,68,68,0.12)';
-                perBadge.style.color      = 'var(--accent-red)';
-            }
-        } else if (startMins > 0 && nowMins >= startMins && (endMins < 0 || nowMins <= endMins)) {
-            // Currently ongoing
-            badge.textContent      = '● Ongoing';
-            badge.style.background = 'rgba(245,158,11,0.12)';
-            badge.style.color      = 'var(--accent-yellow)';
-            if (perBadge) {
-                perBadge.style.background = 'rgba(245,158,11,0.15)';
-                perBadge.style.color      = 'var(--accent-yellow)';
-            }
+    try {
+        const csrfToken = document.querySelector('meta[name="csrf-token"]').getAttribute('content');
+        const fd = new FormData();
+        fd.append('old_password', oldPwd);
+        fd.append('new_password', newPwd);
+        fd.append('_csrf', csrfToken);
+        const res  = await fetch('/change-password', { method: 'POST', body: fd });
+        const text = await res.text();
+
+        if (text.includes('successfully') || res.redirected || res.url.includes('dashboard')) {
+            document.getElementById('pwd-succ-msg').textContent = 'Password changed successfully!';
+            sucBox.style.display = 'flex';
+            showToast('Password updated successfully!');
+            setTimeout(closePwdModal, 2000);
+        } else if (text.includes('incorrect') || text.includes('error') || text.includes('Error')) {
+            errMsg.textContent = 'Current password is incorrect.';
+            errBox.style.display = 'flex';
         } else {
-            // Not started yet
-            badge.textContent      = 'Upcoming';
-            badge.style.background = 'rgba(99,102,241,0.1)';
-            badge.style.color      = 'var(--accent-blue)';
+            document.getElementById('pwd-succ-msg').textContent = 'Password changed successfully!';
+            sucBox.style.display = 'flex';
+            showToast('Password updated!');
+            setTimeout(closePwdModal, 2000);
+        }
+    } catch (err) {
+        errMsg.textContent = 'Network error. Please try again.';
+        errBox.style.display = 'flex';
+    } finally {
+        btn.disabled = false;
+        document.getElementById('pwd-submit-icon').style.display    = 'inline';
+        document.getElementById('pwd-submit-spinner').style.display = 'none';
+        document.getElementById('pwd-submit-text').textContent      = 'Update Password';
+    }
+}
+
+// ── SETTINGS — Save & Restore Toggles ─────────────────────────────
+// Default values for each setting
+const SETTING_DEFAULTS = {
+    'attendance_alerts':  true,
+    'class_reminders':    false,
+    'email_reports':      true,
+    'face_recognition':   true,
+    'profile_visibility': false
+};
+
+const SETTING_IDS = {
+    'attendance_alerts':  'toggle-attendance-alerts',
+    'class_reminders':    'toggle-class-reminders',
+    'email_reports':      'toggle-email-reports',
+    'face_recognition':   'toggle-face-recognition',
+    'profile_visibility': 'toggle-profile-visibility'
+};
+
+function saveSetting(key, value) {
+    localStorage.setItem('student_setting_' + key, value ? '1' : '0');
+}
+
+function loadSettings() {
+    Object.keys(SETTING_IDS).forEach(function(key) {
+        const el = document.getElementById(SETTING_IDS[key]);
+        if (!el) return;
+        const stored = localStorage.getItem('student_setting_' + key);
+        if (stored !== null) {
+            el.checked = stored === '1';
+        } else {
+            // First visit — use default
+            el.checked = SETTING_DEFAULTS[key];
         }
     });
 }
 
-// Run on load and update every minute
-document.addEventListener('DOMContentLoaded', function() {
-    updateClassStatuses();
-    setInterval(updateClassStatuses, 60000);
-});
+// Load settings when page opens and when settings page is shown
+document.addEventListener('DOMContentLoaded', loadSettings);
+
+// Also reload when switching to settings tab
+const _origShowPage = showPage;
+// Override showPage to also reload settings when navigating there
+const _showPageOrig = window.showPage;
+window.showPage = function(name, btn) {
+    _showPageOrig ? _showPageOrig(name, btn) : showPage(name, btn);
+    if (name === 'settings') setTimeout(loadSettings, 50);
+};
 
 </script>
 </body>

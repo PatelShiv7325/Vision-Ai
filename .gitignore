@@ -7,3 +7,5 @@ database/db.sqlite3
 static/faces/
 .env
 email_config.py
+# Added by code-review-graph
+.code-review-graph/

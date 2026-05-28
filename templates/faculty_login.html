@@ -4,29 +4,27 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Faculty Login — Vision AI</title>
-    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
         *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
         :root {
-            --bg:       #07070f;
-            --panel:    #070f0d;
-            --card:     #0c1512;
-            --card2:    #111e1a;
-            --border:   rgba(255,255,255,0.07);
-            --f-accent: #00d4aa;
-            --f-glow:   rgba(0,212,170,0.25);
-            --s-accent: #6c63ff;
-            --text:     #ededf5;
-            --sub:      #7a9490;
-            --dim:      #3a5550;
-            --red:      #ff6b6b;
-            --green:    #43e97b;
-        }
+    --bg:       #1a1a1f;
+    --panel:    #1e1e24;
+    --card:     #26262e;
+    --card2:    #2c2c36;
+    --border:   #2e2e38;
+    --s-accent: #6366f1;
+    --s-glow:   rgba(99,102,241,0.25);
+    --text:     #e8e8f0;
+    --sub:      #9090a8;
+    --dim:      #5a5a70;
+    --red:      #ef4444;
+    --green:    #22c55e;
+}
 
         body {
-            font-family: 'Outfit', sans-serif;
+            font-family: 'Inter', sans-serif;
             background: var(--bg);
             color: var(--text);
             min-height: 100vh;
@@ -35,38 +33,45 @@
         }
 
         .left-panel {
-            width: 420px; min-height: 100vh;
+            width: 420px;
+            min-height: 100vh;
             background: var(--panel);
-            border-right: 1px solid rgba(0,212,170,0.08);
-            display: flex; flex-direction: column;
+            border-right: 1px solid var(--border);
+            display: flex;
+            flex-direction: column;
             padding: 40px 44px;
-            position: sticky; top: 0; height: 100vh;
-            overflow: hidden; flex-shrink: 0;
+            position: sticky;
+            top: 0; height: 100vh;
+            overflow: hidden;
+            flex-shrink: 0;
         }
 
         .brand { display: flex; align-items: center; gap: 12px; margin-bottom: 60px; }
         .brand-gem {
             width: 42px; height: 42px;
-            background: linear-gradient(135deg, var(--f-accent), #00ffcc);
+            background: linear-gradient(135deg, var(--s-accent), #a78bfa);
             border-radius: 12px;
             display: flex; align-items: center; justify-content: center;
             font-size: 20px;
-            box-shadow: 0 0 24px var(--f-glow);
+            box-shadow: 0 0 24px var(--s-glow);
         }
         .brand-name { font-size: 1.25rem; font-weight: 800; letter-spacing: -0.02em; }
 
         .panel-heading { font-size: 2.1rem; font-weight: 900; line-height: 1.15; letter-spacing: -0.03em; margin-bottom: 16px; }
         .panel-heading .hl {
-            background: linear-gradient(135deg, var(--f-accent) 0%, #00ffcc 50%, #7affd6 100%);
+            background: linear-gradient(135deg, var(--s-accent) 0%, #a78bfa 60%, #e879f9 100%);
             -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;
         }
 
         .panel-sub { font-size: 0.93rem; color: var(--sub); line-height: 1.7; margin-bottom: 48px; font-weight: 300; }
 
         .role-toggle {
-            display: flex; background: var(--card);
-            border: 1px solid rgba(0,212,170,0.1);
-            border-radius: 14px; padding: 5px; gap: 4px; margin-bottom: 40px;
+            display: flex;
+            background: var(--card);
+            border: 1px solid var(--border);
+            border-radius: 14px;
+            padding: 5px; gap: 4px;
+            margin-bottom: 40px;
         }
         .role-btn {
             flex: 1; padding: 11px 0;
@@ -76,37 +81,66 @@
             color: var(--sub); transition: all 0.25s;
             display: flex; align-items: center; justify-content: center; gap: 7px;
         }
-        .role-btn.active-f { background: var(--f-accent); color: #07070f; box-shadow: 0 4px 20px var(--f-glow); }
-        .role-btn:hover:not(.active-f) { color: var(--text); }
+        .role-btn.active-s { background: var(--s-accent); color: #fff; box-shadow: 0 4px 20px var(--s-glow); }
+        .role-btn:hover:not(.active-s) { color: var(--text); }
 
-        .login-visual { flex: 1; display: flex; flex-direction: column; gap: 14px; }
-        .visual-label { font-size: 0.75rem; font-weight: 700; color: var(--f-accent); text-transform: uppercase; letter-spacing: 1px; margin-bottom: 6px; }
-
-        .stat-row {
-            display: flex; align-items: center; justify-content: space-between;
-            padding: 14px 16px;
-            background: rgba(0,212,170,0.05);
-            border: 1px solid rgba(0,212,170,0.1);
-            border-radius: 12px;
+        /* Animated visual */
+        .login-visual {
+            flex: 1;
+            display: flex; flex-direction: column;
+            align-items: center; justify-content: center;
+            gap: 20px;
         }
-        .stat-row-left { display: flex; align-items: center; gap: 10px; }
-        .stat-icon {
-            width: 34px; height: 34px;
-            background: rgba(0,212,170,0.12);
-            border-radius: 9px;
+
+        .face-scan-anim {
+            width: 150px; height: 160px;
+            border: 2px solid var(--s-accent);
+            border-radius: 18px;
+            position: relative;
             display: flex; align-items: center; justify-content: center;
-            font-size: 14px; color: var(--f-accent);
+            background: rgba(108,99,255,0.04);
+            box-shadow: 0 0 40px rgba(108,99,255,0.15);
         }
-        .stat-name  { font-size: 0.88rem; font-weight: 600; }
-        .stat-desc  { font-size: 0.76rem; color: var(--sub); margin-top: 1px; }
-        .stat-count { font-family: 'JetBrains Mono', monospace; font-size: 0.9rem; font-weight: 700; color: var(--f-accent); }
+
+        .face-scan-anim i { font-size: 52px; color: rgba(108,99,255,0.25); }
+
+        .scan-beam {
+            position: absolute; left: 0; right: 0; height: 2px;
+            background: linear-gradient(90deg, transparent, var(--s-accent), transparent);
+            animation: beam 2.5s linear infinite;
+            box-shadow: 0 0 10px var(--s-accent);
+        }
+        @keyframes beam { 0% { top:0;opacity:0; } 10%{opacity:1;} 90%{opacity:1;} 100%{top:100%;opacity:0;} }
+
+        .corner-tl, .corner-br {
+            position: absolute;
+            width: 18px; height: 18px;
+            border-color: #43e97b; border-style: solid;
+        }
+        .corner-tl { top:-2px; left:-2px; border-width:3px 0 0 3px; border-radius:6px 0 0 0; }
+        .corner-br { bottom:-2px; right:-2px; border-width:0 3px 3px 0; border-radius:0 0 6px 0; }
+
+        .scan-status {
+            font-size: 0.8rem; font-weight: 700;
+            color: var(--s-accent); letter-spacing: 0.5px;
+            font-family: 'JetBrains Mono', monospace;
+        }
+
+        .visual-tagline {
+            font-size: 0.85rem; color: var(--sub);
+            text-align: center; line-height: 1.6;
+            max-width: 220px;
+        }
 
         .orb { position: absolute; border-radius: 50%; filter: blur(80px); pointer-events: none; }
-        .orb-1 { width:300px;height:300px; background:rgba(0,212,170,0.07); bottom:-60px; right:-80px; }
-        .orb-2 { width:180px;height:180px; background:rgba(0,255,204,0.05); top:20%; left:-30px; }
+        .orb-1 { width:300px;height:300px; background:rgba(108,99,255,0.08); bottom:-60px; right:-80px; }
+        .orb-2 { width:180px;height:180px; background:rgba(167,139,250,0.06); top:15%; left:-30px; }
 
-        .panel-footer { border-top: 1px solid rgba(0,212,170,0.1); padding-top: 24px; font-size: 0.82rem; color: var(--sub); }
-        .panel-footer a { color: var(--f-accent); font-weight: 700; text-decoration: none; }
+        .panel-footer {
+            border-top: 1px solid var(--border); padding-top: 24px;
+            font-size: 0.82rem; color: var(--sub);
+        }
+        .panel-footer a { color: var(--s-accent); font-weight: 700; text-decoration: none; }
         .panel-footer a:hover { text-decoration: underline; }
 
         .right-panel {
@@ -123,8 +157,8 @@
             font-size: 0.75rem; font-weight: 700;
             letter-spacing: 0.8px; text-transform: uppercase;
             margin-bottom: 14px;
-            background: rgba(0,212,170,0.1); color: var(--f-accent);
-            border: 1px solid rgba(0,212,170,0.2);
+            background: rgba(108,99,255,0.12); color: var(--s-accent);
+            border: 1px solid rgba(108,99,255,0.25);
         }
 
         .form-title { font-size: 2.1rem; font-weight: 900; letter-spacing: -0.025em; line-height: 1.2; margin-bottom: 6px; }
@@ -143,65 +177,81 @@
         .field-label { display: block; font-size: 0.79rem; font-weight: 700; color: var(--sub); text-transform: uppercase; letter-spacing: 0.7px; margin-bottom: 8px; }
         .field-wrap { position: relative; }
         .field-icon {
-            position: absolute; left: 14px; top: 50%; transform: translateY(-50%);
-            color: var(--dim); font-size: 0.9rem; pointer-events: none;
-            transition: all 0.3s ease;
+            position: absolute; left: 14px; top: 50%;
+            transform: translateY(-50%); color: var(--dim);
+            font-size: 0.9rem; pointer-events: none; transition: color 0.2s;
         }
+
         .field-input {
             width: 100%; background: var(--card2);
-            border: 1.5px solid rgba(0,212,170,0.1);
-            border-radius: 12px; padding: 14px 14px 14px 42px;
+            border: 1.5px solid var(--border); border-radius: 12px;
+            padding: 14px 14px 14px 42px;
             font-size: 0.95rem; font-family: 'Outfit', sans-serif;
-            color: var(--text); outline: none; transition: all 0.3s ease; height: 52px;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            color: var(--text); outline: none; transition: all 0.2s; height: 52px;
         }
         .field-input:focus {
-            border-color: var(--f-accent);
-            background: rgba(0,212,170,0.04);
-            box-shadow: 0 0 0 3px rgba(0,212,170,0.1), 0 4px 12px rgba(0,212,170,0.15);
-            transform: translateY(-1px);
+            border-color: var(--s-accent);
+            background: rgba(108,99,255,0.06);
+            box-shadow: 0 0 0 3px rgba(108,99,255,0.12);
         }
-        .field-wrap:focus-within .field-icon { color: var(--f-accent); }
+        .field-wrap:focus-within .field-icon { color: var(--s-accent); }
         .field-input::placeholder { color: var(--dim); }
 
-        .pwd-toggle { position:absolute; right:14px; top:50%; transform:translateY(-50%); color:var(--dim); cursor:pointer; font-size:0.9rem; background:none; border:none; padding:4px; transition:color 0.2s; }
-        .pwd-toggle:hover { color: var(--f-accent); }
+        .pwd-toggle {
+            position: absolute; right: 14px; top: 50%;
+            transform: translateY(-50%);
+            color: var(--dim); cursor: pointer;
+            font-size: 0.9rem; background: none; border: none; padding: 4px;
+            transition: color 0.2s;
+        }
+        .pwd-toggle:hover { color: var(--s-accent); }
 
-        .forgot-row { text-align: right; margin-top: 6px; }
-        .forgot-row a { font-size: 0.8rem; font-weight: 700; color: var(--f-accent); text-decoration: none; }
+        .forgot-row {
+            text-align: right; margin-top: 6px;
+        }
+        .forgot-row a {
+            font-size: 0.8rem; font-weight: 700;
+            color: var(--s-accent); text-decoration: none;
+        }
         .forgot-row a:hover { text-decoration: underline; }
 
         .btn-login {
-            width: 100%; padding: 15px;
-            background: var(--f-accent); color: #07070f;
-            border: none; border-radius: 14px;
-            font-size: 1rem; font-weight: 800; font-family: 'Outfit', sans-serif;
-            cursor: pointer; transition: all 0.25s;
-            box-shadow: 0 4px 28px var(--f-glow);
-            display: flex; align-items: center; justify-content: center; gap: 9px;
-            position: relative; overflow: hidden;
-            letter-spacing: -0.01em; margin-top: 28px;
+    width: 100%; padding: 14px;
+    background: var(--s-accent); color: #fff;
+    border: none; border-radius: 12px;
+    font-size: 0.97rem; font-weight: 600;
+    font-family: 'Inter', sans-serif;
+    cursor: pointer; transition: all 0.2s;
+    box-shadow: none;
+    display: flex; align-items: center; justify-content: center; gap: 9px;
+    letter-spacing: 0; margin-top: 28px;
+}
+.btn-login:hover { background: #5254cc; transform: translateY(-1px); }
+        .btn-login::after {
+            content:''; position:absolute; top:0; left:-100%;
+            width:100%; height:100%;
+            background:linear-gradient(90deg,transparent,rgba(255,255,255,0.12),transparent);
+            transition: left 0.5s;
         }
-        .btn-login::after { content:''; position:absolute; top:0; left:-100%; width:100%; height:100%; background:linear-gradient(90deg,transparent,rgba(255,255,255,0.18),transparent); transition:left 0.5s; }
-        .btn-login:hover { background: #00bfa0; transform: translateY(-2px); box-shadow: 0 8px 36px var(--f-glow); }
+        .btn-login:hover { background: #5a52e8; transform: translateY(-2px); box-shadow: 0 8px 36px var(--s-glow); }
         .btn-login:hover::after { left: 100%; }
 
         .or-divider { display:flex; align-items:center; gap:14px; color:var(--dim); font-size:0.78rem; font-weight:600; text-transform:uppercase; letter-spacing:1px; margin: 24px 0; }
-        .or-divider::before,.or-divider::after { content:''; flex:1; height:1px; background:rgba(0,212,170,0.1); }
+        .or-divider::before,.or-divider::after { content:''; flex:1; height:1px; background:var(--border); }
 
         .quick-access {
-            background: rgba(0,212,170,0.05);
-            border: 1px solid rgba(0,212,170,0.12);
+            background: rgba(108,99,255,0.05);
+            border: 1px solid rgba(108,99,255,0.12);
             border-radius: 14px;
             padding: 16px 18px;
         }
-        .quick-title { font-size: 0.78rem; font-weight: 700; color: var(--f-accent); text-transform: uppercase; letter-spacing: 0.8px; margin-bottom: 12px; }
+        .quick-title { font-size: 0.78rem; font-weight: 700; color: var(--s-accent); text-transform: uppercase; letter-spacing: 0.8px; margin-bottom: 12px; }
         .quick-items { display: flex; flex-direction: column; gap: 10px; }
         .quick-item { display: flex; align-items: center; gap: 10px; font-size: 0.86rem; color: var(--sub); }
-        .quick-item i { color: var(--f-accent); font-size: 0.82rem; width: 16px; }
+        .quick-item i { color: var(--s-accent); font-size: 0.82rem; width: 16px; }
 
         .form-footer { text-align:center; margin-top:28px; font-size:0.85rem; color:var(--sub); display:flex; flex-direction:column; gap:6px; }
-        .form-footer a { color: var(--f-accent); font-weight: 700; text-decoration: none; }
+        .form-footer a { color: var(--s-accent); font-weight: 700; text-decoration: none; }
         .form-footer a:hover { text-decoration: underline; }
 
         @media (max-width: 960px) { .left-panel { display: none; } .right-panel { padding: 40px 32px; } }
@@ -215,7 +265,7 @@
             -webkit-box-shadow: 0 0 0 1000px var(--card2) inset !important;
             -webkit-text-fill-color: var(--text) !important;
             caret-color: var(--text) !important;
-            border-color: var(--f-accent) !important;
+            border-color: var(--s-accent) !important;
             transition: background-color 9999s ease-in-out 0s !important;   
         }
     </style>
@@ -240,43 +290,20 @@
             <button class="role-btn" onclick="window.location='/student-login'">
                 <i class="fas fa-graduation-cap"></i> Student
             </button>
-            <button class="role-btn active-f" onclick="window.location='/faculty-login'">
+            <button class="role-btn active-s" onclick="window.location='/faculty-login'">
                 <i class="fas fa-chalkboard-teacher"></i> Faculty
             </button>
         </div>
 
         <div class="login-visual">
-            <div class="visual-label">Your Faculty Dashboard</div>
-            <div class="stat-row">
-                <div class="stat-row-left">
-                    <div class="stat-icon"><i class="fas fa-users"></i></div>
-                    <div>
-                        <div class="stat-name">Students</div>
-                        <div class="stat-desc">Registered &amp; enrolled</div>
-                    </div>
-                </div>
-                <div class="stat-count">Active</div>
+            <div class="face-scan-anim">
+                <div class="scan-beam"></div>
+                <i class="fas fa-face-smile-wink"></i>
+                <div class="corner-tl"></div>
+                <div class="corner-br"></div>
             </div>
-            <div class="stat-row">
-                <div class="stat-row-left">
-                    <div class="stat-icon"><i class="fas fa-calendar-check"></i></div>
-                    <div>
-                        <div class="stat-name">Attendance Records</div>
-                        <div class="stat-desc">All time logs</div>
-                    </div>
-                </div>
-                <div class="stat-count">Synced</div>
-            </div>
-            <div class="stat-row">
-                <div class="stat-row-left">
-                    <div class="stat-icon"><i class="fas fa-camera"></i></div>
-                    <div>
-                        <div class="stat-name">Face Recognition</div>
-                        <div class="stat-desc">Bulk class capture</div>
-                    </div>
-                </div>
-                <div class="stat-count">Ready</div>
-            </div>
+            <div class="scan-status">● SYSTEM READY</div>
+            <div class="visual-tagline">Face recognition enabled. Ready to scan and authenticate.</div>
         </div>
 
         <div class="panel-footer">

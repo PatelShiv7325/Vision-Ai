@@ -132,9 +132,6 @@ def enforce_csrf():
     exempt_endpoints = {
         "student_face_login",
         "student_login",
-        "forgot_password",
-        "verify_otp",
-        "reset_password",
         "mark_notifications_read",
         "subjects_by_standard",
         "static",
@@ -152,6 +149,46 @@ def enforce_csrf():
 @app.context_processor
 def inject_csrf():
     return {"csrf_token": generate_csrf_token()}
+
+
+# ── Verify logged-in users still exist in database ────────────────────
+@app.before_request
+def verify_user_exists():
+    """
+    On every request, verify that logged-in students/faculty still exist
+    in the database and are active. Clear session immediately if deleted.
+    """
+    db = None
+    try:
+        db = get_db()
+        
+        # Check student session
+        if "student_roll" in session:
+            student = db.execute(
+                "SELECT id FROM students WHERE roll=? AND is_active=1",
+                (session["student_roll"],)
+            ).fetchone()
+            if not student:
+                session.clear()
+                flash("Your account has been deleted. Please register again.", "warning")
+                return redirect(url_for("student_login"))
+        
+        # Check faculty session
+        if "faculty_id" in session:
+            faculty = db.execute(
+                "SELECT id FROM faculty WHERE faculty_id=? AND is_active=1",
+                (session["faculty_id"],)
+            ).fetchone()
+            if not faculty:
+                session.clear()
+                flash("Your account has been deleted.", "warning")
+                return redirect(url_for("faculty_login"))
+    
+    except Exception as e:
+        print(f"[VerifyUser] Error: {e}")
+    finally:
+        if db:
+            db.close()
 
 
 @app.after_request
@@ -483,7 +520,7 @@ def _enhanced_duplicate_check(face_encoding, existing_students, exclude_roll: st
         except Exception:
             continue
 
-    if best_score >= 0.55:
+    if best_score >= 0.70:
         return True, best_roll, best_name, best_score
     return False, None, None, best_score
 
@@ -699,13 +736,36 @@ def student_register():
 
             face_encoding = face_roi.tobytes()
 
-            existing_faces = [
-                dict(r)
-                for r in db.execute(
-                    "SELECT roll, name, face_encoding "
-                    "FROM students WHERE face_encoding IS NOT NULL AND is_active=1"
-                ).fetchall()
-            ]
+            # Consider both stored encodings and stored face image files when
+            # checking for duplicate enrollments. Some records may only have
+            # `face_image` (file) populated without `face_encoding` blob.
+            rows = db.execute(
+                "SELECT roll, name, face_encoding, face_image "
+                "FROM students WHERE (face_encoding IS NOT NULL OR face_image IS NOT NULL) AND is_active=1"
+            ).fetchall()
+
+            existing_faces = []
+            for r in rows:
+                rec = dict(r)
+                # If face_encoding is missing but a face_image path exists, try
+                # to load the file and generate an encoding equivalent (100x100
+                # grayscale CLAHE-applied bytes) for comparison.
+                if not rec.get("face_encoding") and rec.get("face_image"):
+                    try:
+                        path = os.path.join(os.path.dirname(os.path.abspath(__file__)), rec["face_image"])
+                        img = cv2.imread(path)
+                        if img is not None:
+                            g = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
+                            g_eq = cv2.equalizeHist(g)
+                            clahe = cv2.createCLAHE(clipLimit=2.0, tileGridSize=(8, 8))
+                            face_enc = clahe.apply(cv2.resize(g_eq, (100, 100))).tobytes()
+                            rec["face_encoding"] = face_enc
+                    except Exception:
+                        pass
+
+                # Only keep records that now have an encoding available
+                if rec.get("face_encoding"):
+                    existing_faces.append(rec)
 
             if existing_faces:
                 is_dup, dup_roll, dup_name, dup_score = _enhanced_duplicate_check(
@@ -724,23 +784,6 @@ def student_register():
                             f'This face is already registered to "{dup_name}" '
                             f"(Roll: {dup_roll}). "
                             f"Each person can only register once. "
-                            f"(Similarity: {dup_score:.1%})"
-                        )
-                    )
-
-                if dup_score >= 0.50:
-                    log_security_event(
-                        db, "POTENTIAL_DUPLICATE_FACE", roll, "student",
-                        get_client_ip(),
-                        f"High similarity to {dup_roll} score={dup_score:.3f}", "medium"
-                    )
-                    db.commit()
-                    return render_template(
-                        "student_register.html",
-                        error=(
-                            f'This face is very similar to "{dup_name}" '
-                            f'(Roll: {dup_roll}). '
-                            f"Please ensure you are registering your own face. "
                             f"(Similarity: {dup_score:.1%})"
                         )
                     )
