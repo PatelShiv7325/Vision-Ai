@@ -4,27 +4,29 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Faculty Login — Vision AI</title>
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
         *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
         :root {
-    --bg:       #1a1a1f;
-    --panel:    #1e1e24;
-    --card:     #26262e;
-    --card2:    #2c2c36;
-    --border:   #2e2e38;
-    --s-accent: #6366f1;
-    --s-glow:   rgba(99,102,241,0.25);
-    --text:     #e8e8f0;
-    --sub:      #9090a8;
-    --dim:      #5a5a70;
-    --red:      #ef4444;
-    --green:    #22c55e;
-}
+            --bg:       #07070f;
+            --panel:    #0d0d1a;
+            --card:     #11111c;
+            --card2:    #161625;
+            --border:   rgba(255,255,255,0.07);
+            --border2:  rgba(255,255,255,0.12);
+            --s-accent: #6c63ff;
+            --s-glow:   rgba(108,99,255,0.3);
+            --text:     #ededf5;
+            --sub:      #8888a8;
+            --dim:      #444460;
+            --red:      #ff6b6b;
+            --green:    #43e97b;
+        }
 
         body {
-            font-family: 'Inter', sans-serif;
+            font-family: 'Outfit', sans-serif;
             background: var(--bg);
             color: var(--text);
             min-height: 100vh;
@@ -115,7 +117,7 @@
         .corner-tl, .corner-br {
             position: absolute;
             width: 18px; height: 18px;
-            border-color: #43e97b; border-style: solid;
+            border-color: #22c55e; border-style: solid;
         }
         .corner-tl { top:-2px; left:-2px; border-width:3px 0 0 3px; border-radius:6px 0 0 0; }
         .corner-br { bottom:-2px; right:-2px; border-width:0 3px 3px 0; border-radius:0 0 6px 0; }
@@ -216,18 +218,18 @@
         .forgot-row a:hover { text-decoration: underline; }
 
         .btn-login {
-    width: 100%; padding: 14px;
+    width: 100%; padding: 15px;
     background: var(--s-accent); color: #fff;
-    border: none; border-radius: 12px;
-    font-size: 0.97rem; font-weight: 600;
-    font-family: 'Inter', sans-serif;
-    cursor: pointer; transition: all 0.2s;
-    box-shadow: none;
+    border: none; border-radius: 14px;
+    font-size: 1rem; font-weight: 800;
+    font-family: 'Outfit', sans-serif;
+    cursor: pointer; transition: all 0.25s;
+    box-shadow: 0 4px 28px var(--s-glow);
     display: flex; align-items: center; justify-content: center; gap: 9px;
-    letter-spacing: 0; margin-top: 28px;
+    position: relative; overflow: hidden;
+    letter-spacing: -0.01em; margin-top: 28px;
 }
-.btn-login:hover { background: #5254cc; transform: translateY(-1px); }
-        .btn-login::after {
+.btn-login::after {
             content:''; position:absolute; top:0; left:-100%;
             width:100%; height:100%;
             background:linear-gradient(90deg,transparent,rgba(255,255,255,0.12),transparent);

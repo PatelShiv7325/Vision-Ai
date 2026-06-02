@@ -29,34 +29,20 @@
             --active-border:  #6366f1;
             --pill-bg:        #2e2e3e;
         }
-
-        body.light-mode .nav-item.active {
-            color: var(--accent-blue);
-            background: rgba(99,102,241,0.15);
-            border-color: var(--accent-blue);
-            font-weight: 700;
-        }
-
-        body.light-mode .nav-item.active .nav-icon {
-            background: rgba(99,102,241,0.2);
-            color: var(--accent-blue);
-        }
-
+        
         body.light-mode {
-            --bg-base:        #f0f0ff;
-            --bg-sidebar:     #e8e8ff;
-            --bg-card:        #ffffff;
-            --bg-card-hover:  #f0f0ff;
-            --bg-input:       #f5f5ff;
-            --border:         #d0d0e8;
-            --border-active:  #a0a0d8;
-            --text-primary:   #1a1a2e;
-            --text-secondary: #5a5a80;
-            --text-muted:     #9090b0;
-            --active-bg:      #e0e0ff;
-            --pill-bg:        #e8e8ff;
-            --active-bg:      #e0e0ff;
-            --pill-bg:        #e8e8ff;
+            --bg-base:        #f5f5f7;
+            --bg-sidebar:     #ffffff;
+            --bg-card:        #f0f0f3;
+            --bg-card-hover:  #e8e8ec;
+            --bg-input:       #ffffff;
+            --border:         #e0e0e5;
+            --border-active:  #d0d0d8;
+            --text-primary:   #1a1a1f;
+            --text-secondary: #6b6b86;
+            --text-muted:     #9090a8;
+            --active-bg:      #f0f0f3;
+            --pill-bg:        #e8e8ec;
         }
 
         body {
@@ -139,8 +125,7 @@
         .nav-item.active {
             background: var(--active-bg);
             border-color: var(--active-border);
-            color: var(--accent-blue); 
-        
+            color: #fff;
         }
 
         .nav-icon {
@@ -218,7 +203,23 @@
         .header-left h1 { font-size: 22px; font-weight: 700; }
         .header-left p  { font-size: 12px; color: var(--text-secondary); margin-top: 2px; }
 
-        .header-actions { display: flex; gap: 10px; }
+        .header-actions { display: flex; gap: 10px; align-items: center; }
+        
+        .profile-btn, .theme-toggle {
+            width: 40px; height: 40px;
+            border-radius: 50%;
+            border: 1.5px solid var(--border);
+            background: var(--bg-card);
+            color: var(--text-primary);
+            cursor: pointer;
+            display: flex; align-items: center; justify-content: center;
+            font-size: 16px;
+            transition: all 0.2s;
+        }
+        
+        .profile-btn:hover, .theme-toggle:hover { background: var(--bg-card-hover); border-color: var(--border-active); }
+        
+        .profile-btn img { width: 100%; height: 100%; border-radius: 50%; object-fit: cover; }
 
         .btn {
             display: flex; align-items: center; gap: 7px;
@@ -655,14 +656,13 @@
 }
 
 ::-webkit-scrollbar-track {
-    background: var(--bg-base);
+    background: transparent;
     border-radius: 10px;
 }
 
 ::-webkit-scrollbar-thumb {
     background: linear-gradient(180deg, #6366f1, #8b5cf6);
     border-radius: 10px;
-    transition: background 0.2s;
 }
 
 ::-webkit-scrollbar-thumb:hover {
@@ -670,57 +670,67 @@
 }
 
 ::-webkit-scrollbar-corner {
-    background: var(--bg-base);
+    background: transparent;
 }
 
-/* Sidebar scrollbar */
+/* Sidebar scrollbar — thinner */
 .sidebar::-webkit-scrollbar { width: 4px; }
 .sidebar::-webkit-scrollbar-track { background: transparent; }
-.sidebar::-webkit-scrollbar-thumb { background: rgba(99,102,241,0.3); border-radius: 10px; }
-.sidebar::-webkit-scrollbar-thumb:hover { background: rgba(99,102,241,0.6); }
+.sidebar::-webkit-scrollbar-thumb {
+    background: rgba(99,102,241,0.4);
+    border-radius: 10px;
+}
+.sidebar::-webkit-scrollbar-thumb:hover {
+    background: rgba(99,102,241,0.7);
+}
+
+/* Light mode scrollbar */
+body.light-mode ::-webkit-scrollbar-thumb {
+    background: linear-gradient(180deg, #6366f1, #8b5cf6);
+    opacity: 0.6;
+}
+
+body.light-mode ::-webkit-scrollbar-track {
+    background: rgba(99,102,241,0.05);
+}
+
+body.light-mode .nav-item.active {
+    background: rgba(99,102,241,0.15);
+    border-color: var(--accent-blue, #6366f1);
+    color: #3730a3;
+    font-weight: 700;
+}
+
+body.light-mode .nav-item.active .nav-icon {
+    background: rgba(99,102,241,0.2);
+    color: #4338ca;
+}
 
     </style>
 </head>
 <body>
 
-<!-- ── TOAST ── -->
-<div class="toast" id="toast"><i class="fas fa-check-circle" style="color:var(--accent-green)"></i> <span id="toast-msg"></span></div>
-
 <!-- ── CHANGE PASSWORD MODAL ── -->
 <div class="modal-overlay" id="pwd-modal" style="z-index:300;">
-    <div class="modal-box" style="width:460px;text-align:left;padding:32px;position:relative;">
+    <div class="modal-box" style="width:480px;text-align:left;padding:36px;position:relative;">
+
         <button onclick="closePwdModal()"
-                style="position:absolute;top:14px;right:14px;background:none;border:none;
-                       color:var(--text-secondary);font-size:1.1rem;cursor:pointer;
-                       padding:4px 8px;border-radius:6px;"
+                style="position:absolute;top:14px;right:14px;background:none;border:none;color:var(--text-secondary);font-size:1.1rem;cursor:pointer;padding:4px 8px;border-radius:6px;transition:color 0.2s;"
                 onmouseover="this.style.color='var(--accent-blue)'"
                 onmouseout="this.style.color='var(--text-secondary)'">
             <i class="fas fa-times"></i>
         </button>
 
-        <!-- Icon -->
-        <div style="width:52px;height:52px;border-radius:14px;
-                    background:rgba(245,158,11,0.15);border:1.5px solid rgba(245,158,11,0.3);
-                    display:flex;align-items:center;justify-content:center;
-                    font-size:26px;margin-bottom:16px;">🔒</div>
+        <div style="width:56px;height:56px;border-radius:16px;background:linear-gradient(135deg,var(--accent-blue),#8b5cf6);display:flex;align-items:center;justify-content:center;font-size:22px;margin-bottom:16px;box-shadow:0 0 20px rgba(99,102,241,0.35);">🔐</div>
 
-        <div style="font-size:20px;font-weight:700;margin-bottom:4px;">Change Password</div>
-        <p style="font-size:13px;color:var(--text-secondary);margin-bottom:24px;">
-            Enter your current password, then set a new one.
-        </p>
+        <div style="font-size:22px;font-weight:700;letter-spacing:-0.02em;margin-bottom:5px;color:var(--text-primary);">Change Password</div>
+        <p style="font-size:13px;color:var(--text-secondary);margin-bottom:26px;">Enter your current password, then set a new one.</p>
 
-        <!-- Alerts -->
-        <div id="pwd-err" style="display:none;background:rgba(239,68,68,0.1);
-             border:1px solid rgba(239,68,68,0.25);border-radius:9px;
-             padding:11px 14px;font-size:13px;color:var(--accent-red);
-             align-items:center;gap:8px;margin-bottom:16px;">
-            <i class="fas fa-exclamation-circle"></i><span id="pwd-err-msg"></span>
+        <div id="pwd-err"  style="display:none;background:rgba(239,68,68,0.1);border:1px solid rgba(239,68,68,0.25);border-radius:10px;padding:11px 14px;font-size:13px;color:var(--accent-red);align-items:center;gap:8px;margin-bottom:16px;">
+            <i class="fas fa-exclamation-circle"></i><span id="pwd-err-msg" style="margin-left:4px;"></span>
         </div>
-        <div id="pwd-succ" style="display:none;background:rgba(34,197,94,0.1);
-             border:1px solid rgba(34,197,94,0.25);border-radius:9px;
-             padding:11px 14px;font-size:13px;color:var(--accent-green);
-             align-items:center;gap:8px;margin-bottom:16px;">
-            <i class="fas fa-check-circle"></i><span id="pwd-succ-msg"></span>
+        <div id="pwd-succ" style="display:none;background:rgba(34,197,94,0.1);border:1px solid rgba(34,197,94,0.25);border-radius:10px;padding:11px 14px;font-size:13px;color:var(--accent-green);align-items:center;gap:8px;margin-bottom:16px;">
+            <i class="fas fa-check-circle"></i><span id="pwd-succ-msg" style="margin-left:4px;"></span>
         </div>
 
         <form id="pwd-change-form" onsubmit="submitPwdChange(event)">
@@ -728,125 +738,82 @@
 
             <!-- Current Password -->
             <div style="margin-bottom:16px;">
-                <label style="font-size:11px;font-weight:700;color:var(--text-secondary);
-                              text-transform:uppercase;letter-spacing:0.6px;
-                              display:flex;align-items:center;gap:4px;margin-bottom:7px;">
-                    Current Password
-                    <span style="color:var(--accent-red);font-size:13px;">*</span>
-                </label>
+                <label style="font-size:11px;font-weight:700;color:var(--text-secondary);text-transform:uppercase;letter-spacing:0.7px;display:block;margin-bottom:7px;">Current Password</label>
                 <div style="position:relative;">
-                    <i class="fas fa-lock"
-                       style="position:absolute;left:13px;top:50%;transform:translateY(-50%);
-                              color:var(--text-muted);font-size:13px;pointer-events:none;"></i>
-                    <input type="password" id="pwd-old"
-                           placeholder="Enter current password" required
-                           style="width:100%;background:var(--bg-input);
-                                  border:1.5px solid var(--border);border-radius:10px;
-                                  padding:11px 42px 11px 40px;font-size:14px;
-                                  font-family:'Inter',sans-serif;color:var(--text-primary);
-                                  outline:none;transition:border-color 0.2s;"
-                           onfocus="this.style.borderColor='var(--accent-blue)'"
-                           onblur="this.style.borderColor='var(--border)'">
+                    <i class="fas fa-lock" style="position:absolute;left:14px;top:50%;transform:translateY(-50%);color:var(--text-muted);font-size:13px;pointer-events:none;"></i>
+                    <input type="password" id="pwd-old" placeholder="Enter current password" required
+                           style="width:100%;background:var(--bg-card);border:1.5px solid var(--border);border-radius:11px;padding:12px 44px 12px 42px;font-size:14px;font-family:'Inter',sans-serif;color:var(--text-primary);outline:none;transition:border-color 0.2s;height:48px;"
+                           onfocus="this.style.borderColor='var(--accent-blue)';this.style.boxShadow='0 0 0 3px rgba(99,102,241,0.12)'"
+                           onblur="this.style.borderColor='var(--border)';this.style.boxShadow='none'">
                     <button type="button" onclick="togglePwdEye('pwd-old','eye-old')"
-                            style="position:absolute;right:12px;top:50%;transform:translateY(-50%);
-                                   background:none;border:none;color:var(--text-muted);
-                                   cursor:pointer;font-size:13px;padding:3px;">
+                            style="position:absolute;right:13px;top:50%;transform:translateY(-50%);background:none;border:none;color:var(--text-muted);cursor:pointer;font-size:14px;padding:3px;transition:color 0.2s;"
+                            onmouseover="this.style.color='var(--accent-blue)'"
+                            onmouseout="this.style.color='var(--text-muted)'">
                         <i class="fas fa-eye" id="eye-old"></i>
                     </button>
                 </div>
             </div>
 
+            <div style="height:1px;background:var(--border);margin:18px 0;"></div>
+
             <!-- New Password -->
             <div style="margin-bottom:16px;">
-                <label style="font-size:11px;font-weight:700;color:var(--text-secondary);
-                              text-transform:uppercase;letter-spacing:0.6px;
-                              display:flex;align-items:center;gap:4px;margin-bottom:7px;">
-                    New Password
-                    <span style="color:var(--accent-red);font-size:13px;">*</span>
-                </label>
+                <label style="font-size:11px;font-weight:700;color:var(--text-secondary);text-transform:uppercase;letter-spacing:0.7px;display:block;margin-bottom:7px;">New Password</label>
                 <div style="position:relative;">
-                    <i class="fas fa-key"
-                       style="position:absolute;left:13px;top:50%;transform:translateY(-50%);
-                              color:var(--text-muted);font-size:13px;pointer-events:none;"></i>
-                    <input type="password" id="pwd-new"
-                           placeholder="Create new password" required
-                           style="width:100%;background:var(--bg-input);
-                                  border:1.5px solid var(--border);border-radius:10px;
-                                  padding:11px 42px 11px 40px;font-size:14px;
-                                  font-family:'Inter',sans-serif;color:var(--text-primary);
-                                  outline:none;transition:border-color 0.2s;"
-                           onfocus="this.style.borderColor='var(--accent-blue)'"
-                           onblur="this.style.borderColor='var(--border)'"
+                    <i class="fas fa-key" style="position:absolute;left:14px;top:50%;transform:translateY(-50%);color:var(--text-muted);font-size:13px;pointer-events:none;"></i>
+                    <input type="password" id="pwd-new" placeholder="Create new password" required
+                           style="width:100%;background:var(--bg-card);border:1.5px solid var(--border);border-radius:11px;padding:12px 44px 12px 42px;font-size:14px;font-family:'Inter',sans-serif;color:var(--text-primary);outline:none;transition:border-color 0.2s;height:48px;"
+                           onfocus="this.style.borderColor='var(--accent-blue)';this.style.boxShadow='0 0 0 3px rgba(99,102,241,0.12)'"
+                           onblur="this.style.borderColor='var(--border)';this.style.boxShadow='none'"
                            oninput="pwdStrength(this.value);pwdMatch()">
                     <button type="button" onclick="togglePwdEye('pwd-new','eye-new')"
-                            style="position:absolute;right:12px;top:50%;transform:translateY(-50%);
-                                   background:none;border:none;color:var(--text-muted);
-                                   cursor:pointer;font-size:13px;padding:3px;">
+                            style="position:absolute;right:13px;top:50%;transform:translateY(-50%);background:none;border:none;color:var(--text-muted);cursor:pointer;font-size:14px;padding:3px;transition:color 0.2s;"
+                            onmouseover="this.style.color='var(--accent-blue)'"
+                            onmouseout="this.style.color='var(--text-muted)'">
                         <i class="fas fa-eye" id="eye-new"></i>
                     </button>
                 </div>
-                <!-- Strength bar -->
-                <div style="height:3px;border-radius:2px;background:var(--border);
-                            margin-top:8px;overflow:hidden;">
-                    <div id="pwd-strength-bar"
-                         style="height:100%;border-radius:2px;width:0%;
-                                transition:width 0.3s,background 0.3s;"></div>
+                <div style="height:3px;border-radius:2px;background:var(--border);margin-top:8px;overflow:hidden;">
+                    <div id="pwd-strength-bar" style="height:100%;border-radius:2px;width:0%;transition:width 0.3s,background 0.3s;"></div>
                 </div>
-                <div id="pwd-strength-hint"
-                     style="font-size:12px;color:var(--text-secondary);
-                            margin-top:5px;display:flex;align-items:center;gap:5px;">
+                <div id="pwd-strength-hint" style="font-size:12px;color:var(--text-secondary);margin-top:5px;display:flex;align-items:center;gap:5px;">
                     <i class="fas fa-shield-alt"></i> Min 8 characters
                 </div>
             </div>
 
             <!-- Confirm Password -->
             <div style="margin-bottom:24px;">
-                <label style="font-size:11px;font-weight:700;color:var(--text-secondary);
-                              text-transform:uppercase;letter-spacing:0.6px;
-                              display:flex;align-items:center;gap:4px;margin-bottom:7px;">
-                    Confirm New Password
-                    <span style="color:var(--accent-red);font-size:13px;">*</span>
-                </label>
+                <label style="font-size:11px;font-weight:700;color:var(--text-secondary);text-transform:uppercase;letter-spacing:0.7px;display:block;margin-bottom:7px;">Confirm New Password</label>
                 <div style="position:relative;">
-                    <i class="fas fa-check-double"
-                       style="position:absolute;left:13px;top:50%;transform:translateY(-50%);
-                              color:var(--text-muted);font-size:13px;pointer-events:none;"></i>
-                    <input type="password" id="pwd-conf"
-                           placeholder="Repeat new password" required
-                           style="width:100%;background:var(--bg-input);
-                                  border:1.5px solid var(--border);border-radius:10px;
-                                  padding:11px 42px 11px 40px;font-size:14px;
-                                  font-family:'Inter',sans-serif;color:var(--text-primary);
-                                  outline:none;transition:border-color 0.2s;"
-                           onfocus="this.style.borderColor='var(--accent-blue)'"
-                           onblur="this.style.borderColor='var(--border)'"
+                    <i class="fas fa-check-double" style="position:absolute;left:14px;top:50%;transform:translateY(-50%);color:var(--text-muted);font-size:13px;pointer-events:none;"></i>
+                    <input type="password" id="pwd-conf" placeholder="Repeat new password" required
+                           style="width:100%;background:var(--bg-card);border:1.5px solid var(--border);border-radius:11px;padding:12px 44px 12px 42px;font-size:14px;font-family:'Inter',sans-serif;color:var(--text-primary);outline:none;transition:border-color 0.2s;height:48px;"
+                           onfocus="this.style.borderColor='var(--accent-blue)';this.style.boxShadow='0 0 0 3px rgba(99,102,241,0.12)'"
+                           onblur="this.style.borderColor='var(--border)';this.style.boxShadow='none'"
                            oninput="pwdMatch()">
                     <button type="button" onclick="togglePwdEye('pwd-conf','eye-conf')"
-                            style="position:absolute;right:12px;top:50%;transform:translateY(-50%);
-                                   background:none;border:none;color:var(--text-muted);
-                                   cursor:pointer;font-size:13px;padding:3px;">
+                            style="position:absolute;right:13px;top:50%;transform:translateY(-50%);background:none;border:none;color:var(--text-muted);cursor:pointer;font-size:14px;padding:3px;transition:color 0.2s;"
+                            onmouseover="this.style.color='var(--accent-blue)'"
+                            onmouseout="this.style.color='var(--text-muted)'">
                         <i class="fas fa-eye" id="eye-conf"></i>
                     </button>
                 </div>
-                <div id="pwd-match-hint"
-                     style="font-size:12px;margin-top:5px;display:none;
-                            align-items:center;gap:5px;"></div>
+                <div id="pwd-match-hint" style="font-size:12px;margin-top:5px;display:none;align-items:center;gap:5px;"></div>
             </div>
 
-            <!-- Submit -->
+            <!-- Submit Button -->
             <button type="submit" id="pwd-submit-btn" class="btn btn-primary"
-                    style="width:100%;justify-content:center;padding:13px;font-size:14px;">
-                <div id="pwd-submit-spinner"
-                     style="display:none;width:15px;height:15px;
-                            border:2px solid rgba(255,255,255,0.3);
-                            border-top-color:#fff;border-radius:50%;
-                            animation:spin 0.7s linear infinite;margin-right:6px;"></div>
+                    style="width:100%;justify-content:center;padding:14px;font-size:15px;font-weight:700;border-radius:12px;box-shadow:0 4px 18px rgba(99,102,241,0.35);">
+                <div id="pwd-submit-spinner" style="display:none;width:16px;height:16px;border:2px solid rgba(255,255,255,0.3);border-top-color:#fff;border-radius:50%;animation:spin 0.7s linear infinite;margin-right:6px;"></div>
                 <i class="fas fa-save" id="pwd-submit-icon"></i>
                 <span id="pwd-submit-text" style="margin-left:6px;">Update Password</span>
             </button>
         </form>
     </div>
 </div>
+
+<!-- ── TOAST ── -->
+<div class="toast" id="toast"><i class="fas fa-check-circle" style="color:var(--accent-green)"></i> <span id="toast-msg"></span></div>
 
 <!-- ── LOGOUT MODAL ── -->
 <div class="modal-overlay" id="logout-modal">
@@ -878,11 +845,14 @@
         Dashboard
     </button>
 
-    <button class="nav-item" onclick="showPage('attendance', this); clearBadge('attendance-badge', 'student_seen_attendance')">
+
+
+    <button class="nav-item" onclick="showPage('attendance', this)">
         <div class="nav-icon"><i class="fas fa-calendar-check"></i></div>
         Attendance
         <span class="nav-badge" id="attendance-badge">{{ attendance|length if attendance else 0 }}</span>
     </button>
+
     <div class="nav-section-label">Academics</div>
 
     <button class="nav-item" onclick="showPage('reports', this)">
@@ -943,42 +913,27 @@
             <p id="page-date">Thursday, 16 April 2026</p>
         </div>
         <div class="header-actions">
-    <button class="btn" id="theme-toggle" onclick="toggleTheme()" title="Toggle Light/Dark Mode">
-        <i class="fas fa-sun" id="theme-icon"></i>
-    </button>
-    <button class="btn" onclick="downloadReport()">
-        <i class="fas fa-download"></i> Download Report
-    </button>
-    <button class="btn btn-primary" onclick="viewAllRecords()">
-        <i class="fas fa-eye"></i> View All Records
-    </button>
-    <!-- Profile avatar icon — shows face image if enrolled, else initials -->
-    <div onclick="showPage('profile', null)"
-         title="{{ student['name'] }}"
-         style="
-            width: 40px; height: 40px;
-            border-radius: 50%;
-            background: linear-gradient(135deg, #6366f1, #8b5cf6);
-            display: flex; align-items: center; justify-content: center;
-            font-size: 15px; font-weight: 800; color: #fff;
-            cursor: pointer;
-            border: 2px solid var(--accent-blue);
-            box-shadow: 0 0 14px rgba(99,102,241,0.4);
-            overflow: hidden;
-            flex-shrink: 0;
-            transition: transform 0.2s, box-shadow 0.2s;
-         "
-         onmouseover="this.style.transform='scale(1.08)';this.style.boxShadow='0 0 22px rgba(99,102,241,0.6)'"
-         onmouseout="this.style.transform='scale(1)';this.style.boxShadow='0 0 14px rgba(99,102,241,0.4)'">
-        {% if student['face_image'] %}
-            <img src="{{ url_for('static', filename=student['face_image']) }}"
-                 style="width:100%;height:100%;object-fit:cover;"
-                 onerror="this.style.display='none';this.parentElement.textContent='{{ student['name'][0].upper() if student['name'] else 'S' }}'">
-        {% else %}
-            {{ student['name'][0].upper() if student['name'] else 'S' }}
-        {% endif %}
-    </div>
-</div>
+            <button class="btn" onclick="downloadReport()">
+                <i class="fas fa-download"></i> Download Report
+            </button>
+
+            <button class="btn btn-primary" onclick="viewAllRecords()">
+                <i class="fas fa-eye"></i> View All Records
+            </button>
+
+            <button class="theme-toggle" onclick="toggleTheme()" title="Toggle Dark/Light Mode">
+                <i class="fas fa-moon" id="theme-icon"></i>
+            </button>
+            
+            <button class="profile-btn" title="View Profile" onclick="showProfileFromHeader()">
+                {% if student['face_image'] %}
+                    <img src="{{ url_for('static', filename=student['face_image']) }}" alt="Profile">
+                {% else %}
+                    <i class="fas fa-user"></i>
+                {% endif %}
+            </button>
+            
+        </div>
     </div>
 
     <div class="content">
@@ -1381,7 +1336,7 @@
                 </p>
             </div>
         {% endif %}
-    </div>  
+    </div>
 </div>
 
         <!-- ══════════════ TIMETABLE PAGE ══════════════ -->
@@ -1448,18 +1403,11 @@
                                style="accent-color:var(--accent-blue);width:16px;height:16px;">
                         Send me an email alert when attendance drops below target
                     </label>
-                    <button class="btn btn-primary" id="save-goal-btn" onclick="saveGoal()" aria-busy="false">
-                        <i class="fas fa-save" id="save-goal-icon"></i>
-                        <span id="save-goal-text">Save Goal</span>
-                        <div id="save-goal-spinner" style="display:none;width:16px;height:16px;border:2px solid rgba(255,255,255,0.15);border-top-color:#ffffff;border-radius:50%;animation:spin 0.7s linear infinite;margin-left:10px;vertical-align:middle;pointer-events:none"></div>
+                    <button class="btn btn-primary" onclick="saveGoal()">
+                        <i class="fas fa-save"></i> Save Goal
                     </button>
-                    <style>
-                    @keyframes spin { to { transform:rotate(360deg); } }
-                    /* Ensure button text and spinner align */
-                    #save-goal-btn { display:inline-flex; align-items:center; gap:8px; }
-                    </style>
                     <div id="goal-save-msg" style="display:none;margin-top:10px;font-size:13px;
-                        color:var(--accent-green);font-weight:600;">
+                         color:var(--accent-green);font-weight:600;">
                         <i class="fas fa-check-circle"></i> Goal saved!
                     </div>
                 </div>
@@ -1559,123 +1507,77 @@
         </div>
 
         <!-- ══════════════ SETTINGS PAGE ══════════════ -->
-<div class="page" id="page-settings">
-    <div style="display:grid;grid-template-columns:1fr 1fr;gap:18px;align-items:start;">
-
-        <!-- Account Settings Card -->
-        <div class="section-card" style="margin-bottom:0;">
-            <div class="section-header">
-                <div class="section-icon"><i class="fas fa-cog"></i></div>
-                <div class="section-title-text">Account Settings</div>
-            </div>
-
-            <div class="settings-group">
-                <div class="settings-group-title">Notifications</div>
-                <div class="setting-row">
-            <div>
-                <div class="setting-label">Attendance Alerts</div>
-                <div class="setting-desc">Get notified when attendance drops below 75%</div>
-            </div>
-    <label class="toggle-switch">
-        <input type="checkbox" id="toggle-attendance-alerts"
-               onchange="saveSetting('attendance_alerts', this.checked); showToast('Attendance alerts ' + (this.checked ? 'enabled' : 'disabled'))">
-        <span class="toggle-slider"></span>
-    </label>
-</div>
-<div class="setting-row">
-    <div>
-        <div class="setting-label">Class Reminders</div>
-        <div class="setting-desc">Reminder 15 minutes before each class</div>
-    </div>
-    <label class="toggle-switch">
-        <input type="checkbox" id="toggle-class-reminders"
-               onchange="saveSetting('class_reminders', this.checked); showToast('Class reminders ' + (this.checked ? 'enabled' : 'disabled'))">
-        <span class="toggle-slider"></span>
-    </label>
-</div>
-<div class="setting-row">
-    <div>
-        <div class="setting-label">Email Reports</div>
-        <div class="setting-desc">Receive weekly attendance report via email</div>
-    </div>
-    <label class="toggle-switch">
-        <input type="checkbox" id="toggle-email-reports"
-               onchange="saveSetting('email_reports', this.checked); showToast('Email reports ' + (this.checked ? 'enabled' : 'disabled'))">
-        <span class="toggle-slider"></span>
-    </label>
-</div>
-</div>
-
-
-            <div class="settings-group">
-                <div class="settings-group-title">Privacy</div>
-                <div class="setting-row">
-                    <div>
-                        <div class="setting-label">Face Recognition</div>
-                        <div class="setting-desc">Allow Vision AI to mark attendance via face scan</div>
-                    </div>
-                    <label class="toggle-switch">
-                        <input type="checkbox" checked onchange="showToast('Face recognition ' + (this.checked ? 'enabled' : 'disabled'))">
-                        <span class="toggle-slider"></span>
-                    </label>
+        <div class="page" id="page-settings">
+            <div class="section-card" style="max-width:580px;">
+                <div class="section-header">
+                    <div class="section-icon"><i class="fas fa-cog"></i></div>
+                    <div class="section-title-text">Account Settings</div>
                 </div>
-                <div class="setting-row">
-                    <div>
-                        <div class="setting-label">Profile Visibility</div>
-                        <div class="setting-desc">Show your profile to classmates</div>
+
+                <div class="settings-group">
+                    <div class="settings-group-title">Notifications</div>
+                    <div class="setting-row">
+                        <div>
+                            <div class="setting-label">Attendance Alerts</div>
+                            <div class="setting-desc">Get notified when attendance drops below 75%</div>
+                        </div>
+                        <label class="toggle-switch">
+                            <input type="checkbox" checked onchange="showToast('Attendance alerts ' + (this.checked ? 'enabled' : 'disabled'))">
+                            <span class="toggle-slider"></span>
+                        </label>
                     </div>
-                    <label class="toggle-switch">
-                        <input type="checkbox" onchange="showToast('Profile visibility ' + (this.checked ? 'enabled' : 'disabled'))">
-                        <span class="toggle-slider"></span>
-                    </label>
+                    <div class="setting-row">
+                        <div>
+                            <div class="setting-label">Class Reminders</div>
+                            <div class="setting-desc">Reminder 15 minutes before each class</div>
+                        </div>
+                        <label class="toggle-switch">
+                            <input type="checkbox" onchange="showToast('Class reminders ' + (this.checked ? 'enabled' : 'disabled'))">
+                            <span class="toggle-slider"></span>
+                        </label>
+                    </div>
+                    <div class="setting-row">
+                        <div>
+                            <div class="setting-label">Email Reports</div>
+                            <div class="setting-desc">Receive weekly attendance report via email</div>
+                        </div>
+                        <label class="toggle-switch">
+                            <input type="checkbox" checked onchange="showToast('Email reports ' + (this.checked ? 'enabled' : 'disabled'))">
+                            <span class="toggle-slider"></span>
+                        </label>
+                    </div>
+                </div>
+
+                <div class="settings-group">
+                    <div class="settings-group-title">Privacy</div>
+                    <div class="setting-row">
+                        <div>
+                            <div class="setting-label">Face Recognition</div>
+                            <div class="setting-desc">Allow Vision AI to mark attendance via face scan</div>
+                        </div>
+                        <label class="toggle-switch">
+                            <input type="checkbox" checked onchange="showToast('Face recognition ' + (this.checked ? 'enabled' : 'disabled'))">
+                            <span class="toggle-slider"></span>
+                        </label>
+                    </div>
+                    <div class="setting-row">
+                        <div>
+                            <div class="setting-label">Profile Visibility</div>
+                            <div class="setting-desc">Show your profile to classmates</div>
+                        </div>
+                        <label class="toggle-switch">
+                            <input type="checkbox" onchange="showToast('Profile visibility ' + (this.checked ? 'enabled' : 'disabled'))">
+                            <span class="toggle-slider"></span>
+                        </label>
+                    </div>
+                </div>
+
+                <div style="display:flex;gap:10px;margin-top:8px;">
+                    <a href="/change-password" class="btn"><i class="fas fa-lock"></i> Change Password</a>
+                    <button class="btn" onclick="showToast('Settings saved successfully!')"><i class="fas fa-save"></i> Save Settings</button>
                 </div>
             </div>
-
-            <button class="btn btn-primary" onclick="showToast('Settings saved successfully!')"
-                    style="width:100%;justify-content:center;">
-                <i class="fas fa-save"></i> Save Settings
-            </button>
         </div>
-
-        <!-- Change Password Card -->
-        <div class="section-card" style="margin-bottom:0;">
-            <div class="section-header">
-                <div class="section-icon"><i class="fas fa-lock"></i></div>
-                <div class="section-title-text">Change Password</div>
-            </div>
-            <p style="font-size:13px;color:var(--text-secondary);margin-bottom:20px;line-height:1.6;">
-                Keep your account secure by updating your password regularly. Use at least 8 characters with uppercase, numbers and symbols.
-            </p>
-
-            <div class="settings-group">
-                <div class="settings-group-title">Security</div>
-                <div class="setting-row">
-                    <div>
-                        <div class="setting-label">Password</div>
-                        <div class="setting-desc">Update your current login password</div>
-                    </div>
-                    <i class="fas fa-check-circle" style="color:var(--accent-blue);font-size:16px;"></i>
-                </div>
-                <div class="setting-row">
-                    <div>
-                        <div class="setting-label">Two-Factor Auth</div>
-                        <div class="setting-desc">Extra security for your account</div>
-                    </div>
-                    <label class="toggle-switch">
-                        <input type="checkbox" onchange="showToast('2FA ' + (this.checked ? 'enabled' : 'disabled'))">
-                        <span class="toggle-slider"></span>
-                    </label>
-                </div>
-            </div>
-
-            <button onclick="openPwdModal()" class="btn btn-primary"
-                    style="width:100%;justify-content:center;">
-                <i class="fas fa-lock"></i> Change Password
-            </button>
-        </div>
-
-    </div>
-</div>
 
         <!-- ══════════════ EDIT PROFILE PAGE ══════════════ -->
         <div class="page" id="page-edit-profile">
@@ -1836,7 +1738,6 @@ function showPage(name, btn) {
     if (heading) heading.textContent = pageTitles[name] || name;
     document.getElementById('sidebar').classList.remove('open');
     if (name === 'face-enroll') setTimeout(enrollStartCamera, 200);
-    if (name === 'settings') loadSettings();
     if (name === 'timetable') loadTimetable();
     window.location.hash = name;
 }
@@ -1874,32 +1775,6 @@ document.addEventListener('DOMContentLoaded', function () {
             }
         });
     }
-});
-
-// ── NOTIFICATION BADGES ──
-function clearBadge(badgeId, storageKey) {
-    const badge = document.getElementById(badgeId);
-    if (!badge) return;
-    const currentCount = parseInt(badge.textContent) || 0;
-    localStorage.setItem(storageKey, currentCount);
-    badge.style.display = 'none';
-}
-
-function updateBadge(badgeId, storageKey, currentCount) {
-    const badge = document.getElementById(badgeId);
-    if (!badge) return;
-    const lastSeen = parseInt(localStorage.getItem(storageKey)) || 0;
-    if (currentCount > lastSeen) {
-        badge.textContent = currentCount - lastSeen;
-        badge.style.display = 'inline-block';
-    } else {
-        badge.style.display = 'none';
-    }
-}
-
-// Run on load
-document.addEventListener('DOMContentLoaded', function() {
-    updateBadge('attendance-badge', 'student_seen_attendance', {{ attendance|length if attendance else 0 }});
 });
 
 // ── THEME TOGGLE ──
@@ -2204,8 +2079,7 @@ async function saveGoal() {
     const alert_email = document.getElementById('alert-email-cb').checked;
     const btn = document.getElementById('save-goal-btn');
     btn.disabled = true;
-    btn.setAttribute('aria-busy', 'true');
-    document.getElementById('save-goal-icon').style.opacity    = '0.25';
+    document.getElementById('save-goal-icon').style.display    = 'none';
     document.getElementById('save-goal-text').textContent      = 'Saving…';
     document.getElementById('save-goal-spinner').style.display = 'inline-block';
     try {
@@ -2223,175 +2097,11 @@ async function saveGoal() {
         showToast('Network error. Could not save goal.');
     } finally {
         btn.disabled = false;
-        btn.setAttribute('aria-busy', 'false');
-        document.getElementById('save-goal-icon').style.opacity    = '1';
+        document.getElementById('save-goal-icon').style.display    = 'inline';
         document.getElementById('save-goal-text').textContent      = 'Save Goal';
         document.getElementById('save-goal-spinner').style.display = 'none';
     }
-}
-
-// ── CHANGE PASSWORD MODAL ──────────────────────────────────────────
-function openPwdModal() {
-    document.getElementById('pwd-modal').classList.add('show');
-    document.getElementById('pwd-change-form').reset();
-    document.getElementById('pwd-err').style.display   = 'none';
-    document.getElementById('pwd-succ').style.display  = 'none';
-    document.getElementById('pwd-strength-bar').style.width = '0%';
-    document.getElementById('pwd-strength-hint').innerHTML  = '<i class="fas fa-shield-alt"></i> Min 8 characters';
-    document.getElementById('pwd-match-hint').style.display = 'none';
-    document.getElementById('pwd-submit-btn').disabled = false;
-    document.getElementById('pwd-submit-icon').style.display    = 'inline';
-    document.getElementById('pwd-submit-spinner').style.display = 'none';
-    document.getElementById('pwd-submit-text').textContent      = 'Update Password';
-}
-function closePwdModal() { document.getElementById('pwd-modal').classList.remove('show'); }
-document.addEventListener('DOMContentLoaded', function() {
-    const pm = document.getElementById('pwd-modal');
-    if (pm) pm.addEventListener('click', function(e) { if (e.target === pm) closePwdModal(); });
-});
-
-function togglePwdEye(inputId, iconId) {
-    const inp  = document.getElementById(inputId);
-    const icon = document.getElementById(iconId);
-    const show = inp.type === 'password';
-    inp.type   = show ? 'text' : 'password';
-    icon.className = show ? 'fas fa-eye-slash' : 'fas fa-eye';
-}
-
-function pwdStrength(val) {
-    let score = 0;
-    if (val.length >= 8)          score++;
-    if (/[A-Z]/.test(val))        score++;
-    if (/[0-9]/.test(val))        score++;
-    if (/[^A-Za-z0-9]/.test(val)) score++;
-    const bar    = document.getElementById('pwd-strength-bar');
-    const hint   = document.getElementById('pwd-strength-hint');
-    const colors = ['#ef4444','#f59e0b','#6366f1','#22c55e'];
-    const labels = ['Weak','Fair','Good','Strong'];
-    bar.style.width      = (score / 4 * 100) + '%';
-    bar.style.background = colors[score - 1] || 'var(--border)';
-    hint.innerHTML = score === 4
-        ? '<i class="fas fa-check-circle" style="color:#22c55e"></i> <span style="color:#22c55e">Strong password</span>'
-        : '<i class="fas fa-shield-alt"></i> ' + (labels[score - 1] || 'Too short');
-    pwdMatch();
-}
-
-function pwdMatch() {
-    const nv   = document.getElementById('pwd-new').value;
-    const cv   = document.getElementById('pwd-conf').value;
-    const hint = document.getElementById('pwd-match-hint');
-    if (!cv) { hint.style.display = 'none'; return; }
-    hint.style.display = 'flex';
-    hint.innerHTML = nv === cv
-        ? '<i class="fas fa-check-circle" style="color:#22c55e"></i> <span style="color:#22c55e">Passwords match</span>'
-        : '<i class="fas fa-times-circle" style="color:#ef4444"></i> <span style="color:#ef4444">Passwords do not match</span>';
-}
-
-async function submitPwdChange(e) {
-    e.preventDefault();
-    const oldPwd  = document.getElementById('pwd-old').value;
-    const newPwd  = document.getElementById('pwd-new').value;
-    const confPwd = document.getElementById('pwd-conf').value;
-    const errBox  = document.getElementById('pwd-err');
-    const errMsg  = document.getElementById('pwd-err-msg');
-    const sucBox  = document.getElementById('pwd-succ');
-
-    errBox.style.display = 'none';
-    sucBox.style.display = 'none';
-
-    if (!oldPwd)             { errMsg.textContent = 'Please enter your current password.'; errBox.style.display = 'flex'; return; }
-    if (newPwd.length < 8)  { errMsg.textContent = 'New password must be at least 8 characters.'; errBox.style.display = 'flex'; return; }
-    if (newPwd !== confPwd) { errMsg.textContent = 'New passwords do not match.'; errBox.style.display = 'flex'; return; }
-    if (oldPwd === newPwd)  { errMsg.textContent = 'New password must differ from current password.'; errBox.style.display = 'flex'; return; }
-
-    const btn = document.getElementById('pwd-submit-btn');
-    btn.disabled = true;
-    document.getElementById('pwd-submit-icon').style.display    = 'none';
-    document.getElementById('pwd-submit-spinner').style.display = 'inline-block';
-    document.getElementById('pwd-submit-text').textContent      = 'Updating…';
-
-    try {
-        const csrfToken = document.querySelector('meta[name="csrf-token"]').getAttribute('content');
-        const fd = new FormData();
-        fd.append('old_password', oldPwd);
-        fd.append('new_password', newPwd);
-        fd.append('_csrf', csrfToken);
-        const res  = await fetch('/change-password', { method: 'POST', body: fd });
-        const text = await res.text();
-
-        if (text.includes('successfully') || res.redirected || res.url.includes('dashboard')) {
-            document.getElementById('pwd-succ-msg').textContent = 'Password changed successfully!';
-            sucBox.style.display = 'flex';
-            showToast('Password updated successfully!');
-            setTimeout(closePwdModal, 2000);
-        } else if (text.includes('incorrect') || text.includes('error') || text.includes('Error')) {
-            errMsg.textContent = 'Current password is incorrect.';
-            errBox.style.display = 'flex';
-        } else {
-            document.getElementById('pwd-succ-msg').textContent = 'Password changed successfully!';
-            sucBox.style.display = 'flex';
-            showToast('Password updated!');
-            setTimeout(closePwdModal, 2000);
-        }
-    } catch (err) {
-        errMsg.textContent = 'Network error. Please try again.';
-        errBox.style.display = 'flex';
-    } finally {
-        btn.disabled = false;
-        document.getElementById('pwd-submit-icon').style.display    = 'inline';
-        document.getElementById('pwd-submit-spinner').style.display = 'none';
-        document.getElementById('pwd-submit-text').textContent      = 'Update Password';
-    }
-}
-
-// ── SETTINGS — Save & Restore Toggles ─────────────────────────────
-// Default values for each setting
-const SETTING_DEFAULTS = {
-    'attendance_alerts':  true,
-    'class_reminders':    false,
-    'email_reports':      true,
-    'face_recognition':   true,
-    'profile_visibility': false
-};
-
-const SETTING_IDS = {
-    'attendance_alerts':  'toggle-attendance-alerts',
-    'class_reminders':    'toggle-class-reminders',
-    'email_reports':      'toggle-email-reports',
-    'face_recognition':   'toggle-face-recognition',
-    'profile_visibility': 'toggle-profile-visibility'
-};
-
-function saveSetting(key, value) {
-    localStorage.setItem('student_setting_' + key, value ? '1' : '0');
-}
-
-function loadSettings() {
-    Object.keys(SETTING_IDS).forEach(function(key) {
-        const el = document.getElementById(SETTING_IDS[key]);
-        if (!el) return;
-        const stored = localStorage.getItem('student_setting_' + key);
-        if (stored !== null) {
-            el.checked = stored === '1';
-        } else {
-            // First visit — use default
-            el.checked = SETTING_DEFAULTS[key];
-        }
-    });
-}
-
-// Load settings when page opens and when settings page is shown
-document.addEventListener('DOMContentLoaded', loadSettings);
-
-// Also reload when switching to settings tab
-const _origShowPage = showPage;
-// Override showPage to also reload settings when navigating there
-const _showPageOrig = window.showPage;
-window.showPage = function(name, btn) {
-    _showPageOrig ? _showPageOrig(name, btn) : showPage(name, btn);
-    if (name === 'settings') setTimeout(loadSettings, 50);
-};
-
+} 
 </script>
 </body>
 </html>

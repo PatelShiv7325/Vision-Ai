@@ -1,4 +1,4 @@
-﻿"""
+"""
 app.py  ·  Vision AI v5  ·  COMPLETE ERROR-FREE VERSION
 =========================================================
 
@@ -36,10 +36,10 @@ from datetime import datetime, timedelta
 from functools import wraps
 import cv2
 import numpy as np
-from PIL import Image 
+from PIL import Image
 import io
 import smtplib
-from email.mime.text import MIMEText 
+from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
 
 try:
@@ -54,6 +54,10 @@ except ImportError:
     def is_email_configured():
         return False
 
+# Persistent data directory (override with DATA_DIR env var on Render)
+DATA_DIR = os.environ.get("DATA_DIR", "")
+FACES_STATIC_DIR = os.path.join(DATA_DIR, "static", "faces") if DATA_DIR else os.path.join(os.path.dirname(os.path.abspath(__file__)), "static", "faces")
+
 # ── App setup ─────────────────────────────────────────────────────────
 app = Flask(__name__)
 
@@ -65,10 +69,6 @@ app.config["SESSION_COOKIE_SAMESITE"]     = "Lax"
 app.config["SESSION_COOKIE_SECURE"]       = os.environ.get("PRODUCTION", "0") == "1"
 app.config["PERMANENT_SESSION_LIFETIME"]  = timedelta(hours=8)
 app.config["MAX_CONTENT_LENGTH"]          = 10 * 1024 * 1024   # 10 MB
-
-# Persistent storage path for Render deployment
-DATA_DIR        = os.environ.get("DATA_DIR", "")
-FACES_STATIC_DIR = os.path.join(DATA_DIR, "static", "faces") if DATA_DIR else os.path.join(os.path.dirname(os.path.abspath(__file__)), "static", "faces")
 
 
 # ── CBSE Standard → Subjects map ──────────────────────────────────────
@@ -132,6 +132,9 @@ def enforce_csrf():
     exempt_endpoints = {
         "student_face_login",
         "student_login",
+        "forgot_password",
+        "verify_otp",
+        "reset_password",
         "mark_notifications_read",
         "subjects_by_standard",
         "static",
@@ -149,46 +152,6 @@ def enforce_csrf():
 @app.context_processor
 def inject_csrf():
     return {"csrf_token": generate_csrf_token()}
-
-
-# ── Verify logged-in users still exist in database ────────────────────
-@app.before_request
-def verify_user_exists():
-    """
-    On every request, verify that logged-in students/faculty still exist
-    in the database and are active. Clear session immediately if deleted.
-    """
-    db = None
-    try:
-        db = get_db()
-        
-        # Check student session
-        if "student_roll" in session:
-            student = db.execute(
-                "SELECT id FROM students WHERE roll=? AND is_active=1",
-                (session["student_roll"],)
-            ).fetchone()
-            if not student:
-                session.clear()
-                flash("Your account has been deleted. Please register again.", "warning")
-                return redirect(url_for("student_login"))
-        
-        # Check faculty session
-        if "faculty_id" in session:
-            faculty = db.execute(
-                "SELECT id FROM faculty WHERE faculty_id=? AND is_active=1",
-                (session["faculty_id"],)
-            ).fetchone()
-            if not faculty:
-                session.clear()
-                flash("Your account has been deleted.", "warning")
-                return redirect(url_for("faculty_login"))
-    
-    except Exception as e:
-        print(f"[VerifyUser] Error: {e}")
-    finally:
-        if db:
-            db.close()
 
 
 @app.after_request
@@ -520,7 +483,7 @@ def _enhanced_duplicate_check(face_encoding, existing_students, exclude_roll: st
         except Exception:
             continue
 
-    if best_score >= 0.70:
+    if best_score >= 0.55:
         return True, best_roll, best_name, best_score
     return False, None, None, best_score
 
@@ -659,7 +622,7 @@ def student_register():
         try:
             db = get_db()
 
-            faces_dir = FACES_STATIC_DIR
+            faces_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), "static", "faces")
             for ext in ["jpg", "jpeg", "png"]:
                 fp = os.path.join(faces_dir, f"{roll}.{ext}")
                 if os.path.exists(fp):
@@ -736,36 +699,13 @@ def student_register():
 
             face_encoding = face_roi.tobytes()
 
-            # Consider both stored encodings and stored face image files when
-            # checking for duplicate enrollments. Some records may only have
-            # `face_image` (file) populated without `face_encoding` blob.
-            rows = db.execute(
-                "SELECT roll, name, face_encoding, face_image "
-                "FROM students WHERE (face_encoding IS NOT NULL OR face_image IS NOT NULL) AND is_active=1"
-            ).fetchall()
-
-            existing_faces = []
-            for r in rows:
-                rec = dict(r)
-                # If face_encoding is missing but a face_image path exists, try
-                # to load the file and generate an encoding equivalent (100x100
-                # grayscale CLAHE-applied bytes) for comparison.
-                if not rec.get("face_encoding") and rec.get("face_image"):
-                    try:
-                        path = os.path.join(os.path.dirname(os.path.abspath(__file__)), rec["face_image"])
-                        img = cv2.imread(path)
-                        if img is not None:
-                            g = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
-                            g_eq = cv2.equalizeHist(g)
-                            clahe = cv2.createCLAHE(clipLimit=2.0, tileGridSize=(8, 8))
-                            face_enc = clahe.apply(cv2.resize(g_eq, (100, 100))).tobytes()
-                            rec["face_encoding"] = face_enc
-                    except Exception:
-                        pass
-
-                # Only keep records that now have an encoding available
-                if rec.get("face_encoding"):
-                    existing_faces.append(rec)
+            existing_faces = [
+                dict(r)
+                for r in db.execute(
+                    "SELECT roll, name, face_encoding "
+                    "FROM students WHERE face_encoding IS NOT NULL AND is_active=1"
+                ).fetchall()
+            ]
 
             if existing_faces:
                 is_dup, dup_roll, dup_name, dup_score = _enhanced_duplicate_check(
@@ -788,9 +728,26 @@ def student_register():
                         )
                     )
 
-            os.makedirs(FACES_STATIC_DIR, exist_ok=True)
+                if dup_score >= 0.50:
+                    log_security_event(
+                        db, "POTENTIAL_DUPLICATE_FACE", roll, "student",
+                        get_client_ip(),
+                        f"High similarity to {dup_roll} score={dup_score:.3f}", "medium"
+                    )
+                    db.commit()
+                    return render_template(
+                        "student_register.html",
+                        error=(
+                            f'This face is very similar to "{dup_name}" '
+                            f'(Roll: {dup_roll}). '
+                            f"Please ensure you are registering your own face. "
+                            f"(Similarity: {dup_score:.1%})"
+                        )
+                    )
+
+            os.makedirs("static/faces", exist_ok=True)
             face_filename = f"faces/{roll}.jpg"
-            with open(os.path.join(FACES_STATIC_DIR, f"{roll}.jpg"), "wb") as f:
+            with open(f"static/{face_filename}", "wb") as f:
                 f.write(img_data)
 
             db.execute(
@@ -1043,28 +1000,28 @@ def student_face_login():
 #      are now correctly indented INSIDE the outer try block.
 #      The orphaned alert block that was at module level is now here.
 # =====================================================================
-@app.route("/student-dashboard")
-@login_required_student
+@app.route('/student-dashboard')
 def student_dashboard():
-    db = None
-    try:
-        db = get_db()
-
-        student = db.execute(
-            "SELECT * FROM students WHERE roll=? AND is_active=1",
-            (session["student_roll"],)
-        ).fetchone()
-
-        if not student:
-            session.clear()
-            flash("Your account no longer exists. Please register again.", "warning")
-            return redirect(url_for("student_login"))
-
-        try:
-            attendance = db.execute(
-                "SELECT * FROM attendance WHERE student_roll=? ORDER BY date DESC, time DESC",
-                (session["student_roll"],)
-            ).fetchall()
+    if 'student_roll' not in session:
+        return redirect('/student-login')
+    
+    # Always fetch fresh from DB using THIS session's roll
+    student = db.execute(
+        'SELECT * FROM students WHERE roll = ?', 
+        (session['student_roll'],)   # ← use session roll, not a global variable
+    ).fetchone()
+    
+    if not student:
+        session.clear()
+        return redirect('/student-login')
+    
+    # fetch attendance for THIS student only
+    attendance = db.execute(
+        'SELECT * FROM attendance WHERE student_roll = ? ORDER BY date DESC, time DESC',
+        (session['student_roll'],)
+    ).fetchall()
+    
+    return render_template('student_dashboard.html', student=student, attendance=attendance, ...)
         except Exception:
             attendance = []
 
@@ -1395,9 +1352,9 @@ def student_face_enroll():
             flash(msg, "error")
             return redirect(url_for("student_dashboard"))
 
-        os.makedirs(FACES_STATIC_DIR, exist_ok=True)
+        os.makedirs("static/faces", exist_ok=True)
         face_filename = f"faces/{roll}.jpg"
-        with open(os.path.join(FACES_STATIC_DIR, f"{roll}.jpg"), "wb") as f:
+        with open(f"static/{face_filename}", "wb") as f:
             f.write(img_data)
 
         db.execute(
@@ -2346,7 +2303,7 @@ def delete_all_data():
         db.commit()
 
         for student in students:
-            face_path = os.path.join(FACES_STATIC_DIR, f"{student['roll']}.jpg")
+            face_path = f"static/faces/{student['roll']}.jpg"
             if os.path.exists(face_path):
                 try:
                     os.remove(face_path)
