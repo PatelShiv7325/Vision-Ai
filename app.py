@@ -72,7 +72,7 @@ FACES_STATIC_DIR = os.path.join(DATA_DIR, "static", "faces") if DATA_DIR else os
 # ── App setup ─────────────────────────────────────────────────────────
 app = Flask(__name__)
 
-_SECRET = os.environ.get("SECRET_KEY") or "vision_ai_fixed_secret_key_2024_do_not_change"
+_SECRET = os.environ.get("SECRET_KEY")
 app.secret_key = _SECRET
 
 app.config["SESSION_COOKIE_HTTPONLY"]     = True
@@ -663,21 +663,21 @@ def student_register():
         ] if not v]
         if missing:
             return render_template("student_register.html",
-                                   error=f"Missing: {', '.join(missing)}")
+                                error=f"Missing: {', '.join(missing)}")
         if len(password_raw) < 8:
             return render_template("student_register.html",
-                                   error="Password must be at least 8 characters.")
+                                error="Password must be at least 8 characters.")
         if not face_data or "," not in face_data:
             return render_template("student_register.html",
-                                   error="Please capture your face photo.")
+                                error="Please capture your face photo.")
 
         phone_digits = "".join(filter(str.isdigit, phone))
         if len(phone_digits) != 10:
             return render_template("student_register.html",
-                                   error="Phone must be exactly 10 digits.")
+                                error="Phone must be exactly 10 digits.")
         if phone_digits[0] not in "6789":
             return render_template("student_register.html",
-                                   error="Phone must start with 6, 7, 8, or 9.")
+                                error="Phone must start with 6, 7, 8, or 9.")
 
         db = None
         try:
@@ -712,20 +712,20 @@ def student_register():
                         return render_template(
                             "student_register.html",
                             error=(f'{label} is already registered '
-                                   f'to "{existing["name"]}"! Please use a different one.')
+                            f'to "{existing["name"]}"! Please use a different one.')
                         )
 
             try:
                 img_data = base64.b64decode(face_data.split(",")[1])
             except Exception:
                 return render_template("student_register.html",
-                                       error="Invalid image data. Please retake your photo.")
+                                    error="Invalid image data. Please retake your photo.")
 
             np_arr = np.frombuffer(img_data, np.uint8)
             img_cv = cv2.imdecode(np_arr, cv2.IMREAD_COLOR)
             if img_cv is None:
                 return render_template("student_register.html",
-                                       error="Could not decode image. Please retake.")
+                                    error="Could not decode image. Please retake.")
 
             gray    = cv2.cvtColor(img_cv, cv2.COLOR_BGR2GRAY)
             gray_eq = cv2.equalizeHist(gray)
@@ -806,18 +806,19 @@ def student_register():
                         )
                     )
 
-           faces_dir = os.environ.get("DATA_DIR", "")
-if faces_dir:
-    faces_save_dir = os.path.join(faces_dir, "static", "faces")
-    face_filename = f"faces/{roll}.jpg"
-    face_save_path = os.path.join(faces_dir, "static", face_filename)
-else:
-    faces_save_dir = "static/faces"
-    face_filename = f"faces/{roll}.jpg"
-    face_save_path = f"static/{face_filename}"
-os.makedirs(faces_save_dir, exist_ok=True)
-with open(face_save_path, "wb") as f:
-                f.write(img_data)
+            faces_dir = os.environ.get("DATA_DIR", "")
+        
+            if faces_dir:
+                faces_save_dir = os.path.join(faces_dir, "static", "faces")
+                face_filename = f"faces/{roll}.jpg"
+                face_save_path = os.path.join(faces_dir, "static", face_filename)
+            else:
+                faces_save_dir = "static/faces"
+                face_filename = f"faces/{roll}.jpg"
+                face_save_path = f"static/{face_filename}"
+                os.makedirs(faces_save_dir, exist_ok=True)
+                with open(face_save_path, "wb") as f:
+                    f.write(img_data)
 
             db.execute(
                 """INSERT INTO students
@@ -926,7 +927,6 @@ def student_login():
                                "student", get_client_ip())
             
             # ── CREATE SESSION INSTANCE ───────────────────────────────
-                        # ── FIX: Generate unique session instance ID ──────────────
             session_instance_id = generate_session_id()
             
             create_session_record(db, session_instance_id, "student",
@@ -1442,16 +1442,18 @@ def student_face_enroll():
             return redirect(url_for("student_dashboard"))
 
         faces_dir = os.environ.get("DATA_DIR", "")
-if faces_dir:
-    faces_save_dir = os.path.join(faces_dir, "static", "faces")
-    face_filename = f"faces/{roll}.jpg"
-    face_save_path = os.path.join(faces_dir, "static", face_filename)
-else:
-    faces_save_dir = "static/faces"
-    face_filename = f"faces/{roll}.jpg"
-    face_save_path = f"static/{face_filename}"
-os.makedirs(faces_save_dir, exist_ok=True)
-with open(face_save_path, "wb") as f:
+        
+        if faces_dir:
+            faces_save_dir = os.path.join(faces_dir, "static", "faces")
+            face_filename = f"faces/{roll}.jpg"
+            face_save_path = os.path.join(faces_dir, "static", face_filename)
+        else:
+            faces_save_dir = "static/faces"
+            face_filename = f"faces/{roll}.jpg"
+            face_save_path = f"static/{face_filename}"
+        os.makedirs(faces_save_dir, exist_ok=True)
+        
+        with open(face_save_path, "wb") as f:
             f.write(img_data)
 
         db.execute(
@@ -2820,20 +2822,24 @@ def faculty_save_timetable():
     division = data.get("division", "").strip()
 
     if not standard:
-        return jsonify({"success": False, "error": "Standard is required."})
+        return jsonify({
+            "success": False,
+            "error": "Standard is required."
+        })
 
     db = get_db()
+    
     try:
         if division:
-    db.execute(
-        "DELETE FROM timetable WHERE standard=? AND division=?",
-        (standard, division)
-    )
-else:
-    db.execute(
-        "DELETE FROM timetable WHERE standard=? AND division=''",
-        (standard,)
-    )
+            db.execute(
+                "DELETE FROM timetable WHERE standard=? AND division=?",
+                (standard, division)
+            )
+        else:
+            db.execute(
+                "DELETE FROM timetable WHERE standard=? AND division=''",
+                (standard,)
+            )
         for e in entries:
             day     = e.get("day",        "").strip()
             period  = int(e.get("period",  0))

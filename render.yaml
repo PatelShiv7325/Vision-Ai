@@ -2,7 +2,8 @@ services:
   - type: web
     name: vision-ai
     env: python
-    plan: starter          # Starter ($7/month) needed for persistent disk
+    plan: starter
+    pythonVersion: "3.11.9"
     buildCommand: pip install -r requirements.txt
     startCommand: gunicorn app:app --bind 0.0.0.0:$PORT --workers 1 --timeout 120
     envVars:

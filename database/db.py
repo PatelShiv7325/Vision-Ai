@@ -23,16 +23,11 @@ import os
 from datetime import datetime, timedelta
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
-
-# Support Render persistent disk
 _DATA_DIR = os.environ.get("DATA_DIR", "")
 if _DATA_DIR:
     DB_PATH = os.path.normpath(os.path.join(_DATA_DIR, "db.sqlite3"))
-    FACES_DIR = os.path.join(_DATA_DIR, "static", "faces")
 else:
     DB_PATH = os.path.normpath(os.path.join(BASE_DIR, "db.sqlite3"))
-    FACES_DIR = os.path.join(os.path.dirname(BASE_DIR), "static", "faces")
-
 
 # ── Connection ────────────────────────────────────────────────────────
 
