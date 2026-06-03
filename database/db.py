@@ -1,16 +1,21 @@
 """
-database/db.py  ·  Vision AI v5  ·  ALL BUGS FIXED
-====================================================
+database/db.py  ·  Vision AI v5  ·  ALL BUGS FIXED + Session Isolation
+========================================================================
 FIXES in this version:
   - emotion_tracking and batch_attendance tables now created in init_db()
   - student_timetable and attendance_goals tables added correctly inside _SCHEMA
+  - active_sessions table added for session isolation fix
   - All DB migrations are idempotent (no duplicate column errors)
   - check_account_locked / record_failed_login use hard whitelist (no SQLi)
   - get_attendance_summary returns correct keys
   - delete_student_completely uses CASCADE properly + cleans face file
-  - clear_all_students also deletes reset_tokens for students
+  - clear_all_students also deletes reset_tokens for students + active sessions
+  - delete_faculty_completely cleans active sessions
+  - _purge_student_by_roll cleans active sessions
   - verify_database_integrity handles missing tables gracefully
   - purge_ghost_student() fully works for registration
+  - create_active_session / validate_active_session / delete_active_session added
+  - cleanup_expired_sessions runs on init_db()
 """
 
 import sqlite3
@@ -218,26 +223,36 @@ CREATE TABLE IF NOT EXISTS attendance_goals (
     alert_email  INTEGER  NOT NULL DEFAULT 1,
     updated_at   DATETIME DEFAULT CURRENT_TIMESTAMP
 );
+
+CREATE TABLE IF NOT EXISTS active_sessions (
+    session_id   TEXT     PRIMARY KEY,
+    user_type    TEXT     NOT NULL,
+    user_id      TEXT     NOT NULL,
+    created_at   DATETIME DEFAULT CURRENT_TIMESTAMP,
+    ip_address   TEXT,
+    last_seen    DATETIME DEFAULT CURRENT_TIMESTAMP
+);
 """
 
 _INDEXES = """
-CREATE INDEX IF NOT EXISTS idx_att_roll    ON attendance(student_roll);
-CREATE INDEX IF NOT EXISTS idx_att_date    ON attendance(date);
-CREATE INDEX IF NOT EXISTS idx_att_rsd     ON attendance(student_roll, subject, date);
-CREATE INDEX IF NOT EXISTS idx_att_subj    ON attendance(subject);
-CREATE INDEX IF NOT EXISTS idx_stu_roll    ON students(roll);
-CREATE INDEX IF NOT EXISTS idx_stu_email   ON students(email);
-CREATE INDEX IF NOT EXISTS idx_fac_fid     ON faculty(faculty_id);
-CREATE INDEX IF NOT EXISTS idx_fac_email   ON faculty(email);
-CREATE INDEX IF NOT EXISTS idx_notif_user  ON notifications(user_type, user_id, is_read);
-CREATE INDEX IF NOT EXISTS idx_sec_evt     ON security_events(event_type, created_at);
-CREATE INDEX IF NOT EXISTS idx_face_att    ON face_attempts(ip_address, created_at);
-CREATE INDEX IF NOT EXISTS idx_reset_tok   ON reset_tokens(email, token, user_type);
-CREATE INDEX IF NOT EXISTS idx_timetable   ON timetable(standard, division, day_of_week, period_number);
-CREATE INDEX IF NOT EXISTS idx_emotion     ON emotion_tracking(student_roll, date);
-CREATE INDEX IF NOT EXISTS idx_batch_att   ON batch_attendance(subject, date);
-CREATE INDEX IF NOT EXISTS idx_stu_tt      ON student_timetable(student_roll, day);
-CREATE INDEX IF NOT EXISTS idx_att_goals   ON attendance_goals(student_roll);
+CREATE INDEX IF NOT EXISTS idx_att_roll      ON attendance(student_roll);
+CREATE INDEX IF NOT EXISTS idx_att_date      ON attendance(date);
+CREATE INDEX IF NOT EXISTS idx_att_rsd       ON attendance(student_roll, subject, date);
+CREATE INDEX IF NOT EXISTS idx_att_subj      ON attendance(subject);
+CREATE INDEX IF NOT EXISTS idx_stu_roll      ON students(roll);
+CREATE INDEX IF NOT EXISTS idx_stu_email     ON students(email);
+CREATE INDEX IF NOT EXISTS idx_fac_fid       ON faculty(faculty_id);
+CREATE INDEX IF NOT EXISTS idx_fac_email     ON faculty(email);
+CREATE INDEX IF NOT EXISTS idx_notif_user    ON notifications(user_type, user_id, is_read);
+CREATE INDEX IF NOT EXISTS idx_sec_evt       ON security_events(event_type, created_at);
+CREATE INDEX IF NOT EXISTS idx_face_att      ON face_attempts(ip_address, created_at);
+CREATE INDEX IF NOT EXISTS idx_reset_tok     ON reset_tokens(email, token, user_type);
+CREATE INDEX IF NOT EXISTS idx_timetable     ON timetable(standard, division, day_of_week, period_number);
+CREATE INDEX IF NOT EXISTS idx_emotion       ON emotion_tracking(student_roll, date);
+CREATE INDEX IF NOT EXISTS idx_batch_att     ON batch_attendance(subject, date);
+CREATE INDEX IF NOT EXISTS idx_stu_tt        ON student_timetable(student_roll, day);
+CREATE INDEX IF NOT EXISTS idx_att_goals     ON attendance_goals(student_roll);
+CREATE INDEX IF NOT EXISTS idx_active_sess   ON active_sessions(user_type, user_id, created_at);
 """
 
 _MIGRATIONS = [
@@ -270,6 +285,16 @@ def init_db():
         db.executescript(_INDEXES)
         for table, column, col_type in _MIGRATIONS:
             _safe_add_column(db, table, column, col_type)
+
+        # ── Cleanup expired sessions on every startup ─────────────────
+        try:
+            db.execute(
+                "DELETE FROM active_sessions "
+                "WHERE created_at < datetime('now', '-8 hours')"
+            )
+        except Exception as e:
+            print(f"[DB] Session cleanup on init skipped: {e}")
+
         db.commit()
         print(f"[DB v5] Ready at: {DB_PATH}")
     finally:
@@ -295,12 +320,16 @@ def purge_ghost_student(db, roll=None, email=None):
     rolls_to_purge = set()
 
     if roll:
-        row = db.execute("SELECT roll FROM students WHERE roll=?", (roll,)).fetchone()
+        row = db.execute(
+            "SELECT roll FROM students WHERE roll=?", (roll,)
+        ).fetchone()
         if row:
             rolls_to_purge.add(row["roll"])
 
     if email:
-        row = db.execute("SELECT roll FROM students WHERE email=?", (email,)).fetchone()
+        row = db.execute(
+            "SELECT roll FROM students WHERE email=?", (email,)
+        ).fetchone()
         if row:
             rolls_to_purge.add(row["roll"])
 
@@ -311,11 +340,11 @@ def purge_ghost_student(db, roll=None, email=None):
 def _purge_student_by_roll(db, roll):
     """Delete all data for a roll number unconditionally to allow re-registration."""
     for tbl, col in [
-        ("attendance",       "student_roll"),
-        ("face_attempts",    "roll"),
-        ("emotion_tracking", "student_roll"),
-        ("student_timetable","student_roll"),
-        ("attendance_goals", "student_roll"),
+        ("attendance",        "student_roll"),
+        ("face_attempts",     "roll"),
+        ("emotion_tracking",  "student_roll"),
+        ("student_timetable", "student_roll"),
+        ("attendance_goals",  "student_roll"),
     ]:
         try:
             db.execute(f"DELETE FROM {tbl} WHERE {col}=?", (roll,))
@@ -325,10 +354,20 @@ def _purge_student_by_roll(db, roll):
     for tbl in ("notifications", "security_events", "audit_log"):
         try:
             db.execute(
-                f"DELETE FROM {tbl} WHERE user_type='student' AND user_id=?", (roll,)
+                f"DELETE FROM {tbl} WHERE user_type='student' AND user_id=?",
+                (roll,)
             )
         except Exception:
             pass
+
+    # ── Remove active sessions for this student ───────────────────────
+    try:
+        db.execute(
+            "DELETE FROM active_sessions WHERE user_type='student' AND user_id=?",
+            (roll,)
+        )
+    except Exception:
+        pass
 
     email_row = db.execute(
         "SELECT email FROM students WHERE roll=?", (roll,)
@@ -397,9 +436,13 @@ def validate_face_quality(face_img, strict=True):
         if face_img is None:
             return False, 0.0, ["No face detected"]
 
-        gray = cv2.cvtColor(face_img, cv2.COLOR_BGR2GRAY) if len(face_img.shape) == 3 else face_img
+        gray = (
+            cv2.cvtColor(face_img, cv2.COLOR_BGR2GRAY)
+            if len(face_img.shape) == 3
+            else face_img
+        )
 
-        issues = []
+        issues        = []
         quality_score = 1.0
 
         height, width = gray.shape
@@ -447,16 +490,22 @@ def detect_liveness(face_img):
         if face_img is None:
             return False, 0.0, "no_face"
 
-        gray = cv2.cvtColor(face_img, cv2.COLOR_BGR2GRAY) if len(face_img.shape) == 3 else face_img
+        gray = (
+            cv2.cvtColor(face_img, cv2.COLOR_BGR2GRAY)
+            if len(face_img.shape) == 3
+            else face_img
+        )
 
         texture_score    = float(gray.std())
         edges            = cv2.Canny(gray, 50, 150)
         edge_density     = float(edges.sum()) / (255.0 * gray.shape[0] * gray.shape[1])
         blurred          = cv2.GaussianBlur(gray, (5, 5), 0)
-        reflection_score = float(abs(gray.astype(float) - blurred.astype(float)).mean())
+        reflection_score = float(
+            abs(gray.astype(float) - blurred.astype(float)).mean()
+        )
 
         liveness_score = (
-            (texture_score / 100.0) * 0.3
+            (texture_score / 100.0)  * 0.3
             + (edge_density * 10.0)  * 0.4
             + (reflection_score / 50.0) * 0.3
         )
@@ -487,6 +536,7 @@ def detect_emotion(face_image):
         emotions = ["happy", "neutral", "focused", "tired", "engaged"]
         h        = abs(hash(gray.tobytes())) % len(emotions)
         emotion  = emotions[h]
+
         confidence       = 0.65 + (abs(hash(gray.tobytes())) % 30) / 100.0
         engagement_score = 0.50 + (abs(hash(gray.tobytes())) % 50) / 100.0
         return emotion, min(confidence, 0.95), min(engagement_score, 1.0)
@@ -498,7 +548,7 @@ def detect_emotion(face_image):
 
 def record_emotion_tracking(db, student_roll, subject, emotion, confidence,
                              engagement_score, face_image, marked_by):
-    """Record emotion tracking data for a student"""
+    """Record emotion tracking data for a student."""
     now = datetime.now()
     try:
         db.execute(
@@ -515,8 +565,9 @@ def record_emotion_tracking(db, student_roll, subject, emotion, confidence,
 
 
 def create_batch_attendance_record(db, subject, total_students, present_count,
-                                   absent_count, avg_engagement, session_image, marked_by):
-    """Create a batch attendance record"""
+                                   absent_count, avg_engagement,
+                                   session_image, marked_by):
+    """Create a batch attendance record."""
     now = datetime.now()
     try:
         db.execute(
@@ -534,7 +585,7 @@ def create_batch_attendance_record(db, subject, total_students, present_count,
 
 
 def get_batch_attendance_analytics(db, subject, days=7):
-    """Get analytics for batch attendance over specified days"""
+    """Get analytics for batch attendance over specified days."""
     start_date = (datetime.now() - timedelta(days=days)).strftime("%Y-%m-%d")
     try:
         rows = db.execute(
@@ -551,7 +602,7 @@ def get_batch_attendance_analytics(db, subject, days=7):
 
 
 def get_student_emotion_trends(db, student_roll, days=7):
-    """Get emotion trends for a specific student"""
+    """Get emotion trends for a specific student."""
     start_date = (datetime.now() - timedelta(days=days)).strftime("%Y-%m-%d")
     try:
         rows = db.execute(
@@ -581,7 +632,8 @@ def check_account_locked(db, table, id_field, id_value):
             if datetime.now() < lock_until:
                 return True
             db.execute(
-                f"UPDATE {table} SET login_attempts=0, locked_until=NULL WHERE {id_field}=?",
+                f"UPDATE {table} SET login_attempts=0, locked_until=NULL "
+                f"WHERE {id_field}=?",
                 (id_value,),
             )
             db.commit()
@@ -646,6 +698,128 @@ def get_attendance_summary(db, student_roll):
         return []
 
 
+# ── Active Session helpers ────────────────────────────────────────────
+
+def create_active_session(db, session_id: str, user_type: str,
+                           user_id: str, ip_address: str = None) -> bool:
+    """
+    Register a new active session in the database.
+
+    Removes any PREVIOUS sessions belonging to the SAME user so that
+    if the same student logs in again (new tab / new browser), the old
+    session is invalidated.  Sessions of OTHER users are never touched.
+    """
+    try:
+        # Invalidate previous sessions of THIS user only
+        db.execute(
+            """DELETE FROM active_sessions
+               WHERE user_type=? AND user_id=? AND session_id!=?""",
+            (user_type, user_id, session_id)
+        )
+        db.execute(
+            """INSERT OR REPLACE INTO active_sessions
+               (session_id, user_type, user_id,
+                created_at, ip_address, last_seen)
+               VALUES (?, ?, ?, CURRENT_TIMESTAMP, ?, CURRENT_TIMESTAMP)""",
+            (session_id, user_type, user_id, ip_address)
+        )
+        db.commit()
+        return True
+    except Exception as e:
+        print(f"[ActiveSession] create_active_session error: {e}")
+        return False
+
+
+def validate_active_session(db, session_id: str,
+                              user_type: str, user_id: str) -> bool:
+    """
+    Return True only when the session_id exists in active_sessions,
+    belongs to the correct user/type, and has not expired (8-hour window).
+    Also refreshes the last_seen timestamp on success.
+    """
+    if not session_id:
+        return False
+    try:
+        row = db.execute(
+            """SELECT session_id FROM active_sessions
+               WHERE session_id=?
+               AND   user_type=?
+               AND   user_id=?
+               AND   created_at > datetime('now', '-8 hours')""",
+            (session_id, user_type, user_id)
+        ).fetchone()
+
+        if row:
+            # Refresh last_seen so long-running sessions stay alive
+            db.execute(
+                "UPDATE active_sessions SET last_seen=CURRENT_TIMESTAMP "
+                "WHERE session_id=?",
+                (session_id,)
+            )
+            db.commit()
+            return True
+        return False
+    except Exception as e:
+        print(f"[ActiveSession] validate_active_session error: {e}")
+        return False
+
+
+def delete_active_session(db, session_id: str) -> bool:
+    """Remove a specific session — called on logout."""
+    if not session_id:
+        return False
+    try:
+        db.execute(
+            "DELETE FROM active_sessions WHERE session_id=?",
+            (session_id,)
+        )
+        db.commit()
+        return True
+    except Exception as e:
+        print(f"[ActiveSession] delete_active_session error: {e}")
+        return False
+
+
+def cleanup_expired_sessions(db) -> int:
+    """
+    Remove all sessions older than 8 hours.
+    Returns the number of rows deleted.
+    Call periodically or on startup via init_db().
+    """
+    try:
+        result = db.execute(
+            "DELETE FROM active_sessions "
+            "WHERE created_at < datetime('now', '-8 hours')"
+        )
+        db.commit()
+        count = result.rowcount
+        if count > 0:
+            print(f"[ActiveSession] Cleaned up {count} expired session(s).")
+        return count
+    except Exception as e:
+        print(f"[ActiveSession] cleanup_expired_sessions error: {e}")
+        return 0
+
+
+def get_active_sessions_count(db, user_type: str = None) -> int:
+    """Return the number of currently live sessions (within 8-hour window)."""
+    try:
+        if user_type:
+            return db.execute(
+                """SELECT COUNT(*) FROM active_sessions
+                   WHERE user_type=?
+                   AND   created_at > datetime('now', '-8 hours')""",
+                (user_type,)
+            ).fetchone()[0]
+        return db.execute(
+            """SELECT COUNT(*) FROM active_sessions
+               WHERE created_at > datetime('now', '-8 hours')"""
+        ).fetchone()[0]
+    except Exception as e:
+        print(f"[ActiveSession] get_active_sessions_count error: {e}")
+        return 0
+
+
 # ── Student / faculty delete helpers ─────────────────────────────────
 
 def delete_student_completely(student_roll):
@@ -669,19 +843,32 @@ def delete_student_completely(student_roll):
 def clear_all_students():
     db = get_db()
     try:
-        rolls = [r[0] for r in db.execute("SELECT roll FROM students").fetchall()]
+        rolls = [
+            r[0] for r in db.execute("SELECT roll FROM students").fetchall()
+        ]
 
         for tbl in ("attendance", "face_attempts"):
             db.execute(f"DELETE FROM {tbl}")
+
         for tbl in ("emotion_tracking", "student_timetable", "attendance_goals"):
             try:
                 db.execute(f"DELETE FROM {tbl}")
             except Exception:
                 pass
+
         db.execute("DELETE FROM notifications   WHERE user_type='student'")
         db.execute("DELETE FROM security_events WHERE user_type='student'")
         db.execute("DELETE FROM audit_log        WHERE user_type='student'")
         db.execute("DELETE FROM reset_tokens     WHERE user_type='student'")
+
+        # ── Remove all student active sessions ────────────────────────
+        try:
+            db.execute(
+                "DELETE FROM active_sessions WHERE user_type='student'"
+            )
+        except Exception:
+            pass
+
         db.execute("DELETE FROM students")
         db.commit()
 
@@ -729,6 +916,17 @@ def delete_faculty_completely(faculty_id):
             "DELETE FROM audit_log WHERE user_type='faculty' AND user_id=?",
             (faculty_id,)
         )
+
+        # ── Remove active sessions for this faculty ───────────────────
+        try:
+            db.execute(
+                "DELETE FROM active_sessions "
+                "WHERE user_type='faculty' AND user_id=?",
+                (faculty_id,)
+            )
+        except Exception:
+            pass
+
         db.execute(
             "UPDATE attendance SET marked_by='deleted_faculty' WHERE marked_by=?",
             (faculty_id,)
@@ -742,7 +940,7 @@ def delete_faculty_completely(faculty_id):
             (faculty_id,)
         )
         db.execute("DELETE FROM timetable WHERE faculty_id=?", (faculty_id,))
-        db.execute("DELETE FROM faculty WHERE faculty_id=?",   (faculty_id,))
+        db.execute("DELETE FROM faculty   WHERE faculty_id=?", (faculty_id,))
         db.commit()
         return True, f"Faculty {faculty['name']} ({faculty_id}) deleted completely."
     except Exception as e:
@@ -793,7 +991,8 @@ def add_timetable_entry(db, standard, division, day_of_week, period_number,
 
 
 _TIMETABLE_ALLOWED_FIELDS = {
-    "subject", "faculty_id", "room_number", "start_time", "end_time", "is_break"
+    "subject", "faculty_id", "room_number",
+    "start_time", "end_time", "is_break"
 }
 
 
@@ -857,9 +1056,11 @@ def verify_database_integrity():
         except Exception:
             pass
 
-        ok = (orphaned_attendance == 0
-              and orphaned_subjects  == 0
-              and orphaned_attempts  == 0)
+        ok = (
+            orphaned_attendance == 0
+            and orphaned_subjects  == 0
+            and orphaned_attempts  == 0
+        )
         return {
             "orphaned_attendance": orphaned_attendance,
             "orphaned_subjects":   orphaned_subjects,
@@ -870,3 +1071,161 @@ def verify_database_integrity():
         return {"integrity_ok": False, "error": str(e)}
     finally:
         db.close()
+
+# ── Active Sessions Management ────────────────────────────────────────
+
+def create_session_record(db, session_id, user_type, user_id, ip_address):
+    """Create a new session record when user logs in."""
+    try:
+        # First, invalidate any existing sessions for this user
+        db.execute(
+            """DELETE FROM active_sessions 
+               WHERE user_type=? AND user_id=?""",
+            (user_type, user_id)
+        )
+        
+        # Create new session record (without is_valid column)
+        db.execute(
+            """INSERT INTO active_sessions 
+               (session_id, user_type, user_id, created_at, ip_address, last_seen)
+               VALUES (?, ?, ?, CURRENT_TIMESTAMP, ?, CURRENT_TIMESTAMP)""",
+            (session_id, user_type, user_id, ip_address)
+        )
+        db.commit()
+        print(f"[Session] Created {user_type}:{user_id} session {session_id[:8]}...")
+    except Exception as e:
+        print(f"[Session] Error creating session: {e}")
+
+
+def validate_session_instance(db, session_id, user_type, user_id):
+    """Validate that a session instance is still valid."""
+    try:
+        row = db.execute(
+            """SELECT session_id FROM active_sessions 
+               WHERE session_id=? AND user_type=? AND user_id=? 
+               AND created_at > datetime('now', '-8 hours')""",
+            (session_id, user_type, user_id)
+        ).fetchone()
+        
+        if row:
+            # Update last_seen timestamp
+            db.execute(
+                """UPDATE active_sessions SET last_seen=CURRENT_TIMESTAMP 
+                   WHERE session_id=?""",
+                (session_id,)
+            )
+            db.commit()
+            return True
+        return False
+    except Exception as e:
+        print(f"[Session] Validation error: {e}")
+        return False
+
+
+def invalidate_session(db, session_id):
+    """Invalidate a session (on logout or when replaced by new login)."""
+    try:
+        db.execute(
+            """DELETE FROM active_sessions WHERE session_id=?""",
+            (session_id,)
+        )
+        db.commit()
+        print(f"[Session] Invalidated {session_id[:8]}...")
+    except Exception as e:
+        print(f"[Session] Error invalidating session: {e}")
+
+
+def get_user_active_sessions(db, user_type, user_id):
+    """Get all active sessions for a user (to detect multiple logins)."""
+    try:
+        rows = db.execute(
+            """SELECT session_id, created_at, ip_address, last_seen 
+               FROM active_sessions 
+               WHERE user_type=? AND user_id=?
+               AND created_at > datetime('now', '-8 hours')
+               ORDER BY created_at DESC""",
+            (user_type, user_id)
+        ).fetchall()
+        return [dict(r) for r in rows]
+    except Exception as e:
+        print(f"[Session] Error fetching sessions: {e}")
+        return []
+
+
+def cleanup_old_sessions(db, hours=8):
+    """Delete expired sessions older than specified hours."""
+    try:
+        result = db.execute(
+            """DELETE FROM active_sessions 
+               WHERE created_at < datetime('now', '-' || ? || ' hours')""",
+            (hours,)
+        )
+        deleted = result.rowcount
+        db.commit()
+        if deleted > 0:
+            print(f"[Session] Cleaned up {deleted} sessions older than {hours} hours")
+        return deleted
+    except Exception as e:
+        print(f"[Session] Cleanup error: {e}")
+        return 0
+
+
+def invalidate_all_user_sessions(db, user_type, user_id):
+    """Invalidate ALL sessions for a user (on password reset, etc.)."""
+    try:
+        result = db.execute(
+            """DELETE FROM active_sessions 
+               WHERE user_type=? AND user_id=?""",
+            (user_type, user_id)
+        )
+        deleted = result.rowcount
+        db.commit()
+        print(f"[Session] Invalidated {deleted} sessions for {user_type}:{user_id}")
+        return deleted
+    except Exception as e:
+        print(f"[Session] Error invalidating all sessions: {e}")
+        return 0
+
+
+def get_session_info(db, session_id):
+    """Get detailed info about a specific session."""
+    try:
+        row = db.execute(
+            """SELECT session_id, user_type, user_id, created_at, 
+                      ip_address, last_seen 
+               FROM active_sessions 
+               WHERE session_id=?""",
+            (session_id,)
+        ).fetchone()
+        return dict(row) if row else None
+    except Exception as e:
+        print(f"[Session] Error fetching session info: {e}")
+        return None
+
+
+def update_session_last_seen(db, session_id):
+    """Update last seen timestamp for a session (on each request)."""
+    try:
+        db.execute(
+            """UPDATE active_sessions SET last_seen=CURRENT_TIMESTAMP 
+               WHERE session_id=?""",
+            (session_id,)
+        )
+        db.commit()
+    except Exception as e:
+        print(f"[Session] Error updating last seen: {e}")
+
+def get_session_info(db, session_id):
+    """Get detailed info about a specific session."""
+    try:
+        row = db.execute(
+            """SELECT session_id, user_type, user_id, created_at, 
+                      ip_address, last_seen, is_valid 
+               FROM active_sessions 
+               WHERE session_id=?""",
+            (session_id,)
+        ).fetchone()
+        return dict(row) if row else None
+    except Exception as e:
+        print(f"[Session] Error fetching session info: {e}")
+        return None

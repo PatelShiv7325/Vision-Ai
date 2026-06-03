@@ -351,7 +351,7 @@
             color: var(--accent-blue); font-size: 14px;
             border: 1px solid rgba(99,102,241,0.2);
         }
-        .section-icon.green  { background: rgba(34,197,94,0.1);  color: var(--accent-green);  border-color: rgba(34,197,94,0.2); }
+        .section-icon.green  { background: rgba(99,102,241,0.1);  color: var(--accent-blue);  border-color: rgba(99,102,241,0.2); }
         .section-icon.yellow { background: rgba(245,158,11,0.1); color: var(--accent-yellow); border-color: rgba(245,158,11,0.2); }
         .section-icon.red    { background: rgba(239,68,68,0.1);    color: var(--accent-red);    border-color: rgba(239,68,68,0.2); }
         .section-icon.blue   { background: rgba(99,102,241,0.1);   color: var(--accent-blue);   border-color: rgba(99,102,241,0.2); }
@@ -432,6 +432,7 @@
         }
 
         /* ── SETTINGS ── */
+        .settings-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 18px; margin-bottom: 18px; }
         .settings-group { margin-bottom: 26px; }
         .settings-group-title { font-size: 11px; font-weight: 700; color: var(--text-muted); text-transform: uppercase; letter-spacing: 1px; margin-bottom: 12px; }
         .setting-row {
@@ -511,23 +512,23 @@
         /* ── CHANGE PASSWORD MODAL ── */
         .pwd-modal-overlay { position:fixed; inset:0; background:rgba(0,0,0,0.75); z-index:300; display:none; align-items:center; justify-content:center; }
         .pwd-modal-overlay.show { display:flex; }
-        .pwd-modal-box { background:var(--bg-sidebar); border:1px solid var(--border-act); border-radius:20px; padding:36px; width:440px; max-width:95vw; position:relative; }
+        .pwd-modal-box { background:var(--bg-sidebar); border:1px solid var(--border-act); border-radius:20px; padding:40px; width:500px; max-width:95vw; position:relative; text-align: center }
         .pwd-modal-close { position:absolute; top:16px; right:16px; background:none; border:none; color:var(--sub); font-size:1.1rem; cursor:pointer; padding:4px 8px; border-radius:6px; transition:color 0.2s; }
         .pwd-modal-close:hover { color:var(--accent); }
-        .pwd-modal-icon { width:52px; height:52px; background:linear-gradient(135deg,var(--accent),var(--accent2)); border-radius:14px; display:flex; align-items:center; justify-content:center; font-size:20px; margin-bottom:16px; box-shadow:0 0 24px var(--accent-glow); }
-        .pwd-modal-title { font-size:1.5rem; font-weight:900; letter-spacing:-0.025em; margin-bottom:6px; }
-        .pwd-modal-sub { font-size:0.87rem; color:var(--sub); margin-bottom:24px; }
+        .pwd-modal-icon { width:52px; height:52px; background:linear-gradient(135deg,var(--accent),var(--accent2)); border-radius:14px; display:flex; align-items:center; justify-content:center; font-size:48px; margin-bottom: 0 auto 20px; box-shadow:0 0 24px var(--accent-glow); }
+        .pwd-modal-title { font-size:1.5rem; font-weight:900; letter-spacing:-0.025em; margin-bottom:6px; text-align: center;}
+        .pwd-modal-sub { font-size:0.87rem; color:var(--sub); margin-bottom:24px; text-align: center; }
         .pwd-field-group { display:flex; flex-direction:column; gap:6px; margin-bottom:16px; }
         .pwd-field-label { font-size:0.76rem; font-weight:700; color:var(--sub); text-transform:uppercase; letter-spacing:0.7px; }
         .pwd-field-wrap { position:relative; }
-        .pwd-field-icon { position:absolute; left:13px; top:50%; transform:translateY(-50%); color:var(--muted); font-size:0.88rem; pointer-events:none; transition:color 0.2s; }
+        .pwd-field-icon { position: absolute; left: 13px; font-size: 16px; opacity: 0.6;}        
         .pwd-field-wrap:focus-within .pwd-field-icon { color:var(--accent); }
-        .pwd-field-input { width:100%; background:var(--bg-card2); border:1.5px solid var(--border-mid); border-radius:11px; padding:12px 42px 12px 40px; font-size:0.92rem; font-family:'Outfit',sans-serif; color:var(--text); outline:none; transition:all 0.2s; height:46px; }
+        .pwd-field-input { width:100%; background:var(--bg-card2); border:1.5px solid var(--border-mid); border-radius:11px; padding:10px 40px 10px 40px; font-size:0.92rem; font-family:'Outfit',sans-serif; color:var(--text); outline:none; transition:all 0.2s; height:44px; padding-left: 40px;}
         .pwd-field-input:focus { border-color:var(--accent); background:rgba(0,212,170,0.04); box-shadow:0 0 0 3px var(--accent-glow); }
         .pwd-field-input::placeholder { color:var(--muted); }
         .pwd-eye { position:absolute; right:12px; top:50%; transform:translateY(-50%); background:none; border:none; color:var(--muted); cursor:pointer; font-size:0.88rem; padding:3px; transition:color 0.2s; }
         .pwd-eye:hover { color:var(--accent); }
-        .pwd-divider { height:1px; background:var(--border); margin:18px 0; }
+        .pwd-divider { height:1px; background:var(--border); margin: 20px 0; }
         .pwd-meter { height:3px; border-radius:2px; background:var(--border); margin-top:6px; }
         .pwd-meter-fill { height:100%; border-radius:2px; width:0%; transition:width 0.3s,background 0.3s; }
         .pwd-hint { font-size:0.74rem; color:var(--sub); margin-top:4px; display:flex; align-items:center; gap:5px; }
@@ -571,6 +572,7 @@
             .mark-form  { grid-template-columns: 1fr; }
             .two-col    { grid-template-columns: 1fr; }
             .form-grid  { grid-template-columns: 1fr; }
+            .settings-grid { grid-template-columns: 1fr; }
             .sidebar { transform: translateX(-100%); transition: transform 0.3s; }
             .sidebar.open { transform: translateX(0); }
             .main { margin-left: 0; }
@@ -581,51 +583,51 @@
 
 <!-- ── STUDENT DETAIL MODAL ── -->
 <div class="modal-overlay" id="student-detail-modal">
-    <div class="modal-box" style="width:460px;text-align:left;">
-        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;">
-            <div style="display:flex;align-items:center;gap:14px;">
-                <div id="sd-avatar" style="width:52px;height:52px;border-radius:14px;background:linear-gradient(135deg,var(--accent),var(--accent2));display:flex;align-items:center;justify-content:center;font-size:18px;font-weight:800;color:#07070f;flex-shrink:0;"></div>
-                <div>
-                    <div id="sd-name" style="font-size:17px;font-weight:800;color:var(--text);"></div>
-                    <div id="sd-roll" style="font-size:12px;color:var(--sub);font-family:'JetBrains Mono',monospace;margin-top:2px;"></div>
+    <div class="modal-box" style="width:480px;text-align:left;">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:22px;">
+            <div style="display:flex;align-items:center;gap:16px;flex:1;">
+                <div id="sd-avatar" style="width:56px;height:56px;border-radius:14px;background:linear-gradient(135deg,var(--accent-blue),#8b5cf6);display:flex;align-items:center;justify-content:center;font-size:20px;font-weight:800;color:#fff;flex-shrink:0;box-shadow:0 4px 16px rgba(99,102,241,0.3);"></div>
+                <div style="flex:1;">
+                    <div id="sd-name" style="font-size:18px;font-weight:800;color:var(--text-primary);letter-spacing:-0.01em;"></div>
+                    <div id="sd-roll" style="font-size:12px;color:var(--text-secondary);font-family:'JetBrains Mono',monospace;margin-top:4px;"></div>
                 </div>
             </div>
-            <button onclick="closeStudentDetail()" style="background:none;border:none;color:var(--sub);font-size:1.2rem;cursor:pointer;padding:4px 8px;border-radius:6px;" onmouseover="this.style.color='var(--accent)'" onmouseout="this.style.color='var(--sub)'"><i class="fas fa-times"></i></button>
+            <button onclick="closeStudentDetail()" style="background:none;border:none;color:var(--text-secondary);font-size:1.3rem;cursor:pointer;padding:6px;border-radius:8px;transition:all 0.2s;display:flex;align-items:center;justify-content:center;" onmouseover="this.style.background='var(--bg-card)';this.style.color='var(--text-primary)'" onmouseout="this.style.background='none';this.style.color='var(--text-secondary)'"><i class="fas fa-times"></i></button>
         </div>
 
-        <div style="height:1px;background:var(--border);margin-bottom:18px;"></div>
+        <div style="height:1px;background:var(--border);margin-bottom:20px;"></div>
 
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:18px;">
-            <div style="background:var(--bg-card2);border:1px solid var(--border-mid);border-radius:10px;padding:12px 14px;">
-                <div style="font-size:10px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:0.7px;margin-bottom:5px;">Email</div>
-                <div id="sd-email" style="font-size:13px;color:var(--text);word-break:break-all;"></div>
+            <div style="background:var(--bg-card);border:1px solid var(--border);border-radius:11px;padding:13px 14px;">
+                <div style="font-size:10px;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.7px;margin-bottom:6px;">Email</div>
+                <div id="sd-email" style="font-size:13px;color:var(--text-primary);word-break:break-all;"></div>
             </div>
-            <div style="background:var(--bg-card2);border:1px solid var(--border-mid);border-radius:10px;padding:12px 14px;">
-                <div style="font-size:10px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:0.7px;margin-bottom:5px;">Phone</div>
-                <div id="sd-phone" style="font-size:13px;color:var(--text);"></div>
+            <div style="background:var(--bg-card);border:1px solid var(--border);border-radius:11px;padding:13px 14px;">
+                <div style="font-size:10px;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.7px;margin-bottom:6px;">Phone</div>
+                <div id="sd-phone" style="font-size:13px;color:var(--text-primary);"></div>
             </div>
-            <div style="background:var(--bg-card2);border:1px solid var(--border-mid);border-radius:10px;padding:12px 14px;">
-                <div style="font-size:10px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:0.7px;margin-bottom:5px;">Standard & Division</div>
-                <div id="sd-std" style="font-size:13px;color:var(--text);"></div>
+            <div style="background:var(--bg-card);border:1px solid var(--border);border-radius:11px;padding:13px 14px;">
+                <div style="font-size:10px;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.7px;margin-bottom:6px;">Standard & Division</div>
+                <div id="sd-std" style="font-size:13px;color:var(--text-primary);"></div>
             </div>
-            <div style="background:var(--bg-card2);border:1px solid var(--border-mid);border-radius:10px;padding:12px 14px;">
-                <div style="font-size:10px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:0.7px;margin-bottom:5px;">Subject</div>
-                <div id="sd-subject" style="font-size:13px;color:var(--text);"></div>
+            <div style="background:var(--bg-card);border:1px solid var(--border);border-radius:11px;padding:13px 14px;">
+                <div style="font-size:10px;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.7px;margin-bottom:6px;">Subject</div>
+                <div id="sd-subject" style="font-size:13px;color:var(--text-primary);"></div>
             </div>
-            <div style="background:var(--bg-card2);border:1px solid var(--border-mid);border-radius:10px;padding:12px 14px;">
-                <div style="font-size:10px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:0.7px;margin-bottom:5px;">Gender</div>
-                <div id="sd-gender" style="font-size:13px;color:var(--text);"></div>
+            <div style="background:var(--bg-card);border:1px solid var(--border);border-radius:11px;padding:13px 14px;">
+                <div style="font-size:10px;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.7px;margin-bottom:6px;">Gender</div>
+                <div id="sd-gender" style="font-size:13px;color:var(--text-primary);"></div>
             </div>
-            <div style="background:var(--bg-card2);border:1px solid var(--border-mid);border-radius:10px;padding:12px 14px;">
-                <div style="font-size:10px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:0.7px;margin-bottom:5px;">Attendance Count</div>
-                <div id="sd-att" style="font-size:13px;color:var(--accent);font-weight:700;"></div>
+            <div style="background:var(--bg-card);border:1px solid var(--border);border-radius:11px;padding:13px 14px;">
+                <div style="font-size:10px;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.7px;margin-bottom:6px;">Attendance Count</div>
+                <div id="sd-att" style="font-size:13px;color:var(--accent-blue);font-weight:700;"></div>
             </div>
         </div>
 
-        <div id="sd-face-row" style="display:flex;align-items:center;gap:10px;padding:12px 14px;border-radius:10px;margin-bottom:18px;"></div>
+        <div id="sd-face-row" style="display:flex;align-items:center;gap:12px;padding:13px 14px;border-radius:11px;margin-bottom:20px;"></div>
 
         <div style="display:flex;gap:10px;">
-            <button onclick="closeStudentDetail();showPage('students',document.querySelectorAll('.nav-item')[2])" class="btn btn-primary" style="flex:1;justify-content:center;">
+            <button onclick="dismissStudentBadge();closeStudentDetail();showPage('students',document.querySelectorAll('.nav-item')[1])" class="btn btn-primary" style="flex:1;justify-content:center;">
                 <i class="fas fa-users"></i> View in Students List
             </button>
             <button onclick="closeStudentDetail()" class="btn" style="flex:1;justify-content:center;">
@@ -633,6 +635,10 @@
             </button>
         </div>
     </div>
+
+
+
+    </div><!-- /grid -->
 </div>
 
 <script>const CSRF_TOKEN = "{{ csrf_token }}";</script>
@@ -660,12 +666,12 @@
 <div class="pwd-modal-overlay" id="pwd-modal">
     <div class="pwd-modal-box">
         <button class="pwd-modal-close" onclick="closePwdModal()"><i class="fas fa-times"></i></button>
-        <div class="pwd-modal-icon">🔐</div>
+        <div class="pwd-modal-icon" style="font-size: 48px;">🔐</div>
         <div class="pwd-modal-title">Change Password</div>
         <p class="pwd-modal-sub">Enter your current password, then set a new one.</p>
         <div class="pwd-alert pwd-alert-error" id="pwd-error"><i class="fas fa-exclamation-circle"></i><span id="pwd-error-msg"></span></div>
         <div class="pwd-alert pwd-alert-success" id="pwd-success"><i class="fas fa-check-circle"></i><span id="pwd-success-msg"></span></div>
-        <form id="pwd-form" onsubmit="submitPwdChange(event)">
+        <form id="pwd-form" onsubmit="submitPwdChange(event)" style="text-align: left;">
             <input type="hidden" name="_csrf" value="{{ csrf_token }}">
             <div class="pwd-field-group">
                 <label class="pwd-field-label">Current Password <span style="color:var(--red)">*</span></label>
@@ -721,7 +727,7 @@
 
     <button class="nav-item" onclick="showPage('students', this)">
         <div class="nav-icon"><i class="fas fa-users"></i></div>
-        Students <span class="nav-badge">{{ total_students }}</span>
+        Students <span class="nav-badge" id="students-badge">{{ total_students }}</span>
     </button>
     <button class="nav-item" onclick="showPage('timetable', this)">
         <div class="nav-icon"><i class="fas fa-calendar-week"></i></div> Timetable
@@ -736,10 +742,9 @@
     </button>
 
     <div class="nav-section-label">System</div>
-    <button class="nav-item" onclick="showPage('settings', this)">
-        <div class="nav-icon"><i class="fas fa-cog"></i></div> Settings
-    </button>
-
+<button class="nav-item" onclick="showPage('settings', this)">
+    <div class="nav-icon"><i class="fas fa-cog"></i></div> Settings
+</button>
     <div class="nav-divider"></div>
     <button class="nav-item logout" onclick="openLogoutModal()">
         <div class="nav-icon"><i class="fas fa-sign-out-alt"></i></div> Logout
@@ -890,37 +895,83 @@
                 <div class="profile-page-avatar">{{ faculty['name'][0] | upper }}</div>
                 <div class="form-grid">
                     <div class="form-group">
-                        <div class="form-label" style="font-size:11px;font-weight:700;color:var(--sub);text-transform:uppercase;letter-spacing:0.7px;margin-bottom:6px;">Full Name</div>
+                        <div class="form-label" style="font-size:11px;font-weight:700;color:var(--text-secondary);text-transform:uppercase;letter-spacing:0.7px;margin-bottom:6px;">Full Name</div>
                         <div class="form-value">{{ faculty['name'] }}</div>
                     </div>
                     <div class="form-group">
-                        <div class="form-label" style="font-size:11px;font-weight:700;color:var(--sub);text-transform:uppercase;letter-spacing:0.7px;margin-bottom:6px;">Faculty ID</div>
+                        <div class="form-label" style="font-size:11px;font-weight:700;color:var(--text-secondary);text-transform:uppercase;letter-spacing:0.7px;margin-bottom:6px;">Faculty ID</div>
                         <div class="form-value" style="font-family:'JetBrains Mono',monospace;">{{ faculty['faculty_id'] }}</div>
                     </div>
                     <div class="form-group">
-                        <div class="form-label" style="font-size:11px;font-weight:700;color:var(--sub);text-transform:uppercase;letter-spacing:0.7px;margin-bottom:6px;">Email</div>
+                        <div class="form-label" style="font-size:11px;font-weight:700;color:var(--text-secondary);text-transform:uppercase;letter-spacing:0.7px;margin-bottom:6px;">Email</div>
                         <div class="form-value">{{ faculty['email'] }}</div>
                     </div>
                     <div class="form-group">
-                        <div class="form-label" style="font-size:11px;font-weight:700;color:var(--sub);text-transform:uppercase;letter-spacing:0.7px;margin-bottom:6px;">Subject</div>
+                        <div class="form-label" style="font-size:11px;font-weight:700;color:var(--text-secondary);text-transform:uppercase;letter-spacing:0.7px;margin-bottom:6px;">Subject</div>
                         <div class="form-value">{{ faculty['subject'] }}</div>
                     </div>
                     {% if faculty['designation'] %}
                     <div class="form-group">
-                        <div class="form-label" style="font-size:11px;font-weight:700;color:var(--sub);text-transform:uppercase;letter-spacing:0.7px;margin-bottom:6px;">Designation</div>
+                        <div class="form-label" style="font-size:11px;font-weight:700;color:var(--text-secondary);text-transform:uppercase;letter-spacing:0.7px;margin-bottom:6px;">Designation</div>
                         <div class="form-value">{{ faculty['designation'] }}</div>
                     </div>
                     {% endif %}
                     {% if faculty['phone'] %}
                     <div class="form-group">
-                        <div class="form-label" style="font-size:11px;font-weight:700;color:var(--sub);text-transform:uppercase;letter-spacing:0.7px;margin-bottom:6px;">Phone</div>
+                        <div class="form-label" style="font-size:11px;font-weight:700;color:var(--text-secondary);text-transform:uppercase;letter-spacing:0.7px;margin-bottom:6px;">Phone</div>
                         <div class="form-value">{{ faculty['phone'] }}</div>
                     </div>
                     {% endif %}
                 </div>
-                <div style="margin-top:22px;display:flex;gap:10px;">
-                    <button class="btn btn-primary" onclick="openPwdModal()"><i class="fas fa-lock"></i> Change Password</button>
-                </div>
+            </div>
+        </div>
+
+        <!-- ══ CHANGE PASSWORD PAGE ══ -->
+        <div class="page" id="page-change-password">
+            <div class="profile-page-card" style="max-width:500px; text-align:center;">
+                <div style="width:60px;height:60px;border-radius:14px;background:linear-gradient(135deg,var(--accent-blue),#8b5cf6);display:flex;align-items:center;justify-content:center;font-size:24px;margin-bottom:24px;box-shadow:0 4px 16px rgba(99,102,241,0.3);">🔐</div>
+                <h2 style="font-size:20px;font-weight:800;margin-bottom:8px;color:var(--text-primary);">Change Password</h2>
+                <p style="font-size:13px;color:var(--text-secondary);margin-bottom:24px;">Update your account security by changing your password regularly.</p>
+                
+                <div class="pwd-alert pwd-alert-error" id="pwd-error-page" style="display:none;"><i class="fas fa-exclamation-circle"></i><span id="pwd-error-msg-page"></span></div>
+                <div class="pwd-alert pwd-alert-success" id="pwd-success-page" style="display:none;"><i class="fas fa-check-circle"></i><span id="pwd-success-msg-page"></span></div>
+                
+                <form id="pwd-form-page" onsubmit="submitPwdChangePage(event)" style="margin-bottom:0;">
+                    <input type="hidden" name="_csrf" value="{{ csrf_token }}">
+                    <div class="pwd-field-group">
+                        <label class="pwd-field-label">Current Password <span style="color:var(--accent-red)">*</span></label>
+                        <div class="pwd-field-wrap">
+                            <input type="password" id="pwd-old-page" class="pwd-field-input" style="background:var(--bg-card);border-color:var(--border);color:var(--text-primary);" placeholder="Enter current password" required>
+                            <i class="fas fa-lock pwd-field-icon"></i>
+                            <button type="button" class="pwd-eye" onclick="togglePwdModal('pwd-old-page','icon-old-page')"><i class="fas fa-eye" id="icon-old-page"></i></button>
+                        </div>
+                    </div>
+                    <div class="pwd-divider"></div>
+                    <div class="pwd-field-group">
+                        <label class="pwd-field-label">New Password <span style="color:var(--accent-red)">*</span></label>
+                        <div class="pwd-field-wrap">
+                            <input type="password" id="pwd-new-page" class="pwd-field-input" style="background:var(--bg-card);border-color:var(--border);color:var(--text-primary);" placeholder="Create new password" required oninput="pwdModalStrengthPage(this.value)">
+                            <i class="fas fa-key pwd-field-icon"></i>
+                            <button type="button" class="pwd-eye" onclick="togglePwdModal('pwd-new-page','icon-new-page')"><i class="fas fa-eye" id="icon-new-page"></i></button>
+                        </div>
+                        <div class="pwd-meter"><div class="pwd-meter-fill" id="pwd-meter-fill-page"></div></div>
+                        <div class="pwd-hint" id="pwd-strength-hint-page"><i class="fas fa-shield-alt"></i> Min 8 characters</div>
+                    </div>
+                    <div class="pwd-field-group">
+                        <label class="pwd-field-label">Confirm New Password <span style="color:var(--accent-red)">*</span></label>
+                        <div class="pwd-field-wrap">
+                            <input type="password" id="pwd-confirm-page" class="pwd-field-input" style="background:var(--bg-card);border-color:var(--border);color:var(--text-primary);" placeholder="Repeat new password" required oninput="pwdModalMatchPage()">
+                            <i class="fas fa-check-double pwd-field-icon"></i>
+                            <button type="button" class="pwd-eye" onclick="togglePwdModal('pwd-confirm-page','icon-confirm-page')"><i class="fas fa-eye" id="icon-confirm-page"></i></button>
+                        </div>
+                        <div class="pwd-match-hint" id="pwd-match-hint-page"></div>
+                    </div>
+                    <button type="submit" class="pwd-submit-btn" id="pwd-submit-btn-page" style="background:var(--accent-blue);box-shadow:0 3px 16px rgba(99,102,241,0.3);margin-top:26px;">
+                        <div class="pwd-spinner" id="pwd-spinner-page"></div>
+                        <i class="fas fa-save" id="pwd-submit-icon-page"></i>
+                        <span id="pwd-submit-text-page">Update Password</span>
+                    </button>
+                </form>
             </div>
         </div>
 
@@ -947,10 +998,10 @@
                                  <div style="display:flex;align-items:center;gap:10px;">
                                   {% if s['face_image'] %}
                                  <img src="{{ url_for('static', filename=s['face_image']) }}"
-                                 style="width:34px;height:34px;border-radius:8px;object-fit:cover;border:1px solid var(--border-mid);"
+                                 style="width:34px;height:34px;border-radius:8px;object-fit:cover;border:1px solid var(--border);"
                                 onerror="this.style.display='none'">
                                {% else %}
-                                <div style="width:34px;height:34px;border-radius:8px;background:var(--bg-card2);display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;color:var(--accent);">
+                                <div style="width:34px;height:34px;border-radius:8px;background:var(--bg-card);display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;color:var(--accent-blue);">
                                   {{ s['name'][0].upper() }}
                                    </div>
                                  {% endif %}
@@ -964,7 +1015,7 @@
                                      <span style="background:rgba(255,107,107,0.15);color:#ff6b6b;border-radius:4px;padding:2px 7px;font-size:11px;font-weight:700;margin-left:6px;">⚠ Low</span>
                                        {% endif %}
                                 </td>
-                                <td style="color:var(--sub);font-size:13px;">{{ s['email'] }}</td>
+                                <td style="color:var(--text-secondary);font-size:13px;">{{ s['email'] }}</td>
                                 <td>
                                     {% if s['face_image'] %}
                                     <span class="face-yes"><i class="fas fa-check-circle"></i> Enrolled</span>
@@ -1318,48 +1369,83 @@
 
         <!-- ══ SETTINGS ══ -->
         <div class="page" id="page-settings">
-            <div class="section-card" style="max-width:580px;">
-                <div class="section-header">
-                    <div class="section-icon"><i class="fas fa-cog"></i></div>
-                    <div class="section-title-text">System Settings</div>
-                </div>
-                <div class="settings-group">
-                    <div class="settings-group-title">Notifications</div>
-                    <div class="setting-row">
-                        <div><div class="setting-label">Low Attendance Alerts</div><div class="setting-desc">Alert when any student drops below 75%</div></div>
-                        <label class="toggle-switch"><input type="checkbox" checked onchange="showToast('Low attendance alerts ' + (this.checked?'enabled':'disabled'))"><span class="toggle-slider"></span></label>
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:18px;align-items:start;">
+
+                <!-- System Settings Card -->
+                <div class="section-card" style="margin-bottom:0;">
+                    <div class="section-header">
+                        <div class="section-icon"><i class="fas fa-cog"></i></div>
+                        <div class="section-title-text">System Settings</div>
                     </div>
-                    <div class="setting-row">
-                        <div><div class="setting-label">Daily Attendance Summary</div><div class="setting-desc">Receive end-of-day summary via email</div></div>
-                        <label class="toggle-switch"><input type="checkbox" checked onchange="showToast('Daily summary ' + (this.checked?'enabled':'disabled'))"><span class="toggle-slider"></span></label>
+                    <div class="settings-group">
+                        <div class="settings-group-title">Notifications</div>
+                        <div class="setting-row">
+                            <div><div class="setting-label">Low Attendance Alerts</div><div class="setting-desc">Alert when any student drops below 75%</div></div>
+                            <label class="toggle-switch"><input type="checkbox" checked onchange="showToast('Low attendance alerts ' + (this.checked?'enabled':'disabled'))"><span class="toggle-slider"></span></label>
+                        </div>
+                        <div class="setting-row">
+                            <div><div class="setting-label">Daily Attendance Summary</div><div class="setting-desc">Receive end-of-day summary via email</div></div>
+                            <label class="toggle-switch"><input type="checkbox" checked onchange="showToast('Daily summary ' + (this.checked?'enabled':'disabled'))"><span class="toggle-slider"></span></label>
+                        </div>
                     </div>
-                </div>
-                <div class="settings-group">
-                    <div class="settings-group-title">Face Recognition</div>
-                    <div class="setting-row">
-                        <div><div class="setting-label">Auto Face Attendance</div><div class="setting-desc">Automatically mark on face detection</div></div>
-                        <label class="toggle-switch"><input type="checkbox" checked onchange="showToast('Auto face attendance ' + (this.checked?'enabled':'disabled'))"><span class="toggle-slider"></span></label>
+                    <div class="settings-group">
+                        <div class="settings-group-title">Face Recognition</div>
+                        <div class="setting-row">
+                            <div><div class="setting-label">Auto Face Attendance</div><div class="setting-desc">Automatically mark on face detection</div></div>
+                            <label class="toggle-switch"><input type="checkbox" checked onchange="showToast('Auto face attendance ' + (this.checked?'enabled':'disabled'))"><span class="toggle-slider"></span></label>
+                        </div>
+                        <div class="setting-row">
+                            <div><div class="setting-label">Confidence Threshold</div><div class="setting-desc">Require high-confidence match only</div></div>
+                            <label class="toggle-switch"><input type="checkbox" checked onchange="showToast('Confidence threshold ' + (this.checked?'enabled':'disabled'))"><span class="toggle-slider"></span></label>
+                        </div>
                     </div>
-                    <div class="setting-row">
-                        <div><div class="setting-label">Confidence Threshold</div><div class="setting-desc">Require high-confidence match only</div></div>
-                        <label class="toggle-switch"><input type="checkbox" checked onchange="showToast('Confidence threshold ' + (this.checked?'enabled':'disabled'))"><span class="toggle-slider"></span></label>
+                    <button class="btn btn-primary" onclick="showToast('Settings saved!')" style="width:100%;justify-content:center;">
+                        <i class="fas fa-save"></i> Save Settings
+                    </button>
+                </div>
+
+                <!-- Change Password Card -->
+                <div class="section-card" style="margin-bottom:0;">
+                    <div class="section-header">
+                        <div class="section-icon"><i class="fas fa-lock"></i></div>
+                        <div class="section-title-text">Change Password</div>
                     </div>
+                    <p style="font-size:13px;color:var(--sub);margin-bottom:20px;line-height:1.6;">
+                        Update your faculty account password. Use a strong password with at least 8 characters.
+                    </p>
+                    <div class="settings-group">
+                        <div class="settings-group-title">Security</div>
+                        <div class="setting-row">
+                            <div>
+                                <div class="setting-label">Password</div>
+                                <div class="setting-desc">Last changed: recently</div>
+                            </div>
+                            <button class="btn btn-primary" onclick="openPwdModal()" style="padding:8px 16px;font-size:12px;">
+                                <i class="fas fa-lock"></i> Change
+                            </button>
+                        </div>
+                        <div class="setting-row">
+                            <div>
+                                <div class="setting-label">Two-Factor Auth</div>
+                                <div class="setting-desc">Extra security for your account</div>
+                            </div>
+                            <label class="toggle-switch"><input type="checkbox" onchange="showToast('2FA ' + (this.checked?'enabled':'disabled'))"><span class="toggle-slider"></span></label>
+                        </div>
+                    </div>
+                    <button class="btn btn-primary" onclick="openPwdModal()" style="width:100%;justify-content:center;padding:12px;">
+                        <i class="fas fa-lock"></i> Change Password
+                    </button>
                 </div>
-                <div style="display:flex;gap:10px;">
-                    <button class="btn btn-primary" onclick="showToast('Settings saved!')"><i class="fas fa-save"></i> Save Settings</button>
-                    <button class="btn" onclick="openPwdModal()"><i class="fas fa-lock"></i> Change Password</button>
-                </div>
+
             </div>
         </div>
-
-    </div><!-- /content -->
-</div><!-- /main -->
 
 <script>
 // ── PAGE NAVIGATION ──────────────────────────────────────────────────
 const pageTitles = {
     dashboard: 'Welcome, {{ faculty["name"] }} 👋',
     profile:   'My Profile',
+    'change-password': 'Change Password',
     students:  'All Students',
     mark:      'Mark Attendance',
     reports:   'Reports',
@@ -1390,6 +1476,25 @@ window.addEventListener('DOMContentLoaded', function() {
     }
 });
 
+// ── DISMISS STUDENT BADGE ────────────────────────────────────────────
+function dismissStudentBadge() {
+    const badge = document.getElementById('students-badge');
+    if (badge) {
+        localStorage.setItem('studentBadgeDismissed', 'true');
+        badge.style.display = 'none';
+    }
+}
+
+// Check on page load if badge was dismissed
+document.addEventListener('DOMContentLoaded', function() {
+    if (localStorage.getItem('studentBadgeDismissed') === 'true') {
+        const badge = document.getElementById('students-badge');
+        if (badge && badge.textContent.match(/^\d+$/)) {
+            badge.style.display = 'none';
+        }
+    }
+});
+
 // ── DATE ─────────────────────────────────────────────────────────────
 const days   = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
 const months = ['January','February','March','April','May','June','July','August','September','October','November','December'];
@@ -1402,7 +1507,7 @@ let toastTimer;
 function showToast(msg, isError) {
     const t = document.getElementById('toast');
     document.getElementById('toast-msg').textContent = msg;
-    t.style.borderColor = isError ? 'var(--red)' : 'var(--accent)';
+    t.style.borderColor = isError ? 'var(--accent-red)' : 'var(--accent-blue)';
     t.classList.add('show');
     clearTimeout(toastTimer);
     toastTimer = setTimeout(() => t.classList.remove('show'), 3500);
@@ -1422,13 +1527,13 @@ function openStudentDetail(roll, name, email, standard, division, subject, phone
     document.getElementById('sd-att').textContent      = attCount + ' class' + (attCount !== 1 ? 'es' : '') + ' attended';
     const faceRow = document.getElementById('sd-face-row');
     if (faceStatus === 'yes') {
-        faceRow.style.background   = 'var(--green-bg)';
-        faceRow.style.border       = '1px solid rgba(67,233,123,0.2)';
-        faceRow.innerHTML          = '<i class="fas fa-check-circle" style="color:var(--green)"></i><span style="font-size:13px;color:var(--green);font-weight:600;">Face enrolled — ready for recognition</span>';
+        faceRow.style.background   = 'rgba(34,197,94,0.1)';
+        faceRow.style.border       = '1px solid rgba(34,197,94,0.25)';
+        faceRow.innerHTML          = '<i class="fas fa-check-circle" style="color:var(--accent-green);font-size:14px;"></i><span style="font-size:13px;color:var(--accent-green);font-weight:600;">Face enrolled — ready for recognition</span>';
     } else {
-        faceRow.style.background   = 'var(--red-bg)';
-        faceRow.style.border       = '1px solid rgba(255,107,107,0.2)';
-        faceRow.innerHTML          = '<i class="fas fa-times-circle" style="color:var(--red)"></i><span style="font-size:13px;color:var(--red);font-weight:600;">Face not enrolled — cannot use face recognition</span>';
+        faceRow.style.background   = 'rgba(239,68,68,0.1)';
+        faceRow.style.border       = '1px solid rgba(239,68,68,0.25)';
+        faceRow.innerHTML          = '<i class="fas fa-times-circle" style="color:var(--accent-red);font-size:14px;"></i><span style="font-size:13px;color:var(--accent-red);font-weight:600;">Face not enrolled — cannot use face recognition</span>';
     }
     document.getElementById('student-detail-modal').classList.add('show');
 }
@@ -1623,6 +1728,7 @@ function togglePwdModal(inputId, iconId) {
     input.type  = show ? 'text' : 'password';
     icon.className = show ? 'fas fa-eye-slash' : 'fas fa-eye';
 }
+
 function pwdModalStrength(val) {
     let score = 0;
     if (val.length >= 8)          score++;
@@ -1639,6 +1745,7 @@ function pwdModalStrength(val) {
         : '<i class="fas fa-shield-alt"></i> Add ' + (['8+ characters','an uppercase letter','a number','a symbol'][score] || 'more');
     pwdModalMatch();
 }
+
 function pwdModalMatch() {
     const nv   = document.getElementById('pwd-new').value;
     const cv   = document.getElementById('pwd-confirm').value;
@@ -1649,6 +1756,7 @@ function pwdModalMatch() {
         ? '<i class="fas fa-check-circle" style="color:#43e97b"></i> <span style="color:#43e97b">Passwords match</span>'
         : '<i class="fas fa-times-circle" style="color:#ff6b6b"></i> <span style="color:#ff6b6b">Passwords do not match</span>';
 }
+
 async function submitPwdChange(e) {
     e.preventDefault();
     const oldPwd  = document.getElementById('pwd-old').value;
@@ -1696,6 +1804,82 @@ async function submitPwdChange(e) {
     }
 }
 
+// ── CHANGE PASSWORD PAGE ──────────────────────────────────────────────
+function pwdModalStrengthPage(val) {
+    let score = 0;
+    if (val.length >= 8)          score++;
+    if (/[A-Z]/.test(val))        score++;
+    if (/[0-9]/.test(val))        score++;
+    if (/[^A-Za-z0-9]/.test(val)) score++;
+    const fill   = document.getElementById('pwd-meter-fill-page');
+    const hint   = document.getElementById('pwd-strength-hint-page');
+    const colors = ['#ff6b6b','#f59e0b','#6c63ff','#22c55e'];
+    fill.style.width      = (score / 4 * 100) + '%';
+    fill.style.background = colors[score - 1] || 'rgba(0,212,170,0.1)';
+    hint.innerHTML = score === 4
+        ? '<i class="fas fa-check-circle" style="color:#22c55e"></i> <span style="color:#22c55e">Strong password</span>'
+        : '<i class="fas fa-shield-alt"></i> Add ' + (['8+ characters','an uppercase letter','a number','a symbol'][score] || 'more');
+    pwdModalMatchPage();
+}
+
+function pwdModalMatchPage() {
+    const nv   = document.getElementById('pwd-new-page').value;
+    const cv   = document.getElementById('pwd-confirm-page').value;
+    const hint = document.getElementById('pwd-match-hint-page');
+    if (!cv) { hint.style.display = 'none'; return; }
+    hint.style.display = 'flex';
+    hint.innerHTML = nv === cv
+        ? '<i class="fas fa-check-circle" style="color:#22c55e"></i> <span style="color:#22c55e">Passwords match</span>'
+        : '<i class="fas fa-times-circle" style="color:#ef4444"></i> <span style="color:#ef4444">Passwords do not match</span>';
+}
+
+async function submitPwdChangePage(e) {
+    e.preventDefault();
+    const oldPwd  = document.getElementById('pwd-old-page').value;
+    const newPwd  = document.getElementById('pwd-new-page').value;
+    const confPwd = document.getElementById('pwd-confirm-page').value;
+    const errBox  = document.getElementById('pwd-error-page');
+    const errMsg  = document.getElementById('pwd-error-msg-page');
+    const sucBox  = document.getElementById('pwd-success-page');
+    errBox.style.display = 'none'; sucBox.style.display = 'none';
+    if (newPwd.length < 8)  { errMsg.textContent = 'New password must be at least 8 characters.'; errBox.style.display = 'flex'; return; }
+    if (newPwd !== confPwd) { errMsg.textContent = 'New passwords do not match.'; errBox.style.display = 'flex'; return; }
+    if (oldPwd === newPwd)  { errMsg.textContent = 'New password must differ from current.'; errBox.style.display = 'flex'; return; }
+    const btn = document.getElementById('pwd-submit-btn-page');
+    btn.disabled = true;
+    document.getElementById('pwd-spinner-page').style.display = 'block';
+    document.getElementById('pwd-submit-icon-page').style.display = 'none';
+    document.getElementById('pwd-submit-text-page').textContent = 'Updating…';
+    try {
+        const fd = new FormData();
+        fd.append('old_password', oldPwd);
+        fd.append('new_password', newPwd);
+        fd.append('_csrf', CSRF_TOKEN);
+        const res  = await fetch('/change-password', { method: 'POST', body: fd });
+        const html = await res.text();
+        if (html.includes('incorrect') || html.includes('error')) {
+            errMsg.textContent = 'Current password is incorrect.';
+            errBox.style.display = 'flex';
+            btn.disabled = false;
+            document.getElementById('pwd-spinner-page').style.display = 'none';
+            document.getElementById('pwd-submit-icon-page').style.display = 'inline';
+            document.getElementById('pwd-submit-text-page').textContent = 'Update Password';
+        } else {
+            document.getElementById('pwd-success-msg-page').textContent = 'Password changed successfully!';
+            sucBox.style.display = 'flex';
+            showToast('Password updated!');
+            document.getElementById('pwd-form-page').reset();
+        }
+    } catch (err) {
+        errMsg.textContent = 'Network error. Please try again.';
+        errBox.style.display = 'flex';
+        btn.disabled = false;
+        document.getElementById('pwd-spinner-page').style.display = 'none';
+        document.getElementById('pwd-submit-icon-page').style.display = 'inline';
+        document.getElementById('pwd-submit-text-page').textContent = 'Update Password';
+    }
+}
+
 // ── UPLOAD IMAGE ATTENDANCE ───────────────────────────────────────────
 let _uploadPendingAttendance = null;
 let _uploadImageData         = null;
@@ -1736,7 +1920,6 @@ function processUploadFile(file) {
         document.getElementById('upload-dropzone').style.display      = 'none';
         document.getElementById('upload-detect-btn').disabled         = false;
         document.getElementById('upload-file-name').textContent       = file.name;
-        // Reset previous results
         uploadResetResults();
     };
     reader.readAsDataURL(file);
@@ -1789,13 +1972,11 @@ async function uploadDetect() {
             return;
         }
 
-        // Show annotated image
         if (data.annotated_image) {
             document.getElementById('upload-annotated-preview').src              = data.annotated_image;
             document.getElementById('upload-detection-preview-wrap').style.display = 'block';
         }
 
-        // Populate present / absent lists
         const presentList = document.getElementById('upload-present-list');
         const absentList  = document.getElementById('upload-absent-list');
         (data.present_students || []).forEach(function(s) {
@@ -1812,7 +1993,6 @@ async function uploadDetect() {
         });
         document.getElementById('upload-results').style.display = 'block';
 
-        // Confirm bar summary
         const pc = (data.present_students || []).length;
         const tf = data.faces_detected || 0;
         document.getElementById('upload-confirm-summary').textContent =
@@ -1870,6 +2050,7 @@ async function uploadConfirm() {
         btn.innerHTML = '<i class="fas fa-check-circle"></i> Confirm Attendance';
     }
 }
+
 // Animated counters on page load
 function animateCounter(el, target, duration) {
     let start = 0;
@@ -1938,8 +2119,8 @@ function renderFacultyTimetableGrid() {
         return;
     }
 
-    const inputStyle = `background:var(--bg-card2);border:1px solid var(--border-mid);
-        border-radius:7px;padding:7px 10px;font-size:13px;color:var(--text);
+    const inputStyle = `background:var(--bg-card);border:1px solid var(--border);
+        border-radius:7px;padding:7px 10px;font-size:13px;color:var(--text-primary);
         outline:none;width:100%;font-family:inherit;height:36px;`;
 
     const dayOrder = ['Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
@@ -1961,29 +2142,29 @@ function renderFacultyTimetableGrid() {
         periods.sort((a, b) => (a.period || 0) - (b.period || 0));
 
         html += `
-        <div style="margin-bottom:20px;background:var(--bg-card2);
-                    border:1px solid var(--border-mid);border-radius:12px;overflow:hidden;">
-            <div style="padding:10px 16px;background:rgba(0,212,170,0.08);
-                        border-bottom:1px solid var(--border-mid);
+        <div style="margin-bottom:20px;background:var(--bg-card);
+                    border:1px solid var(--border);border-radius:12px;overflow:hidden;">
+            <div style="padding:10px 16px;background:rgba(99,102,241,0.08);
+                        border-bottom:1px solid var(--border);
                         display:flex;align-items:center;gap:8px;">
-                <i class="fas fa-calendar-day" style="color:var(--accent);font-size:13px;"></i>
-                <span style="font-size:13px;font-weight:700;color:var(--accent);">${day}</span>
-                <span style="font-size:11px;color:var(--sub);">
+                <i class="fas fa-calendar-day" style="color:var(--accent-blue);font-size:13px;"></i>
+                <span style="font-size:13px;font-weight:700;color:var(--accent-blue);">${day}</span>
+                <span style="font-size:11px;color:var(--text-secondary);">
                     — ${periods.length} period${periods.length !== 1 ? 's' : ''}
                 </span>
             </div>
             <table style="width:100%;border-collapse:collapse;font-size:13px;">
                 <thead>
                     <tr style="border-bottom:1px solid var(--border);">
-                        <th style="padding:8px 14px;text-align:left;color:var(--muted);
+                        <th style="padding:8px 14px;text-align:left;color:var(--text-muted);
                             font-size:10.5px;text-transform:uppercase;letter-spacing:.8px;
                             width:80px;">Period</th>
-                        <th style="padding:8px 14px;text-align:left;color:var(--muted);
+                        <th style="padding:8px 14px;text-align:left;color:var(--text-muted);
                             font-size:10.5px;text-transform:uppercase;letter-spacing:.8px;">Subject</th>
-                        <th style="padding:8px 14px;text-align:left;color:var(--muted);
+                        <th style="padding:8px 14px;text-align:left;color:var(--text-muted);
                             font-size:10.5px;text-transform:uppercase;letter-spacing:.8px;
                             width:120px;">Start</th>
-                        <th style="padding:8px 14px;text-align:left;color:var(--muted);
+                        <th style="padding:8px 14px;text-align:left;color:var(--text-muted);
                             font-size:10.5px;text-transform:uppercase;letter-spacing:.8px;
                             width:120px;">End</th>
                         <th style="padding:8px 14px;width:50px;"></th>
@@ -2020,7 +2201,7 @@ function renderFacultyTimetableGrid() {
                     </td>
                     <td style="padding:8px 14px;text-align:center;">
                         <button onclick="ftRemove(${i})"
-                                style="background:none;border:none;color:var(--red);
+                                style="background:none;border:none;color:var(--accent-red);
                                        cursor:pointer;font-size:14px;padding:4px;">
                             <i class="fas fa-trash"></i>
                         </button>
@@ -2058,7 +2239,6 @@ function autoFillTimetable() {
     const standard = document.getElementById('tt-standard').value;
     if (!standard) { showToast('Please select a standard first.', true); return; }
 
-    // Fetch subjects for this standard then auto-fill
     fetch(`/api/subjects-by-standard/${standard}`)
     .then(r => r.json())
     .then(data => {
@@ -2077,7 +2257,7 @@ function autoFillTimetable() {
 
         FT_DAYS.forEach(day => {
             subjects.forEach((subj, idx) => {
-                if (idx >= 8) return; // max 8 periods
+                if (idx >= 8) return;
                 const t = times[idx] || ['', ''];
                 ftEntries.push({
                     day:        day,
@@ -2126,7 +2306,6 @@ async function saveFacultyTimetable() {
 
 // ── THEME TOGGLE ──
 function showProfileFromHeader() {
-    // Show profile page directly
     document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
     document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
     
@@ -2135,13 +2314,6 @@ function showProfileFromHeader() {
     
     document.getElementById('page-heading').textContent = 'My Profile';
     document.getElementById('sidebar').classList.remove('open');
-}
-
-// ── VIEW STUDENT DETAILS ──
-function viewStudentDetails(roll, name, faceImage) {
-    // Create a temporary student details modal or navigate to a details page
-    alert(`Student: ${name}\nRoll: ${roll}\nFace: ${faceImage ? 'Enrolled' : 'Not enrolled'}`);
-    // TODO: Replace with actual modal/page showing full student details with face image
 }
 
 function toggleTheme() {
@@ -2159,7 +2331,6 @@ function toggleTheme() {
     }
 }
 
-// Initialize theme on page load
 document.addEventListener('DOMContentLoaded', function() {
     const savedTheme = localStorage.getItem('theme') || 'dark';
     const themeIcon = document.getElementById('theme-icon');

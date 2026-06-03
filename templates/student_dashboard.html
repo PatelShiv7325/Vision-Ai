@@ -551,6 +551,8 @@
             animation: scan 2s linear infinite;
         }
         @keyframes scan { 0% { top: 0; } 100% { top: 100%; } }
+        @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+        
         .face-title { font-size: 18px; font-weight: 700; margin-bottom: 8px; }
         .face-desc  { font-size: 13px; color: var(--text-secondary); max-width: 360px; margin-bottom: 24px; }
 
@@ -711,26 +713,41 @@ body.light-mode .nav-item.active .nav-icon {
 <body>
 
 <!-- ── CHANGE PASSWORD MODAL ── -->
+<!-- ── CHANGE PASSWORD MODAL ── -->
 <div class="modal-overlay" id="pwd-modal" style="z-index:300;">
-    <div class="modal-box" style="width:480px;text-align:left;padding:36px;position:relative;">
-
+    <div class="modal-box" style="width:460px;text-align:left;padding:32px;position:relative;">
         <button onclick="closePwdModal()"
-                style="position:absolute;top:14px;right:14px;background:none;border:none;color:var(--text-secondary);font-size:1.1rem;cursor:pointer;padding:4px 8px;border-radius:6px;transition:color 0.2s;"
+                style="position:absolute;top:14px;right:14px;background:none;border:none;
+                       color:var(--text-secondary);font-size:1.1rem;cursor:pointer;
+                       padding:4px 8px;border-radius:6px;"
                 onmouseover="this.style.color='var(--accent-blue)'"
                 onmouseout="this.style.color='var(--text-secondary)'">
             <i class="fas fa-times"></i>
         </button>
 
-        <div style="width:56px;height:56px;border-radius:16px;background:linear-gradient(135deg,var(--accent-blue),#8b5cf6);display:flex;align-items:center;justify-content:center;font-size:22px;margin-bottom:16px;box-shadow:0 0 20px rgba(99,102,241,0.35);">🔐</div>
+        <!-- Icon -->
+        <div style="width:52px;height:52px;border-radius:14px;
+                    background:linear-gradient(135deg,var(--accent-blue),#8b5cf6);
+                    display:flex;align-items:center;justify-content:center;
+                    font-size:22px;margin-bottom:16px;">🔐</div>
 
-        <div style="font-size:22px;font-weight:700;letter-spacing:-0.02em;margin-bottom:5px;color:var(--text-primary);">Change Password</div>
-        <p style="font-size:13px;color:var(--text-secondary);margin-bottom:26px;">Enter your current password, then set a new one.</p>
+        <div style="font-size:20px;font-weight:700;margin-bottom:4px;">Change Password</div>
+        <p style="font-size:13px;color:var(--text-secondary);margin-bottom:24px;">
+            Enter your current password, then set a new one.
+        </p>
 
-        <div id="pwd-err"  style="display:none;background:rgba(239,68,68,0.1);border:1px solid rgba(239,68,68,0.25);border-radius:10px;padding:11px 14px;font-size:13px;color:var(--accent-red);align-items:center;gap:8px;margin-bottom:16px;">
-            <i class="fas fa-exclamation-circle"></i><span id="pwd-err-msg" style="margin-left:4px;"></span>
+        <!-- Alerts -->
+        <div id="pwd-err" style="display:none;background:rgba(239,68,68,0.1);
+             border:1px solid rgba(239,68,68,0.25);border-radius:9px;
+             padding:11px 14px;font-size:13px;color:var(--accent-red);
+             align-items:center;gap:8px;margin-bottom:16px;">
+            <i class="fas fa-exclamation-circle"></i><span id="pwd-err-msg"></span>
         </div>
-        <div id="pwd-succ" style="display:none;background:rgba(34,197,94,0.1);border:1px solid rgba(34,197,94,0.25);border-radius:10px;padding:11px 14px;font-size:13px;color:var(--accent-green);align-items:center;gap:8px;margin-bottom:16px;">
-            <i class="fas fa-check-circle"></i><span id="pwd-succ-msg" style="margin-left:4px;"></span>
+        <div id="pwd-succ" style="display:none;background:rgba(34,197,94,0.1);
+             border:1px solid rgba(34,197,94,0.25);border-radius:9px;
+             padding:11px 14px;font-size:13px;color:var(--accent-green);
+             align-items:center;gap:8px;margin-bottom:16px;">
+            <i class="fas fa-check-circle"></i><span id="pwd-succ-msg"></span>
         </div>
 
         <form id="pwd-change-form" onsubmit="submitPwdChange(event)">
@@ -738,73 +755,119 @@ body.light-mode .nav-item.active .nav-icon {
 
             <!-- Current Password -->
             <div style="margin-bottom:16px;">
-                <label style="font-size:11px;font-weight:700;color:var(--text-secondary);text-transform:uppercase;letter-spacing:0.7px;display:block;margin-bottom:7px;">Current Password</label>
+                <label style="font-size:11px;font-weight:700;color:var(--text-secondary);
+                              text-transform:uppercase;letter-spacing:0.6px;
+                              display:flex;align-items:center;gap:4px;margin-bottom:7px;">
+                    Current Password
+                    <span style="color:var(--accent-red);font-size:13px;">*</span>
+                </label>
                 <div style="position:relative;">
-                    <i class="fas fa-lock" style="position:absolute;left:14px;top:50%;transform:translateY(-50%);color:var(--text-muted);font-size:13px;pointer-events:none;"></i>
-                    <input type="password" id="pwd-old" placeholder="Enter current password" required
-                           style="width:100%;background:var(--bg-card);border:1.5px solid var(--border);border-radius:11px;padding:12px 44px 12px 42px;font-size:14px;font-family:'Inter',sans-serif;color:var(--text-primary);outline:none;transition:border-color 0.2s;height:48px;"
-                           onfocus="this.style.borderColor='var(--accent-blue)';this.style.boxShadow='0 0 0 3px rgba(99,102,241,0.12)'"
-                           onblur="this.style.borderColor='var(--border)';this.style.boxShadow='none'">
+                    <i class="fas fa-lock"
+                       style="position:absolute;left:13px;top:50%;transform:translateY(-50%);
+                              color:var(--text-muted);font-size:13px;pointer-events:none;"></i>
+                    <input type="password" id="pwd-old"
+                           placeholder="Enter current password" required
+                           style="width:100%;background:var(--bg-input);
+                                  border:1.5px solid var(--border);border-radius:10px;
+                                  padding:11px 42px 11px 40px;font-size:14px;
+                                  font-family:'Inter',sans-serif;color:var(--text-primary);
+                                  outline:none;transition:border-color 0.2s;"
+                           onfocus="this.style.borderColor='var(--accent-blue)'"
+                           onblur="this.style.borderColor='var(--border)'">
                     <button type="button" onclick="togglePwdEye('pwd-old','eye-old')"
-                            style="position:absolute;right:13px;top:50%;transform:translateY(-50%);background:none;border:none;color:var(--text-muted);cursor:pointer;font-size:14px;padding:3px;transition:color 0.2s;"
-                            onmouseover="this.style.color='var(--accent-blue)'"
-                            onmouseout="this.style.color='var(--text-muted)'">
+                            style="position:absolute;right:12px;top:50%;transform:translateY(-50%);
+                                   background:none;border:none;color:var(--text-muted);
+                                   cursor:pointer;font-size:13px;padding:3px;">
                         <i class="fas fa-eye" id="eye-old"></i>
                     </button>
                 </div>
             </div>
 
-            <div style="height:1px;background:var(--border);margin:18px 0;"></div>
-
             <!-- New Password -->
             <div style="margin-bottom:16px;">
-                <label style="font-size:11px;font-weight:700;color:var(--text-secondary);text-transform:uppercase;letter-spacing:0.7px;display:block;margin-bottom:7px;">New Password</label>
+                <label style="font-size:11px;font-weight:700;color:var(--text-secondary);
+                              text-transform:uppercase;letter-spacing:0.6px;
+                              display:flex;align-items:center;gap:4px;margin-bottom:7px;">
+                    New Password
+                    <span style="color:var(--accent-red);font-size:13px;">*</span>
+                </label>
                 <div style="position:relative;">
-                    <i class="fas fa-key" style="position:absolute;left:14px;top:50%;transform:translateY(-50%);color:var(--text-muted);font-size:13px;pointer-events:none;"></i>
-                    <input type="password" id="pwd-new" placeholder="Create new password" required
-                           style="width:100%;background:var(--bg-card);border:1.5px solid var(--border);border-radius:11px;padding:12px 44px 12px 42px;font-size:14px;font-family:'Inter',sans-serif;color:var(--text-primary);outline:none;transition:border-color 0.2s;height:48px;"
-                           onfocus="this.style.borderColor='var(--accent-blue)';this.style.boxShadow='0 0 0 3px rgba(99,102,241,0.12)'"
-                           onblur="this.style.borderColor='var(--border)';this.style.boxShadow='none'"
+                    <i class="fas fa-key"
+                       style="position:absolute;left:13px;top:50%;transform:translateY(-50%);
+                              color:var(--text-muted);font-size:13px;pointer-events:none;"></i>
+                    <input type="password" id="pwd-new"
+                           placeholder="Create new password" required
+                           style="width:100%;background:var(--bg-input);
+                                  border:1.5px solid var(--border);border-radius:10px;
+                                  padding:11px 42px 11px 40px;font-size:14px;
+                                  font-family:'Inter',sans-serif;color:var(--text-primary);
+                                  outline:none;transition:border-color 0.2s;"
+                           onfocus="this.style.borderColor='var(--accent-blue)'"
+                           onblur="this.style.borderColor='var(--border)'"
                            oninput="pwdStrength(this.value);pwdMatch()">
                     <button type="button" onclick="togglePwdEye('pwd-new','eye-new')"
-                            style="position:absolute;right:13px;top:50%;transform:translateY(-50%);background:none;border:none;color:var(--text-muted);cursor:pointer;font-size:14px;padding:3px;transition:color 0.2s;"
-                            onmouseover="this.style.color='var(--accent-blue)'"
-                            onmouseout="this.style.color='var(--text-muted)'">
+                            style="position:absolute;right:12px;top:50%;transform:translateY(-50%);
+                                   background:none;border:none;color:var(--text-muted);
+                                   cursor:pointer;font-size:13px;padding:3px;">
                         <i class="fas fa-eye" id="eye-new"></i>
                     </button>
                 </div>
-                <div style="height:3px;border-radius:2px;background:var(--border);margin-top:8px;overflow:hidden;">
-                    <div id="pwd-strength-bar" style="height:100%;border-radius:2px;width:0%;transition:width 0.3s,background 0.3s;"></div>
+                <!-- Strength bar -->
+                <div style="height:3px;border-radius:2px;background:var(--border);
+                            margin-top:8px;overflow:hidden;">
+                    <div id="pwd-strength-bar"
+                         style="height:100%;border-radius:2px;width:0%;
+                                transition:width 0.3s,background 0.3s;"></div>
                 </div>
-                <div id="pwd-strength-hint" style="font-size:12px;color:var(--text-secondary);margin-top:5px;display:flex;align-items:center;gap:5px;">
+                <div id="pwd-strength-hint"
+                     style="font-size:12px;color:var(--text-secondary);
+                            margin-top:5px;display:flex;align-items:center;gap:5px;">
                     <i class="fas fa-shield-alt"></i> Min 8 characters
                 </div>
             </div>
 
             <!-- Confirm Password -->
             <div style="margin-bottom:24px;">
-                <label style="font-size:11px;font-weight:700;color:var(--text-secondary);text-transform:uppercase;letter-spacing:0.7px;display:block;margin-bottom:7px;">Confirm New Password</label>
+                <label style="font-size:11px;font-weight:700;color:var(--text-secondary);
+                              text-transform:uppercase;letter-spacing:0.6px;
+                              display:flex;align-items:center;gap:4px;margin-bottom:7px;">
+                    Confirm New Password
+                    <span style="color:var(--accent-red);font-size:13px;">*</span>
+                </label>
                 <div style="position:relative;">
-                    <i class="fas fa-check-double" style="position:absolute;left:14px;top:50%;transform:translateY(-50%);color:var(--text-muted);font-size:13px;pointer-events:none;"></i>
-                    <input type="password" id="pwd-conf" placeholder="Repeat new password" required
-                           style="width:100%;background:var(--bg-card);border:1.5px solid var(--border);border-radius:11px;padding:12px 44px 12px 42px;font-size:14px;font-family:'Inter',sans-serif;color:var(--text-primary);outline:none;transition:border-color 0.2s;height:48px;"
-                           onfocus="this.style.borderColor='var(--accent-blue)';this.style.boxShadow='0 0 0 3px rgba(99,102,241,0.12)'"
-                           onblur="this.style.borderColor='var(--border)';this.style.boxShadow='none'"
+                    <i class="fas fa-check-double"
+                       style="position:absolute;left:13px;top:50%;transform:translateY(-50%);
+                              color:var(--text-muted);font-size:13px;pointer-events:none;"></i>
+                    <input type="password" id="pwd-conf"
+                           placeholder="Repeat new password" required
+                           style="width:100%;background:var(--bg-input);
+                                  border:1.5px solid var(--border);border-radius:10px;
+                                  padding:11px 42px 11px 40px;font-size:14px;
+                                  font-family:'Inter',sans-serif;color:var(--text-primary);
+                                  outline:none;transition:border-color 0.2s;"
+                           onfocus="this.style.borderColor='var(--accent-blue)'"
+                           onblur="this.style.borderColor='var(--border)'"
                            oninput="pwdMatch()">
                     <button type="button" onclick="togglePwdEye('pwd-conf','eye-conf')"
-                            style="position:absolute;right:13px;top:50%;transform:translateY(-50%);background:none;border:none;color:var(--text-muted);cursor:pointer;font-size:14px;padding:3px;transition:color 0.2s;"
-                            onmouseover="this.style.color='var(--accent-blue)'"
-                            onmouseout="this.style.color='var(--text-muted)'">
+                            style="position:absolute;right:12px;top:50%;transform:translateY(-50%);
+                                   background:none;border:none;color:var(--text-muted);
+                                   cursor:pointer;font-size:13px;padding:3px;">
                         <i class="fas fa-eye" id="eye-conf"></i>
                     </button>
                 </div>
-                <div id="pwd-match-hint" style="font-size:12px;margin-top:5px;display:none;align-items:center;gap:5px;"></div>
+                <div id="pwd-match-hint"
+                     style="font-size:12px;margin-top:5px;display:none;
+                            align-items:center;gap:5px;"></div>
             </div>
 
-            <!-- Submit Button -->
+            <!-- Submit -->
             <button type="submit" id="pwd-submit-btn" class="btn btn-primary"
-                    style="width:100%;justify-content:center;padding:14px;font-size:15px;font-weight:700;border-radius:12px;box-shadow:0 4px 18px rgba(99,102,241,0.35);">
-                <div id="pwd-submit-spinner" style="display:none;width:16px;height:16px;border:2px solid rgba(255,255,255,0.3);border-top-color:#fff;border-radius:50%;animation:spin 0.7s linear infinite;margin-right:6px;"></div>
+                    style="width:100%;justify-content:center;padding:13px;font-size:14px;">
+                <div id="pwd-submit-spinner"
+                     style="display:none;width:15px;height:15px;
+                            border:2px solid rgba(255,255,255,0.3);
+                            border-top-color:#fff;border-radius:50%;
+                            animation:spin 0.7s linear infinite;margin-right:6px;"></div>
                 <i class="fas fa-save" id="pwd-submit-icon"></i>
                 <span id="pwd-submit-text" style="margin-left:6px;">Update Password</span>
             </button>
@@ -845,9 +908,7 @@ body.light-mode .nav-item.active .nav-icon {
         Dashboard
     </button>
 
-
-
-    <button class="nav-item" onclick="showPage('attendance', this)">
+    <button class="nav-item" onclick="showPage('attendance', this); markAttendanceRead()">
         <div class="nav-icon"><i class="fas fa-calendar-check"></i></div>
         Attendance
         <span class="nav-badge" id="attendance-badge">{{ attendance|length if attendance else 0 }}</span>
@@ -1245,7 +1306,7 @@ body.light-mode .nav-item.active .nav-icon {
                             <div class="report-date">April 2026 · PDF</div>
                         </div>
                     </div>
-                    <button class="btn" onclick="showToast('Monthly report downloaded!')"><i class="fas fa-download"></i> Download</button>
+                    <button class="btn" onclick="downloadMonthlyReport()"><i class="fas fa-download"></i> Download</button>
                 </div>
                 <div class="report-row">
                     <div class="report-left">
@@ -1255,7 +1316,7 @@ body.light-mode .nav-item.active .nav-icon {
                             <div class="report-date">Semester 2026 · Excel</div>
                         </div>
                     </div>
-                    <button class="btn" onclick="showToast('Subject report downloaded!')"><i class="fas fa-download"></i> Download</button>
+                    <button class="btn" onclick="downloadSubjectWiseReport()"><i class="fas fa-download"></i> Download</button>
                 </div>
                 <div class="report-row">
                     <div class="report-left">
@@ -1265,7 +1326,7 @@ body.light-mode .nav-item.active .nav-icon {
                             <div class="report-date">Semester 2026 · PDF</div>
                         </div>
                     </div>
-                    <button class="btn" onclick="showToast('Performance report downloaded!')"><i class="fas fa-download"></i> Download</button>
+                    <button class="btn" onclick="downloadPerformanceReport()"><i class="fas fa-download"></i> Download</button>
                 </div>
                 <div class="report-row">
                     <div class="report-left">
@@ -1275,7 +1336,7 @@ body.light-mode .nav-item.active .nav-icon {
                             <div class="report-date">Current Semester · PDF</div>
                         </div>
                     </div>
-                    <button class="btn" onclick="showToast('Alert report downloaded!')"><i class="fas fa-download"></i> Download</button>
+                    <button class="btn" onclick="downloadLowAttendanceReport()"><i class="fas fa-download"></i> Download</button>
                 </div>
             </div>
         </div>
@@ -1403,8 +1464,10 @@ body.light-mode .nav-item.active .nav-icon {
                                style="accent-color:var(--accent-blue);width:16px;height:16px;">
                         Send me an email alert when attendance drops below target
                     </label>
-                    <button class="btn btn-primary" onclick="saveGoal()">
-                        <i class="fas fa-save"></i> Save Goal
+                    <button class="btn btn-primary" id="save-goal-btn" onclick="saveGoal()" style="position:relative;">
+                        <div id="save-goal-spinner" style="display:none;width:16px;height:16px;border:2px solid rgba(255,255,255,0.3);border-top-color:#fff;border-radius:50%;animation:spin 0.7s linear infinite;margin-right:6px;"></div>
+                        <i class="fas fa-save" id="save-goal-icon"></i>
+                        <span id="save-goal-text" style="margin-left:6px;">Save Goal</span>
                     </button>
                     <div id="goal-save-msg" style="display:none;margin-top:10px;font-size:13px;
                          color:var(--accent-green);font-weight:600;">
@@ -1522,7 +1585,7 @@ body.light-mode .nav-item.active .nav-icon {
                             <div class="setting-desc">Get notified when attendance drops below 75%</div>
                         </div>
                         <label class="toggle-switch">
-                            <input type="checkbox" checked onchange="showToast('Attendance alerts ' + (this.checked ? 'enabled' : 'disabled'))">
+                            <input type="checkbox" id="attendance-alerts-toggle" checked>
                             <span class="toggle-slider"></span>
                         </label>
                     </div>
@@ -1532,7 +1595,7 @@ body.light-mode .nav-item.active .nav-icon {
                             <div class="setting-desc">Reminder 15 minutes before each class</div>
                         </div>
                         <label class="toggle-switch">
-                            <input type="checkbox" onchange="showToast('Class reminders ' + (this.checked ? 'enabled' : 'disabled'))">
+                            <input type="checkbox" id="class-reminders-toggle">
                             <span class="toggle-slider"></span>
                         </label>
                     </div>
@@ -1542,7 +1605,7 @@ body.light-mode .nav-item.active .nav-icon {
                             <div class="setting-desc">Receive weekly attendance report via email</div>
                         </div>
                         <label class="toggle-switch">
-                            <input type="checkbox" checked onchange="showToast('Email reports ' + (this.checked ? 'enabled' : 'disabled'))">
+                            <input type="checkbox" id="email-reports-toggle" checked>
                             <span class="toggle-slider"></span>
                         </label>
                     </div>
@@ -1556,7 +1619,7 @@ body.light-mode .nav-item.active .nav-icon {
                             <div class="setting-desc">Allow Vision AI to mark attendance via face scan</div>
                         </div>
                         <label class="toggle-switch">
-                            <input type="checkbox" checked onchange="showToast('Face recognition ' + (this.checked ? 'enabled' : 'disabled'))">
+                            <input type="checkbox" id="face-recognition-toggle" checked>
                             <span class="toggle-slider"></span>
                         </label>
                     </div>
@@ -1566,15 +1629,15 @@ body.light-mode .nav-item.active .nav-icon {
                             <div class="setting-desc">Show your profile to classmates</div>
                         </div>
                         <label class="toggle-switch">
-                            <input type="checkbox" onchange="showToast('Profile visibility ' + (this.checked ? 'enabled' : 'disabled'))">
+                            <input type="checkbox" id="profile-visibility-toggle">
                             <span class="toggle-slider"></span>
                         </label>
                     </div>
                 </div>
 
                 <div style="display:flex;gap:10px;margin-top:8px;">
-                    <a href="/change-password" class="btn"><i class="fas fa-lock"></i> Change Password</a>
-                    <button class="btn" onclick="showToast('Settings saved successfully!')"><i class="fas fa-save"></i> Save Settings</button>
+                    <button class="btn" onclick="openChangePwdModal()"><i class="fas fa-lock"></i> Change Password</button>
+                    <button class="btn" id="settings-save-btn" onclick="saveSettingsChanges()"><i class="fas fa-save"></i> Save Settings</button>
                 </div>
             </div>
         </div>
@@ -1762,7 +1825,7 @@ document.addEventListener('DOMContentLoaded', function () {
     if (saved === 'light') {
         document.body.classList.add('light-mode');
         const icon = document.getElementById('theme-icon');
-        if (icon) icon.className = 'fas fa-moon';
+        if (icon) icon.className = 'fas fa-sun';
     }
 
     const hash = window.location.hash.replace('#', '');
@@ -1782,20 +1845,8 @@ function toggleTheme() {
     const body = document.body;
     const icon = document.getElementById('theme-icon');
     const isLight = body.classList.toggle('light-mode');
-    if (icon) icon.className = isLight ? 'fas fa-moon' : 'fas fa-sun';
+    if (icon) icon.className = isLight ? 'fas fa-sun' : 'fas fa-moon';
     localStorage.setItem('student_theme', isLight ? 'light' : 'dark');
-}
-
-// ── DOWNLOAD REPORT ──
-function downloadReport() {
-    showToast('Generating report... Download will start shortly.');
-}
-
-// ── VIEW ALL RECORDS ──
-function viewAllRecords() {
-    const attendanceBtn = document.querySelectorAll('.nav-item')[2];
-    showPage('attendance', attendanceBtn);
-    showToast('Showing all attendance records.');
 }
 
 // ── LOGOUT MODAL ──
@@ -2072,36 +2123,399 @@ async function saveTimetable() {
     } catch(e) { showToast('Network error. Could not save timetable.'); }
 }
 
-// ── ATTENDANCE GOAL ──
+// ──────────────────────────────────────────────────────────────────
+// ALL NEW & UPDATED FUNCTIONS (from JavaScript file)
+// ──────────────────────────────────────────────────────────────────
+
+// 1. OPEN CHANGE PASSWORD MODAL
+function openChangePwdModal() {
+    const modal = document.getElementById('pwd-modal');
+    if (modal) {
+        modal.classList.add('show');
+        document.getElementById('pwd-old').value = '';
+        document.getElementById('pwd-new').value = '';
+        document.getElementById('pwd-conf').value = '';
+        document.getElementById('pwd-err').style.display = 'none';
+        document.getElementById('pwd-succ').style.display = 'none';
+    }
+}
+
+function closePwdModal() {
+    const modal = document.getElementById('pwd-modal');
+    if (modal) {
+        modal.classList.remove('show');
+    }
+}
+
+document.addEventListener('DOMContentLoaded', function() {
+    const pwdModal = document.getElementById('pwd-modal');
+    if (pwdModal) {
+        pwdModal.addEventListener('click', function(e) {
+            if (e.target === pwdModal) {
+                closePwdModal();
+            }
+        });
+    }
+});
+
+// 2. SAVE GOAL WITH LOADING SPINNER
 async function saveGoal() {
-    const csrfToken  = document.querySelector('meta[name="csrf-token"]').getAttribute('content');
+    const csrfToken = document.querySelector('meta[name="csrf-token"]').getAttribute('content');
     const target_pct = parseInt(document.getElementById('goal-slider').value);
     const alert_email = document.getElementById('alert-email-cb').checked;
+    
     const btn = document.getElementById('save-goal-btn');
+    const icon = document.getElementById('save-goal-icon');
+    const text = document.getElementById('save-goal-text');
+    const spinner = document.getElementById('save-goal-spinner');
+    
     btn.disabled = true;
-    document.getElementById('save-goal-icon').style.display    = 'none';
-    document.getElementById('save-goal-text').textContent      = 'Saving…';
-    document.getElementById('save-goal-spinner').style.display = 'inline-block';
+    icon.style.display = 'none';
+    text.textContent = 'Saving...';
+    spinner.style.display = 'inline-block';
+    
     try {
-        const res  = await fetch('/api/attendance-goal/save', { method: 'POST', headers: { 'Content-Type': 'application/json', 'X-CSRF-Token': csrfToken }, body: JSON.stringify({ target_pct, alert_email }) });
+        const res = await fetch('/api/attendance-goal/save', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRF-Token': csrfToken
+            },
+            body: JSON.stringify({ target_pct, alert_email })
+        });
+        
         const data = await res.json();
-        const msg  = document.getElementById('goal-save-msg');
+        const msg = document.getElementById('goal-save-msg');
+        
         if (data.success) {
-            msg.style.display = 'flex'; msg.innerHTML = '<i class="fas fa-check-circle"></i> Goal saved!'; msg.style.color = 'var(--accent-green)';
+            msg.style.display = 'flex';
+            msg.innerHTML = '<i class="fas fa-check-circle"></i> Goal saved!';
+            msg.style.color = 'var(--accent-green)';
             showToast('Goal saved! Page will refresh to update tracker.');
-            setTimeout(() => location.reload(), 2000);
+            
+            setTimeout(() => {
+                location.reload();
+            }, 1500);
         } else {
-            msg.style.display = 'flex'; msg.innerHTML = '<i class="fas fa-times-circle"></i> ' + (data.error || 'Error saving.'); msg.style.color = 'var(--accent-red)';
+            msg.style.display = 'flex';
+            msg.innerHTML = '<i class="fas fa-times-circle"></i> ' + (data.error || 'Error saving.');
+            msg.style.color = 'var(--accent-red)';
+            
+            btn.disabled = false;
+            icon.style.display = 'inline';
+            text.textContent = 'Save Goal';
+            spinner.style.display = 'none';
         }
     } catch (e) {
+        console.error('Error:', e);
         showToast('Network error. Could not save goal.');
-    } finally {
+        
         btn.disabled = false;
-        document.getElementById('save-goal-icon').style.display    = 'inline';
-        document.getElementById('save-goal-text').textContent      = 'Save Goal';
-        document.getElementById('save-goal-spinner').style.display = 'none';
+        icon.style.display = 'inline';
+        text.textContent = 'Save Goal';
+        spinner.style.display = 'none';
     }
-} 
+}
+
+// 3. SAVE SETTINGS CHANGES
+async function saveSettingsChanges() {
+    const csrfToken = document.querySelector('meta[name="csrf-token"]').getAttribute('content');
+    const btn = document.getElementById('settings-save-btn');
+    
+    const settings = {
+        attendance_alerts: document.getElementById('attendance-alerts-toggle')?.checked || false,
+        class_reminders: document.getElementById('class-reminders-toggle')?.checked || false,
+        email_reports: document.getElementById('email-reports-toggle')?.checked || false,
+        face_recognition: document.getElementById('face-recognition-toggle')?.checked || false,
+        profile_visibility: document.getElementById('profile-visibility-toggle')?.checked || false
+    };
+    
+    const originalText = btn.innerHTML;
+    btn.disabled = true;
+    btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Saving...';
+    
+    try {
+        const res = await fetch('/api/save-student-settings', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRF-Token': csrfToken
+            },
+            body: JSON.stringify(settings)
+        });
+        
+        const data = await res.json();
+        
+        if (data.success) {
+            showToast('Settings saved successfully!');
+            btn.disabled = false;
+            btn.innerHTML = originalText;
+        } else {
+            showToast('Error saving settings: ' + (data.error || 'Unknown error'));
+            btn.disabled = false;
+            btn.innerHTML = originalText;
+        }
+    } catch (e) {
+        console.error('Error:', e);
+        showToast('Network error. Could not save settings.');
+        btn.disabled = false;
+        btn.innerHTML = originalText;
+    }
+}
+
+// 4. MARK ATTENDANCE NOTIFICATION AS READ
+async function markAttendanceRead() {
+    try {
+        const csrfToken = document.querySelector('meta[name="csrf-token"]').getAttribute('content');
+        const badgeEl = document.getElementById('attendance-badge');
+        
+        const res = await fetch('/api/notifications/mark-read', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRF-Token': csrfToken
+            },
+            body: JSON.stringify({})
+        });
+        
+        const data = await res.json();
+        
+        if (data.success && badgeEl) {
+            badgeEl.textContent = '0';
+            badgeEl.style.display = 'none';
+        }
+    } catch (e) {
+        console.error('Error marking notification as read:', e);
+    }
+}
+
+// 5. DOWNLOAD REPORT - MAIN FUNCTION
+function downloadReport() {
+    showToast('Generating report... Download will start shortly.');
+    const link = document.createElement('a');
+    link.href = '/api/attendance-export';
+    link.download = `attendance_report_${new Date().toISOString().split('T')[0]}.csv`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+}
+
+// 6. MONTHLY ATTENDANCE REPORT
+function downloadMonthlyReport() {
+    const month = new Date().toLocaleString('default', { month: 'long', year: 'numeric' });
+    showToast(`Downloading ${month} attendance report...`);
+    
+    const link = document.createElement('a');
+    link.href = '/api/attendance-export?type=monthly';
+    link.download = `monthly_attendance_${new Date().getFullYear()}_${String(new Date().getMonth() + 1).padStart(2, '0')}.csv`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+}
+
+// 7. SUBJECT-WISE ATTENDANCE REPORT
+function downloadSubjectWiseReport() {
+    showToast('Downloading subject-wise attendance report...');
+    
+    const link = document.createElement('a');
+    link.href = '/api/attendance-export?type=subject';
+    link.download = `subject_wise_attendance_${new Date().toISOString().split('T')[0]}.csv`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+}
+
+// 8. ACADEMIC PERFORMANCE REPORT
+function downloadPerformanceReport() {
+    showToast('Downloading academic performance report...');
+    
+    const link = document.createElement('a');
+    link.href = '/api/attendance-export?type=performance';
+    link.download = `academic_performance_report_${new Date().toISOString().split('T')[0]}.csv`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+}
+
+// 9. LOW ATTENDANCE ALERT REPORT
+function downloadLowAttendanceReport() {
+    showToast('Downloading low attendance alert report...');
+    
+    const link = document.createElement('a');
+    link.href = '/api/attendance-export?type=low-attendance';
+    link.download = `low_attendance_alert_${new Date().toISOString().split('T')[0]}.csv`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+}
+
+// 10. PASSWORD STRENGTH INDICATOR
+function pwdStrength(pwd) {
+    const bar = document.getElementById('pwd-strength-bar');
+    const hint = document.getElementById('pwd-strength-hint');
+    
+    if (!bar || !hint) return;
+    
+    let strength = 0;
+    let text = '';
+    let color = '';
+    
+    if (pwd.length >= 8) strength++;
+    if (pwd.length >= 12) strength++;
+    if (/[A-Z]/.test(pwd)) strength++;
+    if (/[0-9]/.test(pwd)) strength++;
+    if (/[^a-zA-Z0-9]/.test(pwd)) strength++;
+    
+    const percent = (strength / 5) * 100;
+    bar.style.width = percent + '%';
+    
+    if (strength < 2) {
+        color = 'var(--accent-red)';
+        text = 'Weak password';
+    } else if (strength < 4) {
+        color = 'var(--accent-yellow)';
+        text = 'Medium strength';
+    } else {
+        color = 'var(--accent-green)';
+        text = 'Strong password';
+    }
+    
+    bar.style.background = color;
+    hint.innerHTML = `<i class="fas fa-shield-alt"></i> ${text}`;
+    hint.style.color = color;
+}
+
+// 11. PASSWORD MATCH CHECK
+function pwdMatch() {
+    const pwd = document.getElementById('pwd-new').value;
+    const conf = document.getElementById('pwd-conf').value;
+    const hint = document.getElementById('pwd-match-hint');
+    
+    if (!hint) return;
+    
+    if (!conf) {
+        hint.style.display = 'none';
+        return;
+    }
+    
+    if (pwd === conf) {
+        hint.style.display = 'flex';
+        hint.innerHTML = '<i class="fas fa-check-circle"></i> Passwords match';
+        hint.style.color = 'var(--accent-green)';
+    } else {
+        hint.style.display = 'flex';
+        hint.innerHTML = '<i class="fas fa-times-circle"></i> Passwords do not match';
+        hint.style.color = 'var(--accent-red)';
+    }
+}
+
+// 12. TOGGLE PASSWORD VISIBILITY
+function togglePwdEye(fieldId, iconId) {
+    const field = document.getElementById(fieldId);
+    const icon = document.getElementById(iconId);
+    
+    if (field.type === 'password') {
+        field.type = 'text';
+        icon.className = 'fas fa-eye-slash';
+    } else {
+        field.type = 'password';
+        icon.className = 'fas fa-eye';
+    }
+}
+
+// 13. SUBMIT PASSWORD CHANGE
+async function submitPwdChange(event) {
+    event.preventDefault();
+    
+    const csrfToken = document.querySelector('meta[name="csrf-token"]').getAttribute('content');
+    const oldPwd = document.getElementById('pwd-old').value;
+    const newPwd = document.getElementById('pwd-new').value;
+    const confPwd = document.getElementById('pwd-conf').value;
+    
+    if (!oldPwd || !newPwd || !confPwd) {
+        document.getElementById('pwd-err').style.display = 'flex';
+        document.getElementById('pwd-err-msg').textContent = 'All fields are required.';
+        return;
+    }
+    
+    if (newPwd.length < 8) {
+        document.getElementById('pwd-err').style.display = 'flex';
+        document.getElementById('pwd-err-msg').textContent = 'New password must be at least 8 characters.';
+        return;
+    }
+    
+    if (newPwd !== confPwd) {
+        document.getElementById('pwd-err').style.display = 'flex';
+        document.getElementById('pwd-err-msg').textContent = 'Passwords do not match.';
+        return;
+    }
+    
+    const btn = document.getElementById('pwd-submit-btn');
+    const icon = document.getElementById('pwd-submit-icon');
+    const text = document.getElementById('pwd-submit-text');
+    const spinner = document.getElementById('pwd-submit-spinner');
+    
+    btn.disabled = true;
+    icon.style.display = 'none';
+    text.textContent = 'Updating...';
+    spinner.style.display = 'inline-block';
+    
+    try {
+        const res = await fetch('/change-password', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRF-Token': csrfToken
+            },
+            body: JSON.stringify({
+                old_password: oldPwd,
+                new_password: newPwd
+            })
+        });
+        
+        const data = await res.json();
+        
+        if (data.success) {
+            document.getElementById('pwd-err').style.display = 'none';
+            document.getElementById('pwd-succ').style.display = 'flex';
+            document.getElementById('pwd-succ-msg').textContent = 'Password changed successfully! Redirecting...';
+            
+            setTimeout(() => {
+                window.location.href = '/student-login';
+            }, 2000);
+        } else {
+            document.getElementById('pwd-err').style.display = 'flex';
+            document.getElementById('pwd-err-msg').textContent = data.error || 'Error changing password.';
+            
+            btn.disabled = false;
+            icon.style.display = 'inline';
+            text.textContent = 'Update Password';
+            spinner.style.display = 'none';
+        }
+    } catch (e) {
+        document.getElementById('pwd-err').style.display = 'flex';
+        document.getElementById('pwd-err-msg').textContent = 'Network error. Please try again.';
+        
+        btn.disabled = false;
+        icon.style.display = 'inline';
+        text.textContent = 'Update Password';
+        spinner.style.display = 'none';
+    }
+}
+
+// 14. SHOW PROFILE FROM HEADER
+function showProfileFromHeader() {
+    const profileBtn = document.querySelectorAll('.nav-item')[1];
+    showPage('profile', profileBtn);
+}
+
+// 15. VIEW ALL RECORDS
+function viewAllRecords() {
+    const attendanceBtn = document.querySelectorAll('.nav-item')[2];
+    showPage('attendance', attendanceBtn);
+    showToast('Showing all attendance records.');
+}
+
 </script>
 </body>
 </html>

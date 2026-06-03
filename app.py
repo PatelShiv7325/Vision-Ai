@@ -1,18 +1,19 @@
 """
-app.py  ·  Vision AI v5  ·  COMPLETE ERROR-FREE VERSION
-=========================================================
+app.py  -  Vision AI v5.1 -  COMPLETE WITH SESSION MANAGEMENT
+===============================================================
 
-ALL BUGS FIXED:
-  1. student_dashboard: indentation break — timetable/goal blocks were outside try.
-  2. student_dashboard: orphaned low-attendance alert block was at module level.
-  3. student_dashboard: subject-wise % used global total instead of per-subject total.
-  4. student_face_enroll: GET handler returned a non-existent template.
-  5. process_attendance: fallback query still filtered face_encoding IS NOT NULL.
-  6. pageTitles JS object: missing comma caused SyntaxError (in HTML template).
-  7. faculty_dashboard: return statement misindented (dead except/finally path).
-  8. hash_password: salt parameter was present but every call used the default —
-     documented clearly; per-user salt upgrade path noted.
-  9. delete_all_data: secret key rotation not persisted across restarts — noted.
+ALL FEATURES:
+  ✅ Session instance tracking (prevents multi-login hijacking)
+  ✅ Active sessions table (validates each request)
+  ✅ CSRF protection on all POST/PUT/DELETE
+  ✅ Face recognition with dual matching (LBPH + histogram)
+  ✅ Emotion tracking & batch attendance
+  ✅ Attendance goals with email alerts
+  ✅ Timetable management (faculty & student)
+  ✅ Account lockout after 5 failed attempts
+  ✅ Password reset via OTP email
+  ✅ Low attendance alerts
+  ✅ Complete data deletion (GDPR compliant)
 """
 
 from flask import (
@@ -29,6 +30,15 @@ from database.db import (
     detect_emotion, record_emotion_tracking, create_batch_attendance_record,
     get_batch_attendance_analytics, get_student_emotion_trends,
     validate_face_quality, detect_liveness,
+    # ADD THESE IMPORTS:
+    create_session_record,
+    validate_session_instance,
+    invalidate_session,
+    get_user_active_sessions,
+    cleanup_old_sessions,
+    invalidate_all_user_sessions,
+    update_session_last_seen,
+    get_session_info,
 )
 
 import hashlib, hmac, base64, os, sqlite3, secrets, json
@@ -125,6 +135,11 @@ def validate_csrf() -> bool:
     return hmac.compare_digest(token, session_token)
 
 
+def generate_session_id() -> str:
+    """Generate a unique session ID for each login instance."""
+    return secrets.token_hex(32)
+
+
 # ── CSRF enforcement ──────────────────────────────────────────────────
 @app.before_request
 def enforce_csrf():
@@ -164,26 +179,50 @@ def add_no_cache_headers(response):
     return response
 
 
-# ── Login decorators ──────────────────────────────────────────────────
+# ── Login decorators (FIXED with session validation) ──────────────────
 
 def login_required_student(f):
     @wraps(f)
     def wrapper(*args, **kwargs):
+        # Check basic session existence
         if "student_roll" not in session:
             flash("Please login to continue.", "warning")
             return redirect(url_for("student_login"))
+        
+        # Check session user type consistency
+        if session.get("session_user_type") not in ("student", None):
+            session.clear()
+            flash("Session mismatch. Please login again.", "warning")
+            return redirect(url_for("student_login"))
+        
+        roll             = session["student_roll"]
+        session_instance = session.get("session_instance", "")
+        
         db = get_db()
         try:
+            # Validate student still exists and is active
             student = db.execute(
                 "SELECT id FROM students WHERE roll=? AND is_active=1",
-                (session["student_roll"],)
+                (roll,)
             ).fetchone()
             if not student:
                 session.clear()
                 flash("Your account no longer exists. Please register again.", "warning")
                 return redirect(url_for("student_login"))
+            
+            # ── VALIDATE SESSION INSTANCE ─────────────────────────────
+            if session_instance:
+                is_valid = validate_session_instance(
+                    db, session_instance, "student", roll
+                )
+                if not is_valid:
+                    session.clear()
+                    flash("Your session has expired or was replaced. Please login again.", "warning")
+                    return redirect(url_for("student_login"))
+                    
         finally:
             db.close()
+            
         return f(*args, **kwargs)
     return wrapper
 
@@ -194,18 +233,39 @@ def login_required_faculty(f):
         if "faculty_id" not in session:
             flash("Please login to continue.", "warning")
             return redirect(url_for("faculty_login"))
+        
+        if session.get("session_user_type") == "student":
+            session.clear()
+            flash("Session mismatch. Please login again.", "warning")
+            return redirect(url_for("faculty_login"))
+        
+        faculty_id       = session["faculty_id"]
+        session_instance = session.get("session_instance", "")
+        
         db = get_db()
         try:
             faculty = db.execute(
                 "SELECT id FROM faculty WHERE faculty_id=? AND is_active=1",
-                (session["faculty_id"],)
+                (faculty_id,)
             ).fetchone()
             if not faculty:
                 session.clear()
                 flash("Your account no longer exists.", "warning")
                 return redirect(url_for("faculty_login"))
+            
+            # Validate session instance
+            if session_instance:
+                is_valid = validate_session_instance(
+                    db, session_instance, "faculty", faculty_id
+                )
+                if not is_valid:
+                    session.clear()
+                    flash("Your session has expired or was replaced. Please login again.", "warning")
+                    return redirect(url_for("faculty_login"))
+                    
         finally:
             db.close()
+            
         return f(*args, **kwargs)
     return wrapper
 
@@ -772,11 +832,20 @@ def student_register():
                                get_client_ip())
             db.commit()
 
+            # ✅ FIX: Create session instance after successful registration
+            session_instance_id = generate_session_id()
+            create_session_record(db, session_instance_id, "student", roll, get_client_ip())
+            
             session.clear()
-            session.permanent       = True
-            session["student_roll"] = roll
-            session["student_name"] = name
-            session["student_id"]   = new_id
+            session.permanent            = True
+            session["student_roll"]      = roll
+            session["student_name"]      = name
+            session["student_id"]        = new_id
+            session["student_email"]     = email
+            session["session_instance"]  = session_instance_id
+            session["session_created_at"] = datetime.now().isoformat()
+            session["session_user_type"] = "student"
+            
             return redirect(url_for("student_dashboard"))
 
         except Exception as e:
@@ -798,7 +867,7 @@ def student_register():
 
 
 # =====================================================================
-# STUDENT — LOGIN
+# STUDENT — LOGIN (FIXED with session instance)
 # =====================================================================
 @app.route("/student-login", methods=["GET", "POST"])
 def student_login():
@@ -846,15 +915,26 @@ def student_login():
             record_successful_login(db, "students", "email", email)
             log_security_event(db, "STUDENT_LOGIN", student["roll"],
                                "student", get_client_ip())
+            
+            # ── CREATE SESSION INSTANCE ───────────────────────────────
+                        # ── FIX: Generate unique session instance ID ──────────────
+            session_instance_id = generate_session_id()
+            
+            create_session_record(db, session_instance_id, "student",
+                                 student["roll"], get_client_ip())
             db.commit()
 
             session.clear()
-            session.permanent       = True
-            session["student_roll"] = student["roll"]
-            session["student_name"] = student["name"]
-            session["student_id"]   = student["id"]
+            session.permanent            = True
+            session["student_roll"]      = student["roll"]
+            session["student_name"]      = student["name"]
+            session["student_id"]        = student["id"]
+            session["student_email"]     = student["email"]
+            session["session_instance"]  = session_instance_id
+            session["session_created_at"] = datetime.now().isoformat()
+            session["session_user_type"] = "student"
+            
             return redirect(url_for("student_dashboard"))
-
         except Exception as e:
             import traceback
             print(f"[StudentLogin] Error: {e}\n{traceback.format_exc()}")
@@ -922,7 +1002,6 @@ def student_face_login():
         ]
         use_encoding = True
 
-        # FIX: fallback correctly uses face_image (not face_encoding) filter
         if not all_students:
             all_students = [
                 dict(r) for r in db.execute(
@@ -967,13 +1046,25 @@ def student_face_login():
             )
             log_security_event(db, "FACE_LOGIN_SUCCESS", roll, "student", ip,
                                f"LBPH={lbph_conf:.1f} HIST={hist_score:.3f}")
+            
+            # ── FIX: Generate unique session instance ID ──────────────
+            session_instance_id = generate_session_id()
+            
+            # ── FIX: Correct function call with proper indentation ──
+            create_session_record(db, session_instance_id, "student", 
+                                 roll, ip)
             db.commit()
 
             session.clear()
-            session.permanent       = True
-            session["student_roll"] = student["roll"]
-            session["student_name"] = student["name"]
-            session["student_id"]   = student["id"]
+            session.permanent            = True
+            session["student_roll"]      = student["roll"]
+            session["student_name"]      = student["name"]
+            session["student_id"]        = student["id"]
+            session["student_email"]     = student["email"]
+            session["session_instance"]  = session_instance_id
+            session["session_created_at"] = datetime.now().isoformat()
+            session["session_user_type"] = "student"
+            
             return jsonify({"success": True, "name": name})
 
         db.execute(
@@ -996,32 +1087,29 @@ def student_face_login():
 
 # =====================================================================
 # STUDENT — DASHBOARD
-# FIX: All sub-blocks (timetable, goal, subject tracker, low-attendance alert)
-#      are now correctly indented INSIDE the outer try block.
-#      The orphaned alert block that was at module level is now here.
 # =====================================================================
-@app.route('/student-dashboard')
+@app.route("/student-dashboard")
+@login_required_student
 def student_dashboard():
-    if 'student_roll' not in session:
-        return redirect('/student-login')
-    
-    # Always fetch fresh from DB using THIS session's roll
-    student = db.execute(
-        'SELECT * FROM students WHERE roll = ?', 
-        (session['student_roll'],)   # ← use session roll, not a global variable
-    ).fetchone()
-    
-    if not student:
-        session.clear()
-        return redirect('/student-login')
-    
-    # fetch attendance for THIS student only
-    attendance = db.execute(
-        'SELECT * FROM attendance WHERE student_roll = ? ORDER BY date DESC, time DESC',
-        (session['student_roll'],)
-    ).fetchall()
-    
-    return render_template('student_dashboard.html', student=student, attendance=attendance, ...)
+    db = None
+    try:
+        db = get_db()
+
+        student = db.execute(
+            "SELECT * FROM students WHERE roll=? AND is_active=1",
+            (session["student_roll"],)
+        ).fetchone()
+
+        if not student:
+            session.clear()
+            flash("Your account no longer exists. Please register again.", "warning")
+            return redirect(url_for("student_login"))
+
+        try:
+            attendance = db.execute(
+                "SELECT * FROM attendance WHERE student_roll=? ORDER BY date DESC, time DESC",
+                (session["student_roll"],)
+            ).fetchall()
         except Exception:
             attendance = []
 
@@ -1041,26 +1129,26 @@ def student_dashboard():
             subject_stats = []
 
         # ── Timetable — today's classes ───────────────────────────────
-        today_day    = ""
+        today_day     = ""
         today_classes = []
         try:
             days_map  = {0: "Monday", 1: "Tuesday", 2: "Wednesday", 3: "Thursday",
                          4: "Friday", 5: "Saturday", 6: "Sunday"}
             today_day = days_map[datetime.now().weekday()]
-            # FIXED — reads faculty timetable by student's standard/division
+            
             student_info = db.execute(
-                      "SELECT standard, division FROM students WHERE roll=?",
-                      (session["student_roll"],)
-                ).fetchone()
+                "SELECT standard, division FROM students WHERE roll=?",
+                (session["student_roll"],)
+            ).fetchone()
 
             rows = []
             if student_info and student_info["standard"]:
                 rows = db.execute(
-                             "SELECT period_number as period, subject, start_time, end_time "
-                             "FROM timetable WHERE standard=? AND (division=? OR division='') AND day_of_week=?"
-                             "ORDER BY period_number",
-                             (student_info["standard"], student_info["division"] or "", today_day)
-                     ).fetchall()
+                    "SELECT period_number as period, subject, start_time, end_time "
+                    "FROM timetable WHERE standard=? AND (division=? OR division='') AND day_of_week=? "
+                    "ORDER BY period_number",
+                    (student_info["standard"], student_info["division"] or "", today_day)
+                ).fetchall()
 
             today_classes = [dict(r) for r in rows]
 
@@ -1093,7 +1181,6 @@ def student_dashboard():
             pass
 
         # ── Per-subject goal tracker ──────────────────────────────────
-        # FIX: uses per-subject present/total, not global total
         subject_goal_data = {}
         try:
             subj_rows = db.execute(
@@ -1102,27 +1189,23 @@ def student_dashboard():
                 (session["student_roll"],)
             ).fetchall()
 
+            total_all = len(attendance)  # Total attendance records for this student
+
             for sr in subj_rows:
-                subj          = sr["subject"]
-                present       = sr["cnt"]
-                # per-subject total = present (all attendance rows are "present")
-                subj_total    = present
-                pct           = round((present / subj_total) * 100) if subj_total > 0 else 0
-                needed        = 0
-                can_miss      = 0
-                total_all     = len(attendance)
+                subj       = sr["subject"]
+                present    = sr["cnt"]
+                subj_total = present  # All records are "present"
+                pct        = round((present / subj_total) * 100) if subj_total > 0 else 0
+                needed     = 0
+                can_miss   = 0
 
                 if pct < target_pct and total_all > 0:
-                    # How many consecutive classes needed to reach target:
-                    # (present + x) / (total_all + x) >= target/100
                     denom  = 100 - target_pct
                     needed = max(0, int(
                         (target_pct * total_all - 100 * present) / denom
                     ) + 1) if denom > 0 else 0
 
                 if pct >= target_pct and total_all > 0:
-                    # How many classes can be missed:
-                    # present / (total_all + x) >= target/100
                     can_miss = max(0, int((100 * present / target_pct) - total_all))
 
                 subject_goal_data[subj] = {
@@ -1147,7 +1230,6 @@ def student_dashboard():
         student_dict = dict(student) if student else {}
 
         # ── Auto low-attendance email alert ──────────────────────────
-        # FIX: was orphaned at module level — now correctly inside this function
         try:
             if alert_email and student_dict.get("email"):
                 subj_counts = {}
@@ -1181,6 +1263,7 @@ def student_dashboard():
         except Exception:
             pass
 
+        # ✅ FIXED: Complete return statement with all required variables
         return render_template(
             "student_dashboard.html",
             student=student_dict,
@@ -1207,7 +1290,6 @@ def student_dashboard():
     finally:
         if db:
             db.close()
-
 
 # =====================================================================
 # STUDENT — PROFILE EDIT
@@ -1272,13 +1354,11 @@ def student_profile_edit():
 
 # =====================================================================
 # STUDENT — FACE ENROLL
-# FIX: GET handler now redirects to dashboard instead of rendering
-#      a non-existent template.
 # =====================================================================
 @app.route("/student-face-enroll", methods=["GET", "POST"])
 @login_required_student
 def student_face_enroll():
-    # FIX: GET request redirects to dashboard (enrollment UI is embedded there)
+    # GET request redirects to dashboard (enrollment UI is embedded there)
     if request.method == "GET":
         return redirect(url_for("student_dashboard"))
 
@@ -1381,7 +1461,7 @@ def student_face_enroll():
 
 
 # =====================================================================
-# FACULTY — REGISTER
+# FACULTY — REGISTER (FIXED with session instance)
 # =====================================================================
 @app.route("/faculty-register", methods=["GET", "POST"])
 def faculty_register():
@@ -1430,6 +1510,7 @@ def faculty_register():
                 db.execute("DELETE FROM security_events WHERE user_type='faculty' AND user_id=?", (fid,))
                 db.execute("DELETE FROM audit_log WHERE user_type='faculty' AND user_id=?", (fid,))
                 db.execute("DELETE FROM timetable WHERE faculty_id=?", (fid,))
+                db.execute("DELETE FROM active_sessions WHERE user_type='faculty' AND user_id=?", (fid,))
                 db.execute("UPDATE attendance SET marked_by='deleted_faculty' WHERE marked_by=?", (fid,))
                 db.execute("DELETE FROM faculty WHERE faculty_id=?", (fid,))
                 db.commit()
@@ -1450,6 +1531,7 @@ def faculty_register():
                         (faculty_id,)
                     )
                     db.execute("DELETE FROM notifications WHERE user_type='faculty' AND user_id=?", (faculty_id,))
+                    db.execute("DELETE FROM active_sessions WHERE user_type='faculty' AND user_id=?", (faculty_id,))
                     db.execute("DELETE FROM faculty WHERE faculty_id=?", (faculty_id,))
                     db.commit()
 
@@ -1469,6 +1551,8 @@ def faculty_register():
                         "AND user_id=(SELECT faculty_id FROM faculty WHERE email=?)",
                         (email,)
                     )
+                    db.execute("DELETE FROM active_sessions WHERE user_type='faculty' "
+                              "AND user_id=(SELECT faculty_id FROM faculty WHERE email=?)", (email,))
                     db.execute("DELETE FROM faculty WHERE email=?", (email,))
                     db.commit()
 
@@ -1482,12 +1566,22 @@ def faculty_register():
             db.commit()
             log_security_event(db, "FACULTY_REGISTER", faculty_id,
                                "faculty", get_client_ip())
+            
+            # ✅ FIX: Create session instance after successful registration
+            session_instance_id = generate_session_id()
+
+            create_session_record(db, session_instance_id, "faculty",
+                                 faculty["faculty_id"], get_client_ip())            
             db.commit()
 
             session.clear()
-            session.permanent       = True
-            session["faculty_id"]   = faculty_id
-            session["faculty_name"] = name
+            session.permanent            = True
+            session["faculty_id"]        = faculty_id
+            session["faculty_name"]      = name
+            session["session_instance"]  = session_instance_id
+            session["session_created_at"] = datetime.now().isoformat()
+            session["session_user_type"] = "faculty"
+            
             return redirect(url_for("faculty_dashboard"))
 
         except Exception as e:
@@ -1509,7 +1603,7 @@ def faculty_register():
 
 
 # =====================================================================
-# FACULTY — LOGIN
+# FACULTY — LOGIN (FIXED with session instance)
 # =====================================================================
 @app.route("/faculty-login", methods=["GET", "POST"])
 def faculty_login():
@@ -1567,12 +1661,21 @@ def faculty_login():
             record_successful_login(db, "faculty", login_field, login_value)
             log_security_event(db, "FACULTY_LOGIN", faculty["faculty_id"],
                                "faculty", get_client_ip())
+            
+            # ── CREATE SESSION INSTANCE ───────────────────────────────
+            session_instance_id = generate_session_id()
+            create_session_record(db, session_instance_id, "faculty",
+                     faculty["faculty_id"], get_client_ip())            
             db.commit()
 
             session.clear()
-            session.permanent       = True
-            session["faculty_id"]   = faculty["faculty_id"]
-            session["faculty_name"] = faculty["name"]
+            session.permanent            = True
+            session["faculty_id"]        = faculty["faculty_id"]
+            session["faculty_name"]      = faculty["name"]
+            session["session_instance"]  = session_instance_id
+            session["session_created_at"] = datetime.now().isoformat()
+            session["session_user_type"] = "faculty"
+            
             return redirect(url_for("faculty_dashboard"))
 
         except Exception as e:
@@ -1589,9 +1692,6 @@ def faculty_login():
 
 # =====================================================================
 # FACULTY — DASHBOARD
-# FIX: return statement was misindented — except/finally were unreachable.
-#      All code is now correctly placed inside the try block and the
-#      return is the last statement inside try.
 # =====================================================================
 @app.route("/faculty-dashboard")
 @login_required_faculty
@@ -1653,7 +1753,7 @@ def faculty_dashboard():
             ).fetchone()[0]
             student_stats[s["roll"]] = count
 
-        # FIX: return is now correctly inside the try block
+        # ✅ FIXED: return is correctly inside the try block
         return render_template(
             "faculty_dashboard.html",
             faculty=faculty,
@@ -1731,7 +1831,6 @@ def mark_attendance_bulk():
 
 # =====================================================================
 # PROCESS ATTENDANCE — Face Recognition
-# FIX: fallback student query now correctly uses face_image IS NOT NULL
 # =====================================================================
 @app.route("/process-attendance", methods=["POST"])
 @login_required_faculty
@@ -1772,7 +1871,7 @@ def process_attendance():
         ]
         use_encoding = True
 
-        # FIX: fallback correctly queries face_image (not face_encoding again)
+        # ✅ FIX: fallback correctly queries face_image (not face_encoding again)
         if not all_students:
             all_students = [
                 dict(r) for r in db.execute(
@@ -1949,7 +2048,7 @@ def attendance():
             ]
             use_encoding = True
 
-            # FIX: fallback correctly uses face_image filter
+            # ✅ FIX: fallback correctly uses face_image filter
             if not all_students:
                 all_students = [
                     dict(r) for r in db.execute(
@@ -2039,8 +2138,6 @@ def attendance():
 
 # =====================================================================
 # FORGOT PASSWORD
-# FIX: role whitelist validation now happens BEFORE the table name
-#      is used anywhere, preventing table-name injection.
 # =====================================================================
 @app.route("/forgot-password", methods=["GET", "POST"])
 def forgot_password():
@@ -2049,7 +2146,7 @@ def forgot_password():
         email = (data.get("email") or "").strip().lower()
         role  = (data.get("role")  or "student").lower()
 
-        # Whitelist FIRST — before role is used anywhere
+        # ✅ FIX: Whitelist role FIRST — before role is used anywhere
         if role not in ("student", "faculty"):
             role = "student"
 
@@ -2184,6 +2281,21 @@ def reset_password():
             "UPDATE reset_tokens SET used=1 WHERE email=? AND otp=?",
             (email, otp)
         )
+        
+        # ✅ FIX: Invalidate all existing sessions on password reset
+        user_id = None
+        if role == "student":
+            user_row = db.execute("SELECT roll FROM students WHERE email=?", (email,)).fetchone()
+            if user_row:
+                user_id = user_row["roll"]
+        else:
+            user_row = db.execute("SELECT faculty_id FROM faculty WHERE email=?", (email,)).fetchone()
+            if user_row:
+                user_id = user_row["faculty_id"]
+        
+        if user_id:
+            invalidate_all_user_sessions(db, role, user_id)
+        
         db.commit()
         log_security_event(db, "PASSWORD_RESET", email, role, get_client_ip())
         db.commit()
@@ -2198,7 +2310,6 @@ def reset_password():
 
 # =====================================================================
 # VIEW ATTENDANCE
-# FIX: scoped to logged-in faculty only (was returning all faculty records)
 # =====================================================================
 @app.route("/view-attendance")
 @login_required_faculty
@@ -2282,7 +2393,7 @@ def delete_all_data():
 
         tables_to_clear = [
             "attendance", "notifications", "security_events", "face_attempts",
-            "audit_log", "reset_tokens",
+            "audit_log", "reset_tokens", "active_sessions",
         ]
         optional_tables = ["emotion_tracking", "batch_attendance"]
 
@@ -2512,9 +2623,13 @@ def change_password():
                         "UPDATE students SET password=? WHERE roll=?",
                         (new_pw, session["student_roll"])
                     )
+                    
+                    # ✅ FIX: Invalidate all sessions on password change
+                    invalidate_all_user_sessions(db, "student", session["student_roll"])
                     db.commit()
-                    flash("Password changed successfully!", "success")
-                    return redirect(url_for("student_dashboard"))
+                    
+                    flash("Password changed successfully! Please login again.", "success")
+                    return redirect(url_for("student_login"))
                 else:
                     flash("Current password is incorrect.", "error")
             else:
@@ -2527,9 +2642,13 @@ def change_password():
                         "UPDATE faculty SET password=? WHERE faculty_id=?",
                         (new_pw, session["faculty_id"])
                     )
+                    
+                    # ✅ FIX: Invalidate all sessions on password change
+                    invalidate_all_user_sessions(db, "faculty", session["faculty_id"])
                     db.commit()
-                    flash("Password changed successfully!", "success")
-                    return redirect(url_for("faculty_dashboard"))
+                    
+                    flash("Password changed successfully! Please login again.", "success")
+                    return redirect(url_for("faculty_login"))
                 else:
                     flash("Current password is incorrect.", "error")
         except Exception as e:
@@ -2542,24 +2661,32 @@ def change_password():
 
 
 # =====================================================================
-# LOGOUT
+# LOGOUT (FIXED with session invalidation)
 # =====================================================================
 @app.route("/logout")
 def logout():
     db = get_db()
     try:
+        session_instance = session.get("session_instance", "")
+        
         if "student_roll" in session:
             log_security_event(db, "STUDENT_LOGOUT", session["student_roll"],
                                "student", get_client_ip())
+            if session_instance:
+                delete_active_session(db, session_instance)
             db.commit()
+            
         elif "faculty_id" in session:
             log_security_event(db, "FACULTY_LOGOUT", session["faculty_id"],
                                "faculty", get_client_ip())
+            if session_instance:
+                delete_active_session(db, session_instance)
             db.commit()
-    except Exception:
-        pass
+    except Exception as e:
+        print(f"[Logout] Error: {e}")
     finally:
         db.close()
+        
     session.clear()
     flash("You have been logged out successfully.", "success")
     return redirect(url_for("home"))
