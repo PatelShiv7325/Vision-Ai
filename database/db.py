@@ -23,7 +23,15 @@ import os
 from datetime import datetime, timedelta
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
-DB_PATH  = os.path.normpath(os.path.join(BASE_DIR, "db.sqlite3"))
+
+# Support Render persistent disk
+_DATA_DIR = os.environ.get("DATA_DIR", "")
+if _DATA_DIR:
+    DB_PATH = os.path.normpath(os.path.join(_DATA_DIR, "db.sqlite3"))
+    FACES_DIR = os.path.join(_DATA_DIR, "static", "faces")
+else:
+    DB_PATH = os.path.normpath(os.path.join(BASE_DIR, "db.sqlite3"))
+    FACES_DIR = os.path.join(os.path.dirname(BASE_DIR), "static", "faces")
 
 
 # ── Connection ────────────────────────────────────────────────────────
@@ -1214,18 +1222,3 @@ def update_session_last_seen(db, session_id):
         db.commit()
     except Exception as e:
         print(f"[Session] Error updating last seen: {e}")
-
-def get_session_info(db, session_id):
-    """Get detailed info about a specific session."""
-    try:
-        row = db.execute(
-            """SELECT session_id, user_type, user_id, created_at, 
-                      ip_address, last_seen, is_valid 
-               FROM active_sessions 
-               WHERE session_id=?""",
-            (session_id,)
-        ).fetchone()
-        return dict(row) if row else None
-    except Exception as e:
-        print(f"[Session] Error fetching session info: {e}")
-        return None

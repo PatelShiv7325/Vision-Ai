@@ -663,46 +663,166 @@
 </div>
 
 <!-- ── CHANGE PASSWORD MODAL ── -->
+<!-- ── CHANGE PASSWORD MODAL ── -->
 <div class="pwd-modal-overlay" id="pwd-modal">
-    <div class="pwd-modal-box">
-        <button class="pwd-modal-close" onclick="closePwdModal()"><i class="fas fa-times"></i></button>
-        <div class="pwd-modal-icon" style="font-size: 48px;">🔐</div>
-        <div class="pwd-modal-title">Change Password</div>
-        <p class="pwd-modal-sub">Enter your current password, then set a new one.</p>
-        <div class="pwd-alert pwd-alert-error" id="pwd-error"><i class="fas fa-exclamation-circle"></i><span id="pwd-error-msg"></span></div>
-        <div class="pwd-alert pwd-alert-success" id="pwd-success"><i class="fas fa-check-circle"></i><span id="pwd-success-msg"></span></div>
-        <form id="pwd-form" onsubmit="submitPwdChange(event)" style="text-align: left;">
+    <div class="pwd-modal-box" style="width:460px;text-align:left;padding:32px;position:relative;border-radius:16px;background:var(--bg-sidebar);border:1px solid var(--border-active);">
+        <button class="pwd-modal-close" onclick="closePwdModal()"
+                style="position:absolute;top:14px;right:14px;background:none;border:none;
+                       color:var(--text-secondary);font-size:1.1rem;cursor:pointer;
+                       padding:4px 8px;border-radius:6px;"
+                onmouseover="this.style.color='var(--accent-blue)'"
+                onmouseout="this.style.color='var(--text-secondary)'">
+            <i class="fas fa-times"></i>
+        </button>
+
+        <!-- Icon -->
+        <div style="width:52px;height:52px;border-radius:14px;
+                    background:linear-gradient(135deg,var(--accent-blue),#8b5cf6);
+                    display:flex;align-items:center;justify-content:center;
+                    font-size:22px;margin-bottom:16px;
+                    box-shadow:0 4px 20px rgba(99,102,241,0.35);">🔐</div>
+
+        <div style="font-size:20px;font-weight:700;margin-bottom:4px;color:var(--text-primary);">Change Password</div>
+        <p style="font-size:13px;color:var(--text-secondary);margin-bottom:24px;">
+            Enter your current password, then set a new one.
+        </p>
+
+        <!-- Alerts -->
+        <div class="pwd-alert pwd-alert-error" id="pwd-error">
+            <i class="fas fa-exclamation-circle"></i><span id="pwd-error-msg"></span>
+        </div>
+        <div class="pwd-alert pwd-alert-success" id="pwd-success">
+            <i class="fas fa-check-circle"></i><span id="pwd-success-msg"></span>
+        </div>
+
+        <form id="pwd-form" onsubmit="submitPwdChange(event)" style="text-align:left;">
             <input type="hidden" name="_csrf" value="{{ csrf_token }}">
-            <div class="pwd-field-group">
-                <label class="pwd-field-label">Current Password <span style="color:var(--red)">*</span></label>
-                <div class="pwd-field-wrap">
-                    <input type="password" id="pwd-old" class="pwd-field-input" placeholder="Enter current password" required>
-                    <i class="fas fa-lock pwd-field-icon"></i>
-                    <button type="button" class="pwd-eye" onclick="togglePwdModal('pwd-old','icon-old')"><i class="fas fa-eye" id="icon-old"></i></button>
+
+            <!-- Current Password -->
+            <div style="margin-bottom:16px;">
+                <label style="font-size:11px;font-weight:700;color:var(--text-secondary);
+                              text-transform:uppercase;letter-spacing:0.6px;
+                              display:flex;align-items:center;gap:4px;margin-bottom:7px;">
+                    Current Password
+                    <span style="color:var(--accent-red);font-size:13px;">*</span>
+                </label>
+                <div style="position:relative;">
+                    <i class="fas fa-lock"
+                       style="position:absolute;left:13px;top:50%;transform:translateY(-50%);
+                              color:var(--text-muted);font-size:13px;pointer-events:none;"></i>
+                    <input type="password" id="pwd-old"
+                           placeholder="Enter current password" required
+                           style="width:100%;background:var(--bg-input);
+                                  border:1.5px solid var(--border);border-radius:10px;
+                                  padding:11px 42px 11px 40px;font-size:14px;
+                                  font-family:'Outfit',sans-serif;color:var(--text-primary);
+                                  outline:none;transition:border-color 0.2s;"
+                           onfocus="this.style.borderColor='var(--accent-blue)'"
+                           onblur="this.style.borderColor='var(--border)'">
+                    <button type="button" onclick="togglePwdModal('pwd-old','icon-old')"
+                            style="position:absolute;right:12px;top:50%;transform:translateY(-50%);
+                                   background:none;border:none;color:var(--text-muted);
+                                   cursor:pointer;font-size:13px;padding:3px;">
+                        <i class="fas fa-eye" id="icon-old"></i>
+                    </button>
                 </div>
             </div>
-            <div class="pwd-divider"></div>
-            <div class="pwd-field-group">
-                <label class="pwd-field-label">New Password <span style="color:var(--red)">*</span></label>
-                <div class="pwd-field-wrap">
-                    <input type="password" id="pwd-new" class="pwd-field-input" placeholder="Create new password" required oninput="pwdModalStrength(this.value)">
-                    <i class="fas fa-key pwd-field-icon"></i>
-                    <button type="button" class="pwd-eye" onclick="togglePwdModal('pwd-new','icon-new')"><i class="fas fa-eye" id="icon-new"></i></button>
+
+            <!-- Divider -->
+            <div style="height:1px;background:var(--border);margin:4px 0 16px;"></div>
+
+            <!-- New Password -->
+            <div style="margin-bottom:16px;">
+                <label style="font-size:11px;font-weight:700;color:var(--text-secondary);
+                              text-transform:uppercase;letter-spacing:0.6px;
+                              display:flex;align-items:center;gap:4px;margin-bottom:7px;">
+                    New Password
+                    <span style="color:var(--accent-red);font-size:13px;">*</span>
+                </label>
+                <div style="position:relative;">
+                    <i class="fas fa-key"
+                       style="position:absolute;left:13px;top:50%;transform:translateY(-50%);
+                              color:var(--text-muted);font-size:13px;pointer-events:none;"></i>
+                    <input type="password" id="pwd-new"
+                           placeholder="Create new password" required
+                           style="width:100%;background:var(--bg-input);
+                                  border:1.5px solid var(--border);border-radius:10px;
+                                  padding:11px 42px 11px 40px;font-size:14px;
+                                  font-family:'Outfit',sans-serif;color:var(--text-primary);
+                                  outline:none;transition:border-color 0.2s;"
+                           onfocus="this.style.borderColor='var(--accent-blue)'"
+                           onblur="this.style.borderColor='var(--border)'"
+                           oninput="pwdModalStrength(this.value);pwdModalMatch()">
+                    <button type="button" onclick="togglePwdModal('pwd-new','icon-new')"
+                            style="position:absolute;right:12px;top:50%;transform:translateY(-50%);
+                                   background:none;border:none;color:var(--text-muted);
+                                   cursor:pointer;font-size:13px;padding:3px;">
+                        <i class="fas fa-eye" id="icon-new"></i>
+                    </button>
                 </div>
-                <div class="pwd-meter"><div class="pwd-meter-fill" id="pwd-meter-fill"></div></div>
-                <div class="pwd-hint" id="pwd-strength-hint"><i class="fas fa-shield-alt"></i> Min 8 characters</div>
-            </div>
-            <div class="pwd-field-group">
-                <label class="pwd-field-label">Confirm New Password <span style="color:var(--red)">*</span></label>
-                <div class="pwd-field-wrap">
-                    <input type="password" id="pwd-confirm" class="pwd-field-input" placeholder="Repeat new password" required oninput="pwdModalMatch()">
-                    <i class="fas fa-check-double pwd-field-icon"></i>
-                    <button type="button" class="pwd-eye" onclick="togglePwdModal('pwd-confirm','icon-confirm')"><i class="fas fa-eye" id="icon-confirm"></i></button>
+                <!-- Strength bar -->
+                <div style="height:3px;border-radius:2px;background:var(--border);
+                            margin-top:8px;overflow:hidden;">
+                    <div id="pwd-meter-fill"
+                         style="height:100%;border-radius:2px;width:0%;
+                                transition:width 0.3s,background 0.3s;"></div>
                 </div>
-                <div class="pwd-match-hint" id="pwd-match-hint"></div>
+                <div id="pwd-strength-hint"
+                     style="font-size:12px;color:var(--text-secondary);
+                            margin-top:5px;display:flex;align-items:center;gap:5px;">
+                    <i class="fas fa-shield-alt"></i> Min 8 characters
+                </div>
             </div>
-            <button type="submit" class="pwd-submit-btn" id="pwd-submit-btn">
-                <div class="pwd-spinner" id="pwd-spinner"></div>
+
+            <!-- Confirm Password -->
+            <div style="margin-bottom:24px;">
+                <label style="font-size:11px;font-weight:700;color:var(--text-secondary);
+                              text-transform:uppercase;letter-spacing:0.6px;
+                              display:flex;align-items:center;gap:4px;margin-bottom:7px;">
+                    Confirm New Password
+                    <span style="color:var(--accent-red);font-size:13px;">*</span>
+                </label>
+                <div style="position:relative;">
+                    <i class="fas fa-check-double"
+                       style="position:absolute;left:13px;top:50%;transform:translateY(-50%);
+                              color:var(--text-muted);font-size:13px;pointer-events:none;"></i>
+                    <input type="password" id="pwd-confirm"
+                           placeholder="Repeat new password" required
+                           style="width:100%;background:var(--bg-input);
+                                  border:1.5px solid var(--border);border-radius:10px;
+                                  padding:11px 42px 11px 40px;font-size:14px;
+                                  font-family:'Outfit',sans-serif;color:var(--text-primary);
+                                  outline:none;transition:border-color 0.2s;"
+                           onfocus="this.style.borderColor='var(--accent-blue)'"
+                           onblur="this.style.borderColor='var(--border)'"
+                           oninput="pwdModalMatch()">
+                    <button type="button" onclick="togglePwdModal('pwd-confirm','icon-confirm')"
+                            style="position:absolute;right:12px;top:50%;transform:translateY(-50%);
+                                   background:none;border:none;color:var(--text-muted);
+                                   cursor:pointer;font-size:13px;padding:3px;">
+                        <i class="fas fa-eye" id="icon-confirm"></i>
+                    </button>
+                </div>
+                <div id="pwd-match-hint"
+                     style="font-size:12px;margin-top:5px;display:none;
+                            align-items:center;gap:5px;"></div>
+            </div>
+
+            <!-- Submit -->
+            <button type="submit" id="pwd-submit-btn"
+                    style="width:100%;padding:13px;background:var(--accent-blue);
+                           border:none;border-radius:12px;color:#fff;
+                           font-size:14px;font-weight:700;font-family:'Outfit',sans-serif;
+                           cursor:pointer;transition:all 0.25s;
+                           display:flex;align-items:center;justify-content:center;gap:8px;
+                           box-shadow:0 4px 20px rgba(99,102,241,0.35);"
+                    onmouseover="this.style.background='#5254cc';this.style.transform='translateY(-2px)'"
+                    onmouseout="this.style.background='var(--accent-blue)';this.style.transform='translateY(0)'">
+                <div id="pwd-spinner"
+                     style="display:none;width:15px;height:15px;
+                            border:2px solid rgba(255,255,255,0.3);
+                            border-top-color:#fff;border-radius:50%;
+                            animation:pwdSpin 0.7s linear infinite;"></div>
                 <i class="fas fa-save" id="pwd-submit-icon"></i>
                 <span id="pwd-submit-text">Update Password</span>
             </button>
@@ -1056,7 +1176,7 @@
                         <input type="text" name="subject" class="form-control" 
                             value="{{ faculty['subject'] }}" 
                             readonly 
-                            style="background:rgba(0,212,170,0.05);cursor:not-allowed;">                    </div>
+                            style="background:rgba(10, 63, 119, 0.05);cursor:not-allowed;">                    </div>
                     <button type="submit" class="btn btn-primary" style="height:44px;">
                         <i class="fas fa-check"></i> Mark Present
                     </button>

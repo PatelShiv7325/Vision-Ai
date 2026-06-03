@@ -30,15 +30,15 @@ from database.db import (
     detect_emotion, record_emotion_tracking, create_batch_attendance_record,
     get_batch_attendance_analytics, get_student_emotion_trends,
     validate_face_quality, detect_liveness,
-    # ADD THESE IMPORTS:
     create_session_record,
     validate_session_instance,
     invalidate_session,
+    invalidate_all_user_sessions,
     get_user_active_sessions,
     cleanup_old_sessions,
-    invalidate_all_user_sessions,
     update_session_last_seen,
     get_session_info,
+    purge_ghost_student,
 )
 
 import hashlib, hmac, base64, os, sqlite3, secrets, json
@@ -51,6 +51,7 @@ import io
 import smtplib
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
+from flask import jsonify, request, session
 
 try:
     from email_config import EMAIL_CONFIG, is_email_configured
@@ -805,9 +806,17 @@ def student_register():
                         )
                     )
 
-            os.makedirs("static/faces", exist_ok=True)
-            face_filename = f"faces/{roll}.jpg"
-            with open(f"static/{face_filename}", "wb") as f:
+           faces_dir = os.environ.get("DATA_DIR", "")
+if faces_dir:
+    faces_save_dir = os.path.join(faces_dir, "static", "faces")
+    face_filename = f"faces/{roll}.jpg"
+    face_save_path = os.path.join(faces_dir, "static", face_filename)
+else:
+    faces_save_dir = "static/faces"
+    face_filename = f"faces/{roll}.jpg"
+    face_save_path = f"static/{face_filename}"
+os.makedirs(faces_save_dir, exist_ok=True)
+with open(face_save_path, "wb") as f:
                 f.write(img_data)
 
             db.execute(
@@ -1432,9 +1441,17 @@ def student_face_enroll():
             flash(msg, "error")
             return redirect(url_for("student_dashboard"))
 
-        os.makedirs("static/faces", exist_ok=True)
-        face_filename = f"faces/{roll}.jpg"
-        with open(f"static/{face_filename}", "wb") as f:
+        faces_dir = os.environ.get("DATA_DIR", "")
+if faces_dir:
+    faces_save_dir = os.path.join(faces_dir, "static", "faces")
+    face_filename = f"faces/{roll}.jpg"
+    face_save_path = os.path.join(faces_dir, "static", face_filename)
+else:
+    faces_save_dir = "static/faces"
+    face_filename = f"faces/{roll}.jpg"
+    face_save_path = f"static/{face_filename}"
+os.makedirs(faces_save_dir, exist_ok=True)
+with open(face_save_path, "wb") as f:
             f.write(img_data)
 
         db.execute(
@@ -1567,13 +1584,10 @@ def faculty_register():
             log_security_event(db, "FACULTY_REGISTER", faculty_id,
                                "faculty", get_client_ip())
             
-            # ✅ FIX: Create session instance after successful registration
             session_instance_id = generate_session_id()
-
             create_session_record(db, session_instance_id, "faculty",
-                                 faculty["faculty_id"], get_client_ip())            
+                      faculty_id, get_client_ip())
             db.commit()
-
             session.clear()
             session.permanent            = True
             session["faculty_id"]        = faculty_id
@@ -2673,14 +2687,14 @@ def logout():
             log_security_event(db, "STUDENT_LOGOUT", session["student_roll"],
                                "student", get_client_ip())
             if session_instance:
-                delete_active_session(db, session_instance)
+                invalidate_session(db, session_instance)
             db.commit()
             
         elif "faculty_id" in session:
             log_security_event(db, "FACULTY_LOGOUT", session["faculty_id"],
                                "faculty", get_client_ip())
             if session_instance:
-                delete_active_session(db, session_instance)
+                invalidate_session(db, session_instance)
             db.commit()
     except Exception as e:
         print(f"[Logout] Error: {e}")
@@ -2810,10 +2824,16 @@ def faculty_save_timetable():
 
     db = get_db()
     try:
-        db.execute(
-            "DELETE FROM timetable WHERE standard=? AND (division=? OR division='')",
-            (standard, division or "")
-        )   
+        if division:
+    db.execute(
+        "DELETE FROM timetable WHERE standard=? AND division=?",
+        (standard, division)
+    )
+else:
+    db.execute(
+        "DELETE FROM timetable WHERE standard=? AND division=''",
+        (standard,)
+    )
         for e in entries:
             day     = e.get("day",        "").strip()
             period  = int(e.get("period",  0))
@@ -3047,6 +3067,24 @@ def confirm_attendance():
         return jsonify({"success": False, "error": str(e)})
     finally:
         db.close()
+
+@app.route('/api/save-student-settings', methods=['POST'])
+def save_student_settings():
+    try:
+        # Check if student is logged in
+        if 'student_roll' not in session:
+            return jsonify({'success': False, 'error': 'Not logged in'}), 401
+        
+        data = request.get_json(force=True)
+        if data is None:
+            return jsonify({'success': False, 'error': 'Invalid data'}), 400
+        
+        # Settings received - you can save to DB here if needed
+        # For now just return success
+        return jsonify({'success': True, 'message': 'Settings saved'})
+    
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 500
 
 # =====================================================================
 if __name__ == "__main__":
