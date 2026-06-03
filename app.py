@@ -72,7 +72,7 @@ FACES_STATIC_DIR = os.path.join(DATA_DIR, "static", "faces") if DATA_DIR else os
 # ── App setup ─────────────────────────────────────────────────────────
 app = Flask(__name__)
 
-_SECRET = os.environ.get("SECRET_KEY")
+_SECRET = os.environ.get("SECRET_KEY") or "vision_ai_fixed_secret_key_2024_do_not_change"
 app.secret_key = _SECRET
 
 app.config["SESSION_COOKIE_HTTPONLY"]     = True
