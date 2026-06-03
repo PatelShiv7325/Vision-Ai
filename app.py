@@ -72,8 +72,12 @@ FACES_STATIC_DIR = os.path.join(DATA_DIR, "static", "faces") if DATA_DIR else os
 # ── App setup ─────────────────────────────────────────────────────────
 app = Flask(__name__)
 
-_SECRET = os.environ.get("SECRET_KEY") or "vision_ai_fixed_secret_key_2024_do_not_change"
-app.secret_key = _SECRET
+_SECRET = os.environ.get("SECRET_KEY")
+
+if _SECRET:
+    app.secret_key = _SECRET
+else:
+    app.secret_key = "vision_ai_fixed_secret_key_2024_do_not_change"
 
 app.config["SESSION_COOKIE_HTTPONLY"]     = True
 app.config["SESSION_COOKIE_SAMESITE"]     = "Lax"
@@ -102,12 +106,8 @@ STANDARD_SUBJECTS = {
 # =====================================================================
 
 def hash_password(password: str, salt: str = "vision_ai_v2") -> str:
-    """
-    SHA-256 hash with a fixed application-level salt.
-    NOTE: For production, upgrade to per-user bcrypt/pbkdf2 with a stored salt.
-    The `salt` parameter is kept for future per-user salt support.
-    """
-    key = (_SECRET + salt + password).encode()
+    secret = app.secret_key or "vision_ai_fixed_secret_key_2024_do_not_change"
+    key = (secret + salt + password).encode()
     return hashlib.sha256(key).hexdigest()
 
 
