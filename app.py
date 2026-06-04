@@ -991,7 +991,7 @@ def student_login():
 # =====================================================================
 @app.route("/student-face-login", methods=["POST"])
 def student_face_login():
-    data      = request.get_json(silent=True) or {}
+    data      = request.get_json(silent=True, cache=True) or {}
     face_data = data.get("face_image", "")
     ip        = get_client_ip()
     db        = None
@@ -1400,7 +1400,7 @@ def student_face_enroll():
 
     # Support both form POST and JSON (AJAX)
     if request.is_json:
-        face_data = (request.get_json(silent=True) or {}).get("face_image", "")
+        face_data = (request.get_json(silent=True, cache=True) or {}).get("face_image", "")
     else:
         face_data = request.form.get("face_image", "")
 
@@ -1824,7 +1824,7 @@ def faculty_dashboard():
 @app.route("/mark-attendance-bulk", methods=["POST"])
 @login_required_faculty
 def mark_attendance_bulk():
-    data    = request.get_json(silent=True) or {}
+    data    = request.get_json(silent=True, cache=True) or {}
     rolls   = data.get("rolls", [])
     subject = data.get("subject", "").strip()
     now     = datetime.now()
@@ -1880,7 +1880,7 @@ def mark_attendance_bulk():
 def process_attendance():
     db = None
     try:
-        data       = request.get_json(silent=True) or {}
+        data       = request.get_json(silent=True, cache=True) or {}
         image_data = data.get("image",   "")
         subject    = data.get("subject", "").strip()
 
@@ -1897,12 +1897,13 @@ def process_attendance():
         gray_eq  = cv2.equalizeHist(cv2.cvtColor(image_cv, cv2.COLOR_BGR2GRAY))
         faces    = _detect_faces_multipass(gray_eq)
 
-        db = get_db()
         faculty = db.execute(
             "SELECT subject FROM faculty WHERE faculty_id=?",
             (session["faculty_id"],)
         ).fetchone()
         faculty_subj = (faculty["subject"] or "").strip() if faculty else ""
+        if not faculty_subj:
+            faculty_subj = subject
 
         all_students = [
             dict(r) for r in db.execute(
@@ -2186,7 +2187,7 @@ def attendance():
 @app.route("/forgot-password", methods=["GET", "POST"])
 def forgot_password():
     if request.method == "POST":
-        data  = request.get_json(silent=True) if request.is_json else request.form
+        data  = request.get_json(silent=True, cache=True) if request.is_json else request.form
         email = (data.get("email") or "").strip().lower()
         role  = (data.get("role")  or "student").lower()
 
@@ -2657,7 +2658,7 @@ def change_password():
 
     if request.method == "POST":
         if is_ajax:
-            data = request.get_json(silent=True) or {}
+            data = request.get_json(silent=True, cache=True) or {}
             old_pw_raw = data.get("old_password", "")
             new_pw_raw = data.get("new_password", "")
         else:
@@ -2808,7 +2809,7 @@ def get_timetable():
 @app.route("/api/timetable/save", methods=["POST"])
 @login_required_student
 def save_timetable():
-    data    = request.get_json(silent=True) or {}
+    data    = request.get_json(silent=True, cache=True) or {}
     entries = data.get("entries", [])
     roll    = session["student_roll"]
     db      = get_db()
@@ -2867,7 +2868,7 @@ def faculty_get_timetable():
 @app.route("/api/faculty/timetable/save", methods=["POST"])
 @login_required_faculty
 def faculty_save_timetable():
-    data     = request.get_json(silent=True) or {}
+    data     = request.get_json(silent=True, cache=True) or {}
     entries  = data.get("entries", [])
     standard = data.get("standard", "").strip()
     division = data.get("division", "").strip()
@@ -2970,7 +2971,7 @@ def get_attendance_goal():
 @app.route("/api/attendance-goal/save", methods=["POST"])
 @login_required_student
 def save_attendance_goal():
-    data        = request.get_json(silent=True) or {}
+    data        = request.get_json(silent=True, cache=True) or {}
     target_pct  = int(data.get("target_pct", 75))
     alert_email = 1 if data.get("alert_email", True) else 0
     roll        = session["student_roll"]
@@ -3082,7 +3083,7 @@ def mark_attendance():
 @app.route("/confirm-attendance", methods=["POST"])
 @login_required_faculty
 def confirm_attendance():
-    data    = request.get_json(silent=True) or {}
+    data    = request.get_json(silent=True, cache=True) or {}
     rolls   = data.get("rolls",   [])
     subject = data.get("subject", "").strip()
     now     = datetime.now()

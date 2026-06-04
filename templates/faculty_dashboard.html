@@ -1197,9 +1197,9 @@
                            style="background:rgba(0,212,170,0.05);cursor:not-allowed;">
                 </div>
                 <div class="camera-controls">
-                    <button id="mark-start-camera" class="btn btn-primary" type="button"><i class="fas fa-video"></i> Start Camera</button>
-                    <button id="mark-capture" class="btn btn-green" type="button" style="display:none;"><i class="fas fa-camera"></i> Capture &amp; Detect</button>
-                    <button id="mark-stop-camera" class="btn" type="button" style="display:none;"><i class="fas fa-stop"></i> Stop</button>
+                    <button id="mark-start-camera" class="btn btn-primary" type="button" onclick="startMarkCamera()"><i class="fas fa-video"></i> Start Camera</button>
+                    <button id="mark-capture" class="btn btn-green" type="button" style="display:none;" onclick="captureAndProcess()"><i class="fas fa-camera"></i> Capture &amp; Detect</button>
+                    <button id="mark-stop-camera" class="btn" type="button" style="display:none;" onclick="stopMarkCameraUI()"><i class="fas fa-stop"></i> Stop</button>
                 </div>
                 <div id="mark-camera-container" style="display:none;margin-top:14px;border-radius:12px;overflow:hidden;border:1px solid var(--border-act);">
                     <video id="mark-video" autoplay playsinline style="width:100%;display:block;max-height:320px;object-fit:cover;background:#000;"></video>
@@ -1220,8 +1220,8 @@
                         Review detection above, then confirm to save.
                     </div>
                     <div style="display:flex;gap:8px;flex-shrink:0;">
-                        <button id="confirm-btn" class="btn btn-green" type="button"><i class="fas fa-check-circle"></i> Confirm Attendance</button>
-                        <button id="retake-btn" class="btn" type="button"><i class="fas fa-redo"></i> Retake</button>
+                        <button id="confirm-btn" class="btn btn-green" type="button" onclick="confirmAttendance()"><i class="fas fa-check-circle"></i> Confirm Attendance</button>
+                        <button id="retake-btn" class="btn" type="button" onclick="resetDetectionUI();showToast('Ready to retake. Click Start Camera.')"><i class="fas fa-redo"></i> Retake</button>
                     </div>
                 </div>
                 <div id="mark-results" class="attendance-results" style="display:none;">
@@ -1701,33 +1701,13 @@ function filterStudents(q) {
 }
 
 // ── FACE CAPTURE ──────────────────────────────────────────────────────
+// ── FACE CAPTURE ──────────────────────────────────────────────────────
 let markStream = null;
-const markVideo  = document.getElementById('mark-video');
-const markCanvas = document.getElementById('mark-canvas');
 let _pendingAttendance = null;
 
-document.getElementById('mark-start-camera').addEventListener('click', async function() {
-    try {
-        markStream = await navigator.mediaDevices.getUserMedia({ video: { width: { ideal: 1280 }, height: { ideal: 720 } } });
-        markVideo.srcObject = markStream;
-        document.getElementById('mark-camera-container').style.display = 'block';
-        document.getElementById('mark-capture').style.display          = 'inline-flex';
-        document.getElementById('mark-stop-camera').style.display      = 'inline-flex';
-        this.style.display = 'none';
-        resetDetectionUI();
-    } catch (e) { showToast('Camera access denied.', true); }
-});
-
-document.getElementById('mark-stop-camera').addEventListener('click', function() {
-    stopCamera();
-    document.getElementById('mark-camera-container').style.display = 'none';
-    document.getElementById('mark-capture').style.display          = 'none';
-    this.style.display = 'none';
-    document.getElementById('mark-start-camera').style.display     = 'inline-flex';
-});
-
-function stopCamera() {
-    if (markStream) { markStream.getTracks().forEach(t => t.stop()); markStream = null; }
+function getMarkSubject() {
+    const el = document.getElementById('mark-subject');
+    return el ? el.value.trim() : '';
 }
 
 function resetDetectionUI() {
@@ -1739,105 +1719,190 @@ function resetDetectionUI() {
     _pendingAttendance = null;
 }
 
-document.getElementById('mark-capture').addEventListener('click', async function() {
-    const subject = document.getElementById('mark-subject').value.trim();
-    if (!subject) { showToast('Please enter a subject name first.', true); return; }
-    markCanvas.width  = markVideo.videoWidth;
-    markCanvas.height = markVideo.videoHeight;
-    markCanvas.getContext('2d').drawImage(markVideo, 0, 0);
-    const imageData = markCanvas.toDataURL('image/jpeg', 0.85);
-    stopCamera();
+function stopMarkCamera() {
+    if (markStream) {
+        markStream.getTracks().forEach(t => t.stop());
+        markStream = null;
+    }
+    const video = document.getElementById('mark-video');
+    if (video) video.srcObject = null;
+}
+
+async function startMarkCamera() {
+    try {
+        markStream = await navigator.mediaDevices.getUserMedia({
+            video: { width: { ideal: 1280 }, height: { ideal: 720 } }
+        });
+        const video = document.getElementById('mark-video');
+        video.srcObject = markStream;
+        await video.play();
+        document.getElementById('mark-camera-container').style.display = 'block';
+        document.getElementById('mark-capture').style.display          = 'inline-flex';
+        document.getElementById('mark-stop-camera').style.display      = 'inline-flex';
+        document.getElementById('mark-start-camera').style.display     = 'none';
+        resetDetectionUI();
+    } catch (e) {
+        showToast('Camera access denied. Please allow camera in browser settings.', true);
+    }
+}
+
+function stopMarkCameraUI() {
+    stopMarkCamera();
+    document.getElementById('mark-camera-container').style.display = 'none';
+    document.getElementById('mark-capture').style.display          = 'none';
+    document.getElementById('mark-stop-camera').style.display      = 'none';
+    document.getElementById('mark-start-camera').style.display     = 'inline-flex';
+}
+
+async function captureAndProcess() {
+    const subject = getMarkSubject();
+    if (!subject) {
+        showToast('Subject is not set. Please check your faculty profile.', true);
+        return;
+    }
+
+    const video  = document.getElementById('mark-video');
+    const canvas = document.getElementById('mark-canvas');
+
+    if (!video || !canvas) {
+        showToast('Camera elements not found.', true);
+        return;
+    }
+
+    canvas.width  = video.videoWidth  || 640;
+    canvas.height = video.videoHeight || 480;
+    canvas.getContext('2d').drawImage(video, 0, 0);
+    const imageData = canvas.toDataURL('image/jpeg', 0.85);
+
+    stopMarkCamera();
     document.getElementById('mark-camera-container').style.display = 'none';
     document.getElementById('mark-capture').style.display          = 'none';
     document.getElementById('mark-stop-camera').style.display      = 'none';
     document.getElementById('mark-start-camera').style.display     = 'inline-flex';
     document.getElementById('mark-processing').style.display       = 'block';
     resetDetectionUI();
+
     try {
         const res  = await fetch('/process-attendance', {
             method:  'POST',
             headers: {
-                'Content-Type': 'application/json',
-                'X-CSRF-Token': CSRF_TOKEN,
-                'X-Requested-With': 'XMLHttpRequest'
-            },
-            body:    JSON.stringify({ image: _uploadImageData, subject: subject, _csrf: CSRF_TOKEN })
-        });
-        const data = await res.json();
-        document.getElementById('mark-processing').style.display = 'none';
-        if (!data.success) { showToast(data.error || 'Processing failed.', true); return; }
-        if (data.annotated_image) {
-            document.getElementById('annotated-preview').src = data.annotated_image;
-            document.getElementById('detection-preview-wrap').style.display = 'block';
-        }
-        const pList = document.getElementById('mark-present-list');
-        const aList = document.getElementById('mark-absent-list');
-        pList.innerHTML = ''; aList.innerHTML = '';
-        (data.present_students || []).forEach(s => {
-            const tag = document.createElement('span');
-            tag.className = 'result-tag tag-present';
-            tag.textContent = s.name + ' (' + s.roll + ')';
-            pList.appendChild(tag);
-        });
-        (data.absent_students || []).forEach(s => {
-            const tag = document.createElement('span');
-            tag.className = 'result-tag tag-absent';
-            tag.textContent = s.name + ' (' + s.roll + ')';
-            aList.appendChild(tag);
-        });
-        document.getElementById('mark-results').style.display = 'block';
-        const pc = (data.present_students || []).length;
-        const tf = data.faces_detected || 0;
-        document.getElementById('confirm-summary').textContent =
-            pc + ' student' + (pc !== 1 ? 's' : '') + ' recognized out of ' + tf + ' face' + (tf !== 1 ? 's' : '') + ' detected.';
-        document.getElementById('confirm-bar').style.display = 'flex';
-        _pendingAttendance = { rolls: data.present_students, subject };
-    } catch (err) {
-        document.getElementById('mark-processing').style.display = 'none';
-        showToast('Network error.', true);
-    }
-});
-
-document.getElementById('retake-btn').addEventListener('click', function() {
-    resetDetectionUI();
-    showToast('Ready to retake. Click "Start Camera".');
-});
-
-document.getElementById('confirm-btn').addEventListener('click', async function() {
-    if (!_pendingAttendance?.rolls?.length) { showToast('No students to confirm.', true); return; }
-    this.disabled = true;
-    this.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Saving…';
-    try {
-        const res    = await fetch('/confirm-attendance', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'X-CSRF-Token': CSRF_TOKEN,
+                'Content-Type':     'application/json',
+                'X-CSRF-Token':     CSRF_TOKEN,
                 'X-Requested-With': 'XMLHttpRequest'
             },
             body: JSON.stringify({
-                rolls: _pendingAttendance.rolls,
-                subject: _pendingAttendance.subject,
-                _csrf: CSRF_TOKEN
+                image:   imageData,
+                subject: subject,
+                _csrf:   CSRF_TOKEN
             })
         });
+
+        document.getElementById('mark-processing').style.display = 'none';
+
+        if (!res.ok) {
+            const errData = await res.json().catch(() => ({}));
+            showToast('Server error: ' + (errData.error || res.status), true);
+            return;
+        }
+
+        const data = await res.json();
+
+        if (!data.success) {
+            showToast(data.error || 'Processing failed.', true);
+            return;
+        }
+
+        if (data.annotated_image) {
+            document.getElementById('annotated-preview').src             = data.annotated_image;
+            document.getElementById('detection-preview-wrap').style.display = 'block';
+        }
+
+        const pList = document.getElementById('mark-present-list');
+        const aList = document.getElementById('mark-absent-list');
+        pList.innerHTML = '';
+        aList.innerHTML = '';
+
+        (data.present_students || []).forEach(function(s) {
+            const tag = document.createElement('span');
+            tag.className   = 'result-tag tag-present';
+            tag.textContent = s.name + ' (' + s.roll + ')';
+            pList.appendChild(tag);
+        });
+
+        (data.absent_students || []).forEach(function(s) {
+            const tag = document.createElement('span');
+            tag.className   = 'result-tag tag-absent';
+            tag.textContent = s.name + ' (' + s.roll + ')';
+            aList.appendChild(tag);
+        });
+
+        document.getElementById('mark-results').style.display = 'block';
+
+        const pc = (data.present_students || []).length;
+        const tf = data.faces_detected || 0;
+        document.getElementById('confirm-summary').textContent =
+            pc + ' student' + (pc !== 1 ? 's' : '') +
+            ' recognized out of ' + tf + ' face' + (tf !== 1 ? 's' : '') + ' detected.';
+        document.getElementById('confirm-bar').style.display = 'flex';
+
+        // Store only roll + name for confirm step
+        _pendingAttendance = {
+            rolls:   (data.present_students || []).map(function(s) {
+                return { roll: s.roll, name: s.name };
+            }),
+            subject: subject
+        };
+
+    } catch (err) {
+        document.getElementById('mark-processing').style.display = 'none';
+        showToast('Network error. Please check connection and try again.', true);
+        console.error('[FaceCapture]', err);
+    }
+}
+
+async function confirmAttendance() {
+    if (!_pendingAttendance || !_pendingAttendance.rolls || !_pendingAttendance.rolls.length) {
+        showToast('No students to confirm.', true);
+        return;
+    }
+
+    const btn = document.getElementById('confirm-btn');
+    btn.disabled = true;
+    btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Saving…';
+
+    try {
+        const res = await fetch('/confirm-attendance', {
+            method:  'POST',
+            headers: {
+                'Content-Type':     'application/json',
+                'X-CSRF-Token':     CSRF_TOKEN,
+                'X-Requested-With': 'XMLHttpRequest'
+            },
+            body: JSON.stringify({
+                rolls:   _pendingAttendance.rolls,
+                subject: _pendingAttendance.subject,
+                _csrf:   CSRF_TOKEN
+            })
+        });
+
         const result = await res.json();
+
         if (result.success) {
             showToast('Attendance confirmed for ' + result.marked + ' student(s)!');
             document.getElementById('confirm-bar').style.display = 'none';
             _pendingAttendance = null;
-            setTimeout(() => location.reload(), 2200);
+            setTimeout(function() { location.reload(); }, 2200);
         } else {
-            showToast(result.error || 'Could not save.', true);
-            this.disabled = false;
-            this.innerHTML = '<i class="fas fa-check-circle"></i> Confirm Attendance';
+            showToast(result.error || 'Could not save attendance.', true);
+            btn.disabled = false;
+            btn.innerHTML = '<i class="fas fa-check-circle"></i> Confirm Attendance';
         }
     } catch (err) {
         showToast('Network error.', true);
-        this.disabled = false;
-        this.innerHTML = '<i class="fas fa-check-circle"></i> Confirm Attendance';
+        btn.disabled = false;
+        btn.innerHTML = '<i class="fas fa-check-circle"></i> Confirm Attendance';
     }
-});
+}
 
 // ── CHANGE PASSWORD MODAL ─────────────────────────────────────────────
 function openPwdModal() {
