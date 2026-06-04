@@ -1223,7 +1223,7 @@
                         <button id="confirm-btn" class="btn btn-green" type="button" onclick="confirmAttendance()"><i class="fas fa-check-circle"></i> Confirm Attendance</button>
                         <button id="retake-btn" class="btn" type="button" onclick="resetDetectionUI();showToast('Ready to retake. Click Start Camera.')"><i class="fas fa-redo"></i> Retake</button>
                     </div>
-                </div>
+                </div>  
                 <div id="mark-results" class="attendance-results" style="display:none;">
                     <div class="result-group present"><h5>✅ Detected Present</h5><div class="result-tags" id="mark-present-list"></div></div>
                     <div class="result-group absent"><h5>❌ Not Detected (Absent)</h5><div class="result-tags" id="mark-absent-list"></div></div>
@@ -2179,7 +2179,7 @@ async function uploadDetect() {
                 'X-CSRF-Token': CSRF_TOKEN,
                 'X-Requested-With': 'XMLHttpRequest'
             },
-            body: JSON.stringify({ image: imageData, subject, _csrf: CSRF_TOKEN })
+            body: JSON.stringify({ image: _uploadImageData, subject, _csrf: CSRF_TOKEN })
         });
         const data = await res.json();
         document.getElementById('upload-processing').style.display = 'none';
