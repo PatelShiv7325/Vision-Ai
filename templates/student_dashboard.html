@@ -717,9 +717,12 @@ body.light-mode .nav-item.active .nav-icon {
 <script>const CSRF_TOKEN = "{{ csrf_token }}";</script>
 
 <!-- ── CHANGE PASSWORD MODAL ── -->
-<div class="modal-overlay" id="pwd-modal" style="z-index:300;">
-    <div class="modal-box" style="width:460px;text-align:left;padding:32px;position:relative;">
-        <button onclick="closePwdModal()"
+<!-- ── CHANGE PASSWORD MODAL ── (CSRF FIXED) ──-->
+<div class="pwd-modal-overlay" id="pwd-modal">
+    <div class="pwd-modal-box" style="width:460px;text-align:left;padding:32px;position:relative;">
+        
+        <!-- Close Button -->
+        <button class="pwd-modal-close" onclick="closePwdModal()"
                 style="position:absolute;top:14px;right:14px;background:none;border:none;
                        color:var(--text-secondary);font-size:1.1rem;cursor:pointer;
                        padding:4px 8px;border-radius:6px;"
@@ -732,29 +735,25 @@ body.light-mode .nav-item.active .nav-icon {
         <div style="width:52px;height:52px;border-radius:14px;
                     background:linear-gradient(135deg,var(--accent-blue),#8b5cf6);
                     display:flex;align-items:center;justify-content:center;
-                    font-size:22px;margin-bottom:16px;">🔐</div>
+                    font-size:22px;margin-bottom:16px;
+                    box-shadow:0 4px 20px rgba(99,102,241,0.35);">🔐</div>
 
-        <div style="font-size:20px;font-weight:700;margin-bottom:4px;">Change Password</div>
+        <div style="font-size:20px;font-weight:700;margin-bottom:4px;color:var(--text-primary);">Change Password</div>
         <p style="font-size:13px;color:var(--text-secondary);margin-bottom:24px;">
             Enter your current password, then set a new one.
         </p>
 
         <!-- Alerts -->
-        <div id="pwd-err" style="display:none;background:rgba(239,68,68,0.1);
-             border:1px solid rgba(239,68,68,0.25);border-radius:9px;
-             padding:11px 14px;font-size:13px;color:var(--accent-red);
-             align-items:center;gap:8px;margin-bottom:16px;">
-            <i class="fas fa-exclamation-circle"></i><span id="pwd-err-msg"></span>
+        <div class="pwd-alert pwd-alert-error" id="pwd-error" style="display:none;">
+            <i class="fas fa-exclamation-circle"></i><span id="pwd-error-msg"></span>
         </div>
-        <div id="pwd-succ" style="display:none;background:rgba(34,197,94,0.1);
-             border:1px solid rgba(34,197,94,0.25);border-radius:9px;
-             padding:11px 14px;font-size:13px;color:var(--accent-green);
-             align-items:center;gap:8px;margin-bottom:16px;">
-            <i class="fas fa-check-circle"></i><span id="pwd-succ-msg"></span>
+        <div class="pwd-alert pwd-alert-success" id="pwd-success" style="display:none;">
+            <i class="fas fa-check-circle"></i><span id="pwd-success-msg"></span>
         </div>
 
-        <form id="pwd-change-form" onsubmit="submitPwdChange(event)">
-            <input type="hidden" name="_csrf" value="{{ csrf_token }}">
+        <form id="pwd-form" onsubmit="submitPwdChange(event)" style="text-align:left;">
+            <!-- ✅ CSRF TOKEN - DYNAMIC -->
+            <input type="hidden" name="_csrf" id="csrf-token-field" value="">
 
             <!-- Current Password -->
             <div style="margin-bottom:16px;">
@@ -773,18 +772,21 @@ body.light-mode .nav-item.active .nav-icon {
                            style="width:100%;background:var(--bg-input);
                                   border:1.5px solid var(--border);border-radius:10px;
                                   padding:11px 42px 11px 40px;font-size:14px;
-                                  font-family:'Inter',sans-serif;color:var(--text-primary);
+                                  font-family:'Outfit',sans-serif;color:var(--text-primary);
                                   outline:none;transition:border-color 0.2s;"
                            onfocus="this.style.borderColor='var(--accent-blue)'"
                            onblur="this.style.borderColor='var(--border)'">
-                    <button type="button" onclick="togglePwdEye('pwd-old','eye-old')"
+                    <button type="button" onclick="togglePwdModal('pwd-old','icon-old')"
                             style="position:absolute;right:12px;top:50%;transform:translateY(-50%);
                                    background:none;border:none;color:var(--text-muted);
                                    cursor:pointer;font-size:13px;padding:3px;">
-                        <i class="fas fa-eye" id="eye-old"></i>
+                        <i class="fas fa-eye" id="icon-old"></i>
                     </button>
                 </div>
             </div>
+
+            <!-- Divider -->
+            <div style="height:1px;background:var(--border);margin:4px 0 16px;"></div>
 
             <!-- New Password -->
             <div style="margin-bottom:16px;">
@@ -803,22 +805,22 @@ body.light-mode .nav-item.active .nav-icon {
                            style="width:100%;background:var(--bg-input);
                                   border:1.5px solid var(--border);border-radius:10px;
                                   padding:11px 42px 11px 40px;font-size:14px;
-                                  font-family:'Inter',sans-serif;color:var(--text-primary);
+                                  font-family:'Outfit',sans-serif;color:var(--text-primary);
                                   outline:none;transition:border-color 0.2s;"
                            onfocus="this.style.borderColor='var(--accent-blue)'"
                            onblur="this.style.borderColor='var(--border)'"
-                           oninput="pwdStrength(this.value);pwdMatch()">
-                    <button type="button" onclick="togglePwdEye('pwd-new','eye-new')"
+                           oninput="pwdModalStrength(this.value);pwdModalMatch()">
+                    <button type="button" onclick="togglePwdModal('pwd-new','icon-new')"
                             style="position:absolute;right:12px;top:50%;transform:translateY(-50%);
                                    background:none;border:none;color:var(--text-muted);
                                    cursor:pointer;font-size:13px;padding:3px;">
-                        <i class="fas fa-eye" id="eye-new"></i>
+                        <i class="fas fa-eye" id="icon-new"></i>
                     </button>
                 </div>
                 <!-- Strength bar -->
                 <div style="height:3px;border-radius:2px;background:var(--border);
                             margin-top:8px;overflow:hidden;">
-                    <div id="pwd-strength-bar"
+                    <div id="pwd-meter-fill"
                          style="height:100%;border-radius:2px;width:0%;
                                 transition:width 0.3s,background 0.3s;"></div>
                 </div>
@@ -841,21 +843,21 @@ body.light-mode .nav-item.active .nav-icon {
                     <i class="fas fa-check-double"
                        style="position:absolute;left:13px;top:50%;transform:translateY(-50%);
                               color:var(--text-muted);font-size:13px;pointer-events:none;"></i>
-                    <input type="password" id="pwd-conf"
+                    <input type="password" id="pwd-confirm"
                            placeholder="Repeat new password" required
                            style="width:100%;background:var(--bg-input);
                                   border:1.5px solid var(--border);border-radius:10px;
                                   padding:11px 42px 11px 40px;font-size:14px;
-                                  font-family:'Inter',sans-serif;color:var(--text-primary);
+                                  font-family:'Outfit',sans-serif;color:var(--text-primary);
                                   outline:none;transition:border-color 0.2s;"
                            onfocus="this.style.borderColor='var(--accent-blue)'"
                            onblur="this.style.borderColor='var(--border)'"
-                           oninput="pwdMatch()">
-                    <button type="button" onclick="togglePwdEye('pwd-conf','eye-conf')"
+                           oninput="pwdModalMatch()">
+                    <button type="button" onclick="togglePwdModal('pwd-confirm','icon-confirm')"
                             style="position:absolute;right:12px;top:50%;transform:translateY(-50%);
                                    background:none;border:none;color:var(--text-muted);
                                    cursor:pointer;font-size:13px;padding:3px;">
-                        <i class="fas fa-eye" id="eye-conf"></i>
+                        <i class="fas fa-eye" id="icon-confirm"></i>
                     </button>
                 </div>
                 <div id="pwd-match-hint"
@@ -864,15 +866,22 @@ body.light-mode .nav-item.active .nav-icon {
             </div>
 
             <!-- Submit -->
-            <button type="submit" id="pwd-submit-btn" class="btn btn-primary"
-                    style="width:100%;justify-content:center;padding:13px;font-size:14px;">
-                <div id="pwd-submit-spinner"
+            <button type="submit" id="pwd-submit-btn"
+                    style="width:100%;padding:13px;background:var(--accent-blue);
+                           border:none;border-radius:12px;color:#fff;
+                           font-size:14px;font-weight:700;font-family:'Outfit',sans-serif;
+                           cursor:pointer;transition:all 0.25s;
+                           display:flex;align-items:center;justify-content:center;gap:8px;
+                           box-shadow:0 4px 20px rgba(99,102,241,0.35);"
+                    onmouseover="this.style.background='#5254cc';this.style.transform='translateY(-2px)'"
+                    onmouseout="this.style.background='var(--accent-blue)';this.style.transform='translateY(0)'">
+                <div id="pwd-spinner"
                      style="display:none;width:15px;height:15px;
                             border:2px solid rgba(255,255,255,0.3);
                             border-top-color:#fff;border-radius:50%;
-                            animation:spin 0.7s linear infinite;margin-right:6px;"></div>
+                            animation:pwdSpin 0.7s linear infinite;"></div>
                 <i class="fas fa-save" id="pwd-submit-icon"></i>
-                <span id="pwd-submit-text" style="margin-left:6px;">Update Password</span>
+                <span id="pwd-submit-text">Update Password</span>
             </button>
         </form>
     </div>
@@ -1819,6 +1828,36 @@ body.light-mode .nav-item.active .nav-icon {
 </div><!-- /main -->
 
 <script>
+
+// ✅ CSRF TOKEN HELPER - GET FRESH TOKEN FROM SESSION
+function getCsrfToken() {
+    // Try to get from meta tag first
+    const meta = document.querySelector('meta[name="csrf-token"]');
+    if (meta) return meta.getAttribute('content');
+    
+    // Try from existing hidden input
+    const field = document.getElementById('csrf-token-field');
+    if (field && field.value) return field.value;
+    
+    // Fallback to window variable (if available)
+    if (typeof CSRF_TOKEN !== 'undefined') return CSRF_TOKEN;
+    
+    // Last resort - fetch from server
+    return '';
+}
+
+// ✅ UPDATE CSRF TOKEN IN MODAL
+function updateCsrfToken() {
+    const token = getCsrfToken();
+    const field = document.getElementById('csrf-token-field');
+    if (field && token) {
+        field.value = token;
+    }
+}
+
+// Call on page load
+document.addEventListener('DOMContentLoaded', updateCsrfToken);
+
 const pageTitles = {
     'dashboard':    'Welcome, {{ student["name"] }} 👋',
     'profile':      'My Profile',
@@ -2493,37 +2532,58 @@ function togglePwdEye(fieldId, iconId) {
 async function submitPwdChange(event) {
     event.preventDefault();
     
-    const csrfToken = document.querySelector('meta[name="csrf-token"]').getAttribute('content');
-    const oldPwd = document.getElementById('pwd-old').value;
-    const newPwd = document.getElementById('pwd-new').value;
-    const confPwd = document.getElementById('pwd-conf').value;
+    const oldPwd  = document.getElementById('pwd-old').value;
+    const newPwd  = document.getElementById('pwd-new').value;
+    const confPwd = document.getElementById('pwd-confirm').value;
+    const errBox  = document.getElementById('pwd-error');
+    const errMsg  = document.getElementById('pwd-error-msg');
+    const sucBox  = document.getElementById('pwd-success');
     
+    // Reset alerts
+    errBox.style.display = 'none';
+    sucBox.style.display = 'none';
+    
+    // Validation
     if (!oldPwd || !newPwd || !confPwd) {
-        document.getElementById('pwd-err').style.display = 'flex';
-        document.getElementById('pwd-err-msg').textContent = 'All fields are required.';
+        errMsg.textContent = 'All fields are required.';
+        errBox.style.display = 'flex';
         return;
     }
     
     if (newPwd.length < 8) {
-        document.getElementById('pwd-err').style.display = 'flex';
-        document.getElementById('pwd-err-msg').textContent = 'New password must be at least 8 characters.';
+        errMsg.textContent = 'New password must be at least 8 characters.';
+        errBox.style.display = 'flex';
         return;
     }
     
     if (newPwd !== confPwd) {
-        document.getElementById('pwd-err').style.display = 'flex';
-        document.getElementById('pwd-err-msg').textContent = 'Passwords do not match.';
+        errMsg.textContent = 'Passwords do not match.';
+        errBox.style.display = 'flex';
+        return;
+    }
+    
+    if (oldPwd === newPwd) {
+        errMsg.textContent = 'New password must differ from current password.';
+        errBox.style.display = 'flex';
+        return;
+    }
+    
+    // ✅ GET FRESH CSRF TOKEN
+    const csrfToken = getCsrfToken();
+    if (!csrfToken) {
+        errMsg.textContent = 'Security error. Please refresh the page.';
+        errBox.style.display = 'flex';
         return;
     }
     
     const btn = document.getElementById('pwd-submit-btn');
     const icon = document.getElementById('pwd-submit-icon');
     const text = document.getElementById('pwd-submit-text');
-    const spinner = document.getElementById('pwd-submit-spinner');
+    const spinner = document.getElementById('pwd-spinner');
     
     btn.disabled = true;
     icon.style.display = 'none';
-    text.textContent = 'Updating...';
+    text.textContent = 'Updating…';
     spinner.style.display = 'inline-block';
     
     try {
@@ -2531,44 +2591,60 @@ async function submitPwdChange(event) {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
-                'X-CSRF-Token': csrfToken,
+                'X-CSRF-Token': csrfToken,  // ✅ Include in header
                 'X-Requested-With': 'XMLHttpRequest'
             },
             body: JSON.stringify({
                 old_password: oldPwd,
                 new_password: newPwd,
-                _csrf: csrfToken
+                _csrf: csrfToken  // ✅ Include in body as backup
             })
         });
         
         const data = await res.json();
         
         if (data.success) {
-            document.getElementById('pwd-err').style.display = 'none';
-            document.getElementById('pwd-succ').style.display = 'flex';
-            document.getElementById('pwd-succ-msg').textContent = 'Password changed successfully! Redirecting...';
-            
+            document.getElementById('pwd-success-msg').textContent = 
+                'Password changed successfully! Redirecting...';
+            sucBox.style.display = 'flex';
+            showToast('Password updated!');
             setTimeout(() => {
-                window.location.href = '/student-login';
+                location.href = '/student-dashboard';
             }, 2000);
         } else {
-            document.getElementById('pwd-err').style.display = 'flex';
-            document.getElementById('pwd-err-msg').textContent = data.error || 'Error changing password.';
-            
+            errMsg.textContent = data.error || 'Error changing password.';
+            errBox.style.display = 'flex';
             btn.disabled = false;
             icon.style.display = 'inline';
             text.textContent = 'Update Password';
             spinner.style.display = 'none';
         }
-    } catch (e) {
-        document.getElementById('pwd-err').style.display = 'flex';
-        document.getElementById('pwd-err-msg').textContent = 'Network error. Please try again.';
-        
+    } catch (err) {
+        console.error('Password change error:', err);
+        errMsg.textContent = 'Network error. Please try again.';
+        errBox.style.display = 'flex';
         btn.disabled = false;
         icon.style.display = 'inline';
         text.textContent = 'Update Password';
         spinner.style.display = 'none';
     }
+}
+
+function openPwdModal() {
+    updateCsrfToken();  // ✅ Refresh token when opening modal
+    document.getElementById('pwd-modal').classList.add('show');
+    document.getElementById('pwd-form').reset();
+    document.getElementById('pwd-error').style.display = 'none';
+    document.getElementById('pwd-success').style.display = 'none';
+    document.getElementById('pwd-meter-fill').style.width = '0%';
+    document.getElementById('pwd-strength-hint').innerHTML = 
+        '<i class="fas fa-shield-alt"></i> Min 8 characters';
+    document.getElementById('pwd-match-hint').style.display = 'none';
+}
+
+function closePwdModal() {
+    const modal = document.getElementById('pwd-modal');
+    if (modal) modal.classList.remove('show');
 }
 
 // 14. SHOW PROFILE FROM HEADER

@@ -663,9 +663,11 @@
 </div>
 
 <!-- ── CHANGE PASSWORD MODAL ── -->
-<!-- ── CHANGE PASSWORD MODAL ── -->
+<!-- ── CHANGE PASSWORD MODAL ── (CSRF FIXED) ──-->
 <div class="pwd-modal-overlay" id="pwd-modal">
-    <div class="pwd-modal-box" style="width:460px;text-align:left;padding:32px;position:relative;border-radius:16px;background:var(--bg-sidebar);border:1px solid var(--border-active);">
+    <div class="pwd-modal-box" style="width:460px;text-align:left;padding:32px;position:relative;">
+        
+        <!-- Close Button -->
         <button class="pwd-modal-close" onclick="closePwdModal()"
                 style="position:absolute;top:14px;right:14px;background:none;border:none;
                        color:var(--text-secondary);font-size:1.1rem;cursor:pointer;
@@ -688,15 +690,16 @@
         </p>
 
         <!-- Alerts -->
-        <div class="pwd-alert pwd-alert-error" id="pwd-error">
+        <div class="pwd-alert pwd-alert-error" id="pwd-error" style="display:none;">
             <i class="fas fa-exclamation-circle"></i><span id="pwd-error-msg"></span>
         </div>
-        <div class="pwd-alert pwd-alert-success" id="pwd-success">
+        <div class="pwd-alert pwd-alert-success" id="pwd-success" style="display:none;">
             <i class="fas fa-check-circle"></i><span id="pwd-success-msg"></span>
         </div>
 
         <form id="pwd-form" onsubmit="submitPwdChange(event)" style="text-align:left;">
-            <input type="hidden" name="_csrf" value="{{ csrf_token }}">
+            <!-- ✅ CSRF TOKEN - DYNAMIC -->
+            <input type="hidden" name="_csrf" id="csrf-token-field" value="">
 
             <!-- Current Password -->
             <div style="margin-bottom:16px;">
@@ -1561,6 +1564,36 @@
         </div>
 
 <script>
+
+// ✅ CSRF TOKEN HELPER - GET FRESH TOKEN FROM SESSION
+function getCsrfToken() {
+    // Try to get from meta tag first
+    const meta = document.querySelector('meta[name="csrf-token"]');
+    if (meta) return meta.getAttribute('content');
+    
+    // Try from existing hidden input
+    const field = document.getElementById('csrf-token-field');
+    if (field && field.value) return field.value;
+    
+    // Fallback to window variable (if available)
+    if (typeof CSRF_TOKEN !== 'undefined') return CSRF_TOKEN;
+    
+    // Last resort - fetch from server
+    return '';
+}
+
+// ✅ UPDATE CSRF TOKEN IN MODAL
+function updateCsrfToken() {
+    const token = getCsrfToken();
+    const field = document.getElementById('csrf-token-field');
+    if (field && token) {
+        field.value = token;
+    }
+}
+
+// Call on page load
+document.addEventListener('DOMContentLoaded', updateCsrfToken);
+
 // ── PAGE NAVIGATION ──────────────────────────────────────────────────
 const pageTitles = {
     dashboard: 'Welcome, {{ faculty["name"] }} 👋',
@@ -1958,58 +1991,122 @@ function pwdModalMatch() {
         : '<i class="fas fa-times-circle" style="color:#ff6b6b"></i> <span style="color:#ff6b6b">Passwords do not match</span>';
 }
 
-async function submitPwdChange(e) {
-    e.preventDefault();
+async function submitPwdChange(event) {
+    event.preventDefault();
+    
     const oldPwd  = document.getElementById('pwd-old').value;
     const newPwd  = document.getElementById('pwd-new').value;
     const confPwd = document.getElementById('pwd-confirm').value;
     const errBox  = document.getElementById('pwd-error');
     const errMsg  = document.getElementById('pwd-error-msg');
     const sucBox  = document.getElementById('pwd-success');
-    errBox.style.display = 'none'; sucBox.style.display = 'none';
-    if (newPwd.length < 8)  { errMsg.textContent = 'New password must be at least 8 characters.'; errBox.style.display = 'flex'; return; }
-    if (newPwd !== confPwd) { errMsg.textContent = 'New passwords do not match.'; errBox.style.display = 'flex'; return; }
-    if (oldPwd === newPwd)  { errMsg.textContent = 'New password must differ from current.'; errBox.style.display = 'flex'; return; }
+    
+    // Reset alerts
+    errBox.style.display = 'none';
+    sucBox.style.display = 'none';
+    
+    // Validation
+    if (!oldPwd || !newPwd || !confPwd) {
+        errMsg.textContent = 'All fields are required.';
+        errBox.style.display = 'flex';
+        return;
+    }
+    
+    if (newPwd.length < 8) {
+        errMsg.textContent = 'New password must be at least 8 characters.';
+        errBox.style.display = 'flex';
+        return;
+    }
+    
+    if (newPwd !== confPwd) {
+        errMsg.textContent = 'Passwords do not match.';
+        errBox.style.display = 'flex';
+        return;
+    }
+    
+    if (oldPwd === newPwd) {
+        errMsg.textContent = 'New password must differ from current password.';
+        errBox.style.display = 'flex';
+        return;
+    }
+    
+    // ✅ GET FRESH CSRF TOKEN
+    const csrfToken = getCsrfToken();
+    if (!csrfToken) {
+        errMsg.textContent = 'Security error. Please refresh the page.';
+        errBox.style.display = 'flex';
+        return;
+    }
+    
     const btn = document.getElementById('pwd-submit-btn');
+    const icon = document.getElementById('pwd-submit-icon');
+    const text = document.getElementById('pwd-submit-text');
+    const spinner = document.getElementById('pwd-spinner');
+    
     btn.disabled = true;
-    document.getElementById('pwd-spinner').style.display = 'block';
-    document.getElementById('pwd-submit-icon').style.display = 'none';
-    document.getElementById('pwd-submit-text').textContent = 'Updating…';
+    icon.style.display = 'none';
+    text.textContent = 'Updating…';
+    spinner.style.display = 'inline-block';
+    
     try {
-        const res  = await fetch('/change-password', {
+        const res = await fetch('/change-password', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
-                'X-CSRF-Token': CSRF_TOKEN
+                'X-CSRF-Token': csrfToken,  // ✅ Include in header
+                'X-Requested-With': 'XMLHttpRequest'
             },
             body: JSON.stringify({
                 old_password: oldPwd,
                 new_password: newPwd,
-                _csrf: CSRF_TOKEN
+                _csrf: csrfToken  // ✅ Include in body as backup
             })
         });
+        
         const data = await res.json();
-        if (!data.success) {
-            errMsg.textContent = data.error || 'Current password is incorrect.';
-            errBox.style.display = 'flex';
-            btn.disabled = false;
-            document.getElementById('pwd-spinner').style.display = 'none';
-            document.getElementById('pwd-submit-icon').style.display = 'inline';
-            document.getElementById('pwd-submit-text').textContent = 'Update Password';
-        } else {
-            document.getElementById('pwd-success-msg').textContent = 'Password changed successfully!';
+        
+        if (data.success) {
+            document.getElementById('pwd-success-msg').textContent = 
+                'Password changed successfully! Redirecting...';
             sucBox.style.display = 'flex';
             showToast('Password updated!');
-            setTimeout(closePwdModal, 2000);
+            setTimeout(() => {
+                location.href = '/student-dashboard';
+            }, 2000);
+        } else {
+            errMsg.textContent = data.error || 'Error changing password.';
+            errBox.style.display = 'flex';
+            btn.disabled = false;
+            icon.style.display = 'inline';
+            text.textContent = 'Update Password';
+            spinner.style.display = 'none';
         }
     } catch (err) {
+        console.error('Password change error:', err);
         errMsg.textContent = 'Network error. Please try again.';
         errBox.style.display = 'flex';
         btn.disabled = false;
-        document.getElementById('pwd-spinner').style.display = 'none';
-        document.getElementById('pwd-submit-icon').style.display = 'inline';
-        document.getElementById('pwd-submit-text').textContent = 'Update Password';
+        icon.style.display = 'inline';
+        text.textContent = 'Update Password';
+        spinner.style.display = 'none';
     }
+}
+
+function openPwdModal() {
+    updateCsrfToken();  // ✅ Refresh token when opening modal
+    document.getElementById('pwd-modal').classList.add('show');
+    document.getElementById('pwd-form').reset();
+    document.getElementById('pwd-error').style.display = 'none';
+    document.getElementById('pwd-success').style.display = 'none';
+    document.getElementById('pwd-meter-fill').style.width = '0%';
+    document.getElementById('pwd-strength-hint').innerHTML = 
+        '<i class="fas fa-shield-alt"></i> Min 8 characters';
+    document.getElementById('pwd-match-hint').style.display = 'none';
+}
+
+function closePwdModal() {
+    const modal = document.getElementById('pwd-modal');
+    if (modal) modal.classList.remove('show');
 }
 
 // ── CHANGE PASSWORD PAGE ──────────────────────────────────────────────

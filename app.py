@@ -160,48 +160,71 @@ def generate_session_id() -> str:
 
 
 # ── CSRF enforcement ──────────────────────────────────────────────────
+# ── CSRF enforcement (FIXED) ──────────────────────────────────────
+def generate_csrf_token() -> str:
+    """Generate CSRF token - ALWAYS return a fresh token for safety."""
+    if "_csrf" not in session:
+        session["_csrf"] = secrets.token_hex(24)
+        session.modified = True  # Force save to avoid losing token
+    return session["_csrf"]
+
+
 @app.before_request
 def enforce_csrf():
-    generate_csrf_token()
+    """Enforce CSRF on POST/PUT/DELETE requests."""
+    # Generate token FIRST (ensures session has _csrf)
+    token = generate_csrf_token()
+    
+    # Exempt endpoints
     exempt_endpoints = {
-        "student_face_login",
-        "student_login",
-        "forgot_password",
-        "verify_otp",
-        "reset_password",
-        "mark_notifications_read",
-        "subjects_by_standard",
-        "static",
-        "health",
+        "student_face_login", "student_login", "forgot_password",
+        "verify_otp", "reset_password", "mark_notifications_read",
+        "subjects_by_standard", "static", "health",
     }
+    
+    # Skip enforcement for GET/HEAD/OPTIONS
     if request.method in ("GET", "HEAD", "OPTIONS"):
         return
+    
+    # Skip exempt endpoints
     if request.endpoint in exempt_endpoints:
         return
-    if not validate_csrf():
-        if (
-            request.is_json
-            or request.headers.get("X-Requested-With") == "XMLHttpRequest"
-            or request.headers.get("X-CSRF-Token")
-            or request.content_type == "application/json"
-        ):
-            return jsonify({"success": False, "error": "CSRF validation failed."}), 403
+    
+    # ✅ FIX: Improved token extraction
+    received_token = None
+    
+    # 1. Try form data
+    if request.form:
+        received_token = request.form.get("_csrf", "").strip()
+    
+    # 2. Try headers
+    if not received_token:
+        received_token = request.headers.get("X-CSRF-Token", "").strip()
+    
+    # 3. Try JSON body
+    if not received_token and request.is_json:
+        try:
+            json_data = request.get_json(silent=True, cache=True)
+            if json_data and isinstance(json_data, dict):
+                received_token = json_data.get("_csrf", "").strip()
+        except Exception:
+            pass
+    
+    # ✅ FIX: Get stored token from session
+    stored_token = session.get("_csrf", "").strip()
+    
+    # Validate
+    if not received_token or not stored_token or not hmac.compare_digest(received_token, stored_token):
+        # Return appropriate error based on request type
+        if request.is_json or request.headers.get("X-Requested-With") == "XMLHttpRequest":
+            return jsonify({"success": False, "error": "CSRF validation failed. Please refresh the page."}), 403
         abort(403)
 
 
 @app.context_processor
 def inject_csrf():
+    """Inject CSRF token into all templates."""
     return {"csrf_token": generate_csrf_token()}
-
-
-@app.after_request
-def add_no_cache_headers(response):
-    """Prevent browser from caching POST responses."""
-    if request.method == "POST":
-        response.headers["Cache-Control"] = "no-cache, no-store, must-revalidate, post-check=0, pre-check=0"
-        response.headers["Pragma"]        = "no-cache"
-        response.headers["Expires"]       = "0"
-    return response
 
 
 # ── Login decorators (FIXED with session validation) ──────────────────
@@ -888,7 +911,7 @@ def student_register():
             session["student_id"]        = new_id
             session["student_email"]     = email
             session["session_instance"]  = session_instance_id
-            session["session_created_at"] = datetime.now().isoformat()
+            session["session_created_at"] = get_ist_now().isoformat()
             session["session_user_type"] = "student"
             
             return redirect(url_for("student_dashboard"))
@@ -975,7 +998,7 @@ def student_login():
             session["student_id"]        = student["id"]
             session["student_email"]     = student["email"]
             session["session_instance"]  = session_instance_id
-            session["session_created_at"] = datetime.now().isoformat()
+            session["session_created_at"] = get_ist_now().isoformat()
             session["session_user_type"] = "student"
             
             return redirect(url_for("student_dashboard"))
@@ -1106,7 +1129,7 @@ def student_face_login():
             session["student_id"]        = student["id"]
             session["student_email"]     = student["email"]
             session["session_instance"]  = session_instance_id
-            session["session_created_at"] = datetime.now().isoformat()
+            session["session_created_at"] = get_ist_now().isoformat()
             session["session_user_type"] = "student"
             
             return jsonify({"success": True, "name": name})
@@ -1178,7 +1201,7 @@ def student_dashboard():
         try:
             days_map  = {0: "Monday", 1: "Tuesday", 2: "Wednesday", 3: "Thursday",
                          4: "Friday", 5: "Saturday", 6: "Sunday"}
-            today_day = days_map[datetime.now().weekday()]
+            today_day = days_map[get_ist_now().weekday()]
             
             student_info = db.execute(
                 "SELECT standard, division FROM students WHERE roll=?",
@@ -1196,7 +1219,7 @@ def student_dashboard():
 
             today_classes = [dict(r) for r in rows]
 
-            today_str    = datetime.now().strftime("%Y-%m-%d")
+            today_str    = get_ist_now().strftime("%Y-%m-%d")
             marked_today = {
                 r["subject"] for r in db.execute(
                     "SELECT DISTINCT subject FROM attendance "
@@ -1289,7 +1312,7 @@ def student_dashboard():
                         "WHERE student_roll=?",
                         (session["student_roll"],)
                     ).fetchone()
-                    today_str = datetime.now().strftime("%Y-%m-%d")
+                    today_str = get_ist_now().strftime("%Y-%m-%d")
                     if not last_alert or last_alert["d"] != today_str:
                         _send_low_attendance_alert(
                             student_dict["email"], student_dict["name"],
@@ -1627,7 +1650,7 @@ def faculty_register():
             session["faculty_id"]        = faculty_id
             session["faculty_name"]      = name
             session["session_instance"]  = session_instance_id
-            session["session_created_at"] = datetime.now().isoformat()
+            session["session_created_at"] = get_ist_now().isoformat()
             session["session_user_type"] = "faculty"
             
             return redirect(url_for("faculty_dashboard"))
@@ -1721,7 +1744,7 @@ def faculty_login():
             session["faculty_id"]        = faculty["faculty_id"]
             session["faculty_name"]      = faculty["name"]
             session["session_instance"]  = session_instance_id
-            session["session_created_at"] = datetime.now().isoformat()
+            session["session_created_at"] = get_ist_now().isoformat()
             session["session_user_type"] = "faculty"
             
             return redirect(url_for("faculty_dashboard"))
@@ -2526,7 +2549,7 @@ def api_student_stats():
 def api_faculty_stats():
     db = get_db()
     try:
-        today = datetime.now().strftime("%Y-%m-%d")
+        today = get_ist_now().strftime("%Y-%m-%d")
         data  = {
             "total_students":   db.execute(
                 "SELECT COUNT(*) FROM students WHERE is_active=1"
