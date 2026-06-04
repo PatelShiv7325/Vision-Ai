@@ -922,7 +922,7 @@
                 </div>
                 <div class="stat-card">
                     <div class="stat-label"><span class="stat-dot dot-accent"></span> Faculty ID</div>
-                    <div class="stat-num" style="font: size 10px;margin-top:6px;font-family:'JetBrains Mono',monospace;">{{ faculty['faculty_id'] }}</div>
+                    <div class="stat-num" style="font-size: 10px;margin-top:6px;font-family:'JetBrains Mono',monospace;">{{ faculty['faculty_id'] }}</div>
                     <div class="stat-sub"><span class="hl-accent">{{ faculty['subject'] }}</span></div>
                 </div>
             </div>
@@ -1895,14 +1895,21 @@ async function submitPwdChange(e) {
     document.getElementById('pwd-submit-icon').style.display = 'none';
     document.getElementById('pwd-submit-text').textContent = 'Updating…';
     try {
-        const fd = new FormData();
-        fd.append('old_password', oldPwd);
-        fd.append('new_password', newPwd);
-        fd.append('_csrf', CSRF_TOKEN);
-        const res  = await fetch('/change-password', { method: 'POST', body: fd });
-        const html = await res.text();
-        if (html.includes('incorrect') || html.includes('error')) {
-            errMsg.textContent = 'Current password is incorrect.';
+        const res  = await fetch('/change-password', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRF-Token': CSRF_TOKEN
+            },
+            body: JSON.stringify({
+                old_password: oldPwd,
+                new_password: newPwd,
+                _csrf: CSRF_TOKEN
+            })
+        });
+        const data = await res.json();
+        if (!data.success) {
+            errMsg.textContent = data.error || 'Current password is incorrect.';
             errBox.style.display = 'flex';
             btn.disabled = false;
             document.getElementById('pwd-spinner').style.display = 'none';
@@ -1971,14 +1978,21 @@ async function submitPwdChangePage(e) {
     document.getElementById('pwd-submit-icon-page').style.display = 'none';
     document.getElementById('pwd-submit-text-page').textContent = 'Updating…';
     try {
-        const fd = new FormData();
-        fd.append('old_password', oldPwd);
-        fd.append('new_password', newPwd);
-        fd.append('_csrf', CSRF_TOKEN);
-        const res  = await fetch('/change-password', { method: 'POST', body: fd });
-        const html = await res.text();
-        if (html.includes('incorrect') || html.includes('error')) {
-            errMsg.textContent = 'Current password is incorrect.';
+        const res  = await fetch('/change-password', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRF-Token': CSRF_TOKEN
+            },
+            body: JSON.stringify({
+                old_password: oldPwd,
+                new_password: newPwd,
+                _csrf: CSRF_TOKEN
+            }) 
+        });
+        const data = await res.json();
+        if (!data.success) {
+            errMsg.textContent = data.error || 'Current password is incorrect.';
             errBox.style.display = 'flex';
             btn.disabled = false;
             document.getElementById('pwd-spinner-page').style.display = 'none';

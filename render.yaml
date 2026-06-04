@@ -2,18 +2,14 @@ services:
   - type: web
     name: vision-ai
     env: python
-    plan: starter
-    pythonVersion: "3.11.9"
     buildCommand: pip install -r requirements.txt
-    startCommand: gunicorn app:app --bind 0.0.0.0:$PORT --workers 1 --timeout 120
+    startCommand: gunicorn app:app --workers 2 --timeout 120
     envVars:
-      - key: SECRET_KEY
-        generateValue: true
+      - key: DATA_DIR
+        value: /data
       - key: PRODUCTION
         value: "1"
-      - key: DATA_DIR
-        value: /opt/render/project/data
     disk:
       name: vision-ai-data
-      mountPath: /opt/render/project/data
-      sizeGB: 1
+      mountPath: /data
+      sizeGB: 5

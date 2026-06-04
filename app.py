@@ -615,6 +615,16 @@ with app.app_context():
 # =====================================================================
 # HOME
 # =====================================================================
+@app.route("/health")
+def health():
+    try:
+        db = get_db()
+        db.execute("SELECT 1")
+        db.close()
+        return jsonify({"status": "ok", "db": "connected"}), 200
+    except Exception as e:
+        return jsonify({"status": "error", "detail": str(e)}), 500
+        
 @app.route("/")
 def home():
     db = get_db()
@@ -816,9 +826,10 @@ def student_register():
                 faces_save_dir = "static/faces"
                 face_filename = f"faces/{roll}.jpg"
                 face_save_path = f"static/{face_filename}"
-                os.makedirs(faces_save_dir, exist_ok=True)
-                with open(face_save_path, "wb") as f:
-                    f.write(img_data)
+
+            os.makedirs(faces_save_dir, exist_ok=True)   
+            with open(face_save_path, "wb") as f:        
+                f.write(img_data)
 
             db.execute(
                 """INSERT INTO students
@@ -1230,11 +1241,8 @@ def student_dashboard():
 
         # ── Totals ────────────────────────────────────────────────────
         total   = len(attendance)
-        present = sum(
-            1 for a in attendance
-            if a and a["method"] in ("manual", "bulk", "face")
-        )
-        percent = round((present / total) * 100) if total > 0 else 0
+        present = total
+        percent = 100 if total > 0 else 0
 
         student_dict = dict(student) if student else {}
 
@@ -1451,8 +1459,8 @@ def student_face_enroll():
             faces_save_dir = "static/faces"
             face_filename = f"faces/{roll}.jpg"
             face_save_path = f"static/{face_filename}"
+
         os.makedirs(faces_save_dir, exist_ok=True)
-        
         with open(face_save_path, "wb") as f:
             f.write(img_data)
 
@@ -2023,6 +2031,7 @@ def process_attendance():
 # STUDENT SELF-ATTENDANCE
 # =====================================================================
 @app.route("/attendance", methods=["GET", "POST"])
+@login_required_student
 def attendance():
     if request.method == "POST":
         subject   = request.form.get("subject",    "").strip()
@@ -2593,7 +2602,15 @@ def attendance_export():
 # =====================================================================
 @app.route("/change-password", methods=["GET", "POST"])
 def change_password():
+    is_ajax = (
+        request.is_json
+        or request.headers.get("X-Requested-With") == "XMLHttpRequest"
+        or request.content_type == "application/json"
+    )
+
     if "student_roll" not in session and "faculty_id" not in session:
+        if is_ajax:
+            return jsonify({"success": False, "error": "Not logged in."}), 401
         flash("Please login to continue.", "warning")
         return redirect(url_for("home"))
 
@@ -2614,20 +2631,29 @@ def change_password():
 
     if not exists:
         session.clear()
+        if is_ajax:
+            return jsonify({"success": False, "error": "Account not found."}), 404
         flash("Your account no longer exists.", "warning")
         return redirect(url_for("home"))
 
     if request.method == "POST":
-        old_pw_raw = request.form.get("old_password", "")
-        new_pw_raw = request.form.get("new_password", "")
+        if is_ajax:
+            data = request.get_json(silent=True) or {}
+            old_pw_raw = data.get("old_password", "")
+            new_pw_raw = data.get("new_password", "")
+        else:
+            old_pw_raw = request.form.get("old_password", "")
+            new_pw_raw = request.form.get("new_password", "")
 
         if len(new_pw_raw) < 8:
+            if is_ajax:
+                return jsonify({"success": False, "error": "New password must be at least 8 characters."})
             flash("New password must be at least 8 characters.", "error")
             return render_template("change_password.html")
 
         old_pw = hash_password(old_pw_raw)
         new_pw = hash_password(new_pw_raw)
-        db     = get_db()
+        db = get_db()
         try:
             if "student_roll" in session:
                 user = db.execute(
@@ -2639,14 +2665,16 @@ def change_password():
                         "UPDATE students SET password=? WHERE roll=?",
                         (new_pw, session["student_roll"])
                     )
-                    
-                    # ✅ FIX: Invalidate all sessions on password change
                     invalidate_all_user_sessions(db, "student", session["student_roll"])
                     db.commit()
-                    
+                    if is_ajax:
+                        return jsonify({"success": True, "message": "Password changed successfully!"})
+                    session.clear()
                     flash("Password changed successfully! Please login again.", "success")
                     return redirect(url_for("student_login"))
                 else:
+                    if is_ajax:
+                        return jsonify({"success": False, "error": "Current password is incorrect."})
                     flash("Current password is incorrect.", "error")
             else:
                 user = db.execute(
@@ -2658,17 +2686,21 @@ def change_password():
                         "UPDATE faculty SET password=? WHERE faculty_id=?",
                         (new_pw, session["faculty_id"])
                     )
-                    
-                    # ✅ FIX: Invalidate all sessions on password change
                     invalidate_all_user_sessions(db, "faculty", session["faculty_id"])
                     db.commit()
-                    
+                    if is_ajax:
+                        return jsonify({"success": True, "message": "Password changed successfully!"})
+                    session.clear()
                     flash("Password changed successfully! Please login again.", "success")
                     return redirect(url_for("faculty_login"))
                 else:
+                    if is_ajax:
+                        return jsonify({"success": False, "error": "Current password is incorrect."})
                     flash("Current password is incorrect.", "error")
         except Exception as e:
             db.rollback()
+            if is_ajax:
+                return jsonify({"success": False, "error": "Error changing password. Please try again."})
             flash("Error changing password. Please try again.", "error")
         finally:
             db.close()
