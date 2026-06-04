@@ -1897,6 +1897,8 @@ def process_attendance():
         gray_eq  = cv2.equalizeHist(cv2.cvtColor(image_cv, cv2.COLOR_BGR2GRAY))
         faces    = _detect_faces_multipass(gray_eq)
 
+        db = get_db()               
+
         faculty = db.execute(
             "SELECT subject FROM faculty WHERE faculty_id=?",
             (session["faculty_id"],)
