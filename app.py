@@ -1764,7 +1764,7 @@ def faculty_login():
 # =====================================================================
 # FACULTY — DASHBOARD
 # =====================================================================
-@app.route("/faculty-dashboard")
+@app.route('/faculty-dashboard')
 @login_required_faculty
 def faculty_dashboard():
     db = get_db()

@@ -1120,17 +1120,16 @@
                                 <td>
                                  <div style="display:flex;align-items:center;gap:10px;">
                                   {% if s['face_image'] %}
-                                  <img src="{{ url_for('static', filename=s['face_image']) }}"
-                                       style="width:34px;height:34px;border-radius:8px;object-fit:cover;border:1px solid var(--border);"
-                                       onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
-                                  <div style="width:34px;height:34px;border-radius:8px;background:var(--bg-card);display:none;align-items:center;justify-content:center;font-size:12px;font-weight:700;color:var(--accent-blue);flex-shrink:0;">
-                                    {{ s['name'][0].upper() }}
-                                  </div>
-                                  {% else %}
-                                  <div style="width:34px;height:34px;border-radius:8px;background:var(--bg-card);display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;color:var(--accent-blue);flex-shrink:0;">
-                                    {{ s['name'][0].upper() }}
-                                  </div>
-                                  {% endif %}
+                                  <div style="width:34px;height:34px;border-radius:8px;overflow:hidden;flex-shrink:0;border:1px solid var(--border);position:relative;">
+                                    <img src="{{ url_for('static', filename=s['face_image']) }}"
+                                         style="width:100%;height:100%;object-fit:cover;display:block;"
+                                         onerror="this.parentElement.innerHTML='<div style=\'width:100%;height:100%;background:var(--bg-card);display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;color:var(--accent-blue);\'>{{ s[\'name\'][0].upper() }}</div>';">
+                                    </div>
+                                    {% else %}
+                                    <div style="width:34px;height:34px;border-radius:8px;background:var(--bg-card);display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;color:var(--accent-blue);flex-shrink:0;border:1px solid var(--border);">
+                                      {{ s['name'][0].upper() }}
+                                    </div>
+                                    {% endif %}
                                  <strong>{{ s['name'] }}</strong>
                                   </div>
                                     </td>
