@@ -69,6 +69,11 @@ except ImportError:
 DATA_DIR = os.environ.get("DATA_DIR", "")
 FACES_STATIC_DIR = os.path.join(DATA_DIR, "static", "faces") if DATA_DIR else os.path.join(os.path.dirname(os.path.abspath(__file__)), "static", "faces")
 
+IST_OFFSET = timedelta(hours=5, minutes=30)
+
+def get_ist_now():
+    return datetime.utcnow() + IST_OFFSET
+
 # ── App setup ─────────────────────────────────────────────────────────
 app = Flask(__name__)
 
@@ -1827,8 +1832,9 @@ def mark_attendance_bulk():
     data    = request.get_json(silent=True, cache=True) or {}
     rolls   = data.get("rolls", [])
     subject = data.get("subject", "").strip()
-    now     = datetime.now()
-
+    from datetime import timezone, timedelta
+    IST = timezone(timedelta(hours=5, minutes=30))
+    now = datetime.now(IST).replace(tzinfo=None)
     if not rolls or not subject:
         return jsonify({"success": False, "error": "Missing rolls or subject."})
 
@@ -1950,7 +1956,9 @@ def process_attendance():
             return jsonify({"success": False,
                             "error": "Could not build face recognition model."})
 
-        now              = datetime.now()
+        from datetime import timezone, timedelta
+        IST = timezone(timedelta(hours=5, minutes=30))
+        now = datetime.now(IST).replace(tzinfo=None)        
         present_students = []
         low_quality      = []
         detected_rolls   = set()
@@ -2139,7 +2147,9 @@ def attendance():
                     status="error"
                 )
 
-            now      = datetime.now()
+            from datetime import timezone, timedelta
+            IST = timezone(timedelta(hours=5, minutes=30))
+            now = datetime.now(IST).replace(tzinfo=None)            
             existing = db.execute(
                 "SELECT id FROM attendance WHERE student_roll=? AND subject=? AND date=?",
                 (roll, subject, now.strftime("%Y-%m-%d"))
@@ -3037,7 +3047,9 @@ def save_attendance_goal():
 def mark_attendance():
     roll    = request.form.get("roll",    "").strip()
     subject = request.form.get("subject", "").strip()
-    now     = datetime.now()
+    from datetime import timezone, timedelta
+    IST = timezone(timedelta(hours=5, minutes=30))
+    now = datetime.now(IST).replace(tzinfo=None)()
 
     if not roll or not subject:
         flash("Roll number and subject are required.", "error")
@@ -3088,8 +3100,9 @@ def confirm_attendance():
     data    = request.get_json(silent=True, cache=True) or {}
     rolls   = data.get("rolls",   [])
     subject = data.get("subject", "").strip()
-    now     = datetime.now()
-
+    from datetime import timezone, timedelta
+    IST = timezone(timedelta(hours=5, minutes=30))
+    now = datetime.now(IST).replace(tzinfo=None)
     if not rolls or not subject:
         return jsonify({"success": False, "error": "Missing data."})
 

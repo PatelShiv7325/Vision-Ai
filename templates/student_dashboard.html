@@ -714,7 +714,8 @@ body.light-mode .nav-item.active .nav-icon {
 </head>
 <body>
 
-<!-- ── CHANGE PASSWORD MODAL ── -->
+<script>const CSRF_TOKEN = "{{ csrf_token }}";</script>
+
 <!-- ── CHANGE PASSWORD MODAL ── -->
 <div class="modal-overlay" id="pwd-modal" style="z-index:300;">
     <div class="modal-box" style="width:460px;text-align:left;padding:32px;position:relative;">
@@ -2229,16 +2230,20 @@ async function saveGoal() {
     spinner.style.display = 'inline-block';
     
     try {
-        const res = await fetch('/api/attendance-goal/save', {
+        const res = await 
+        fetch('/api/attendance-goal/save', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
-                'X-CSRF-Token': csrfToken,
+                'X-CSRF-Token': CSRF_TOKEN,
                 'X-Requested-With': 'XMLHttpRequest'
             },
-            body: JSON.stringify({ target_pct, alert_email, _csrf: csrfToken })
-        });
-        f
+            body: JSON.stringify({ 
+                target_pct: target_pct, 
+                alert_email: alert_email,
+                _csrf: CSRF_TOKEN 
+            })
+        })
         const data = await res.json();
         const msg = document.getElementById('goal-save-msg');
         
