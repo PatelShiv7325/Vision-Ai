@@ -1674,8 +1674,12 @@ function submitBulk() {
     if (!checked.length) { showToast('Please select at least one student.', true); return; }
     fetch('/mark-attendance-bulk', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'X-CSRF-Token': CSRF_TOKEN },
-        body: JSON.stringify({ rolls: Array.from(checked).map(c => c.value), subject })
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRF-Token': CSRF_TOKEN,
+            'X-Requested-With': 'XMLHttpRequest'
+        },
+        body: JSON.stringify({ rolls: Array.from(checked).map(c => c.value), subject, _csrf: CSRF_TOKEN })
     })
     .then(r => r.json())
     .then(data => {
@@ -1751,9 +1755,13 @@ document.getElementById('mark-capture').addEventListener('click', async function
     resetDetectionUI();
     try {
         const res  = await fetch('/process-attendance', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json', 'X-CSRF-Token': CSRF_TOKEN },
-            body: JSON.stringify({ image: imageData, subject })
+            method:  'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRF-Token': CSRF_TOKEN,
+                'X-Requested-With': 'XMLHttpRequest'
+            },
+            body:    JSON.stringify({ image: _uploadImageData, subject: subject, _csrf: CSRF_TOKEN })
         });
         const data = await res.json();
         document.getElementById('mark-processing').style.display = 'none';
@@ -1802,8 +1810,16 @@ document.getElementById('confirm-btn').addEventListener('click', async function(
     try {
         const res    = await fetch('/confirm-attendance', {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json', 'X-CSRF-Token': CSRF_TOKEN },
-            body: JSON.stringify({ rolls: _pendingAttendance.rolls, subject: _pendingAttendance.subject })
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRF-Token': CSRF_TOKEN,
+                'X-Requested-With': 'XMLHttpRequest'
+            },
+            body: JSON.stringify({
+                rolls: _pendingAttendance.rolls,
+                subject: _pendingAttendance.subject,
+                _csrf: CSRF_TOKEN
+            })
         });
         const result = await res.json();
         if (result.success) {
@@ -2092,9 +2108,13 @@ async function uploadDetect() {
 
     try {
         const res  = await fetch('/process-attendance', {
-            method:  'POST',
-            headers: { 'Content-Type': 'application/json', 'X-CSRF-Token': CSRF_TOKEN },
-            body:    JSON.stringify({ image: _uploadImageData, subject: subject })
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRF-Token': CSRF_TOKEN,
+                'X-Requested-With': 'XMLHttpRequest'
+            },
+            body: JSON.stringify({ image: imageData, subject, _csrf: CSRF_TOKEN })
         });
         const data = await res.json();
         document.getElementById('upload-processing').style.display = 'none';
@@ -2160,10 +2180,15 @@ async function uploadConfirm() {
     try {
         const res    = await fetch('/confirm-attendance', {
             method:  'POST',
-            headers: { 'Content-Type': 'application/json', 'X-CSRF-Token': CSRF_TOKEN },
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRF-Token': CSRF_TOKEN,
+                'X-Requested-With': 'XMLHttpRequest'
+            },
             body:    JSON.stringify({
                 rolls:   _uploadPendingAttendance.rolls,
-                subject: _uploadPendingAttendance.subject
+                subject: _uploadPendingAttendance.subject,
+                _csrf:   CSRF_TOKEN
             })
         });
         const result = await res.json();
@@ -2421,8 +2446,12 @@ async function saveFacultyTimetable() {
     try {
         const res  = await fetch('/api/faculty/timetable/save', {
             method:  'POST',
-            headers: { 'Content-Type': 'application/json', 'X-CSRF-Token': CSRF_TOKEN },
-            body:    JSON.stringify({ standard, division, entries: ftEntries })
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRF-Token': CSRF_TOKEN,
+                'X-Requested-With': 'XMLHttpRequest'
+            },
+            body:    JSON.stringify({ standard, division, entries: ftEntries, _csrf: CSRF_TOKEN })
         });
         const data = await res.json();
         if (data.success) {

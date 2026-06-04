@@ -1255,7 +1255,7 @@ body.light-mode .nav-item.active .nav-icon {
                 </div>
                 <div class="stat-card">
                     <div class="stat-label"><span class="stat-dot dot-red"></span> Absent</div>
-                    <div class="stat-num">{{ total - present }}</div>
+                    <div class="stat-num">—</div>
                 </div>
                 <div class="stat-card">
                     <div class="stat-label"><span class="stat-dot dot-yellow"></span> Percentage</div>
@@ -2163,7 +2163,15 @@ function clearTimetable() { if (!confirm('Clear all your personal periods?')) re
 async function saveTimetable() {
     const csrfToken = document.querySelector('meta[name="csrf-token"]').getAttribute('content');
     try {
-        const res  = await fetch('/api/timetable/save', { method: 'POST', headers: { 'Content-Type': 'application/json', 'X-CSRF-Token': csrfToken }, body: JSON.stringify({ entries: ttPersonal }) });
+        const res  = await fetch('/api/timetable/save', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRF-Token': csrfToken,
+                'X-Requested-With': 'XMLHttpRequest'
+            },
+            body: JSON.stringify({ entries: ttPersonal, _csrf: csrfToken })
+        });
         const data = await res.json();
         showToast(data.success ? 'Personal timetable saved!' : 'Error: ' + (data.error || 'Could not save.'));
     } catch(e) { showToast('Network error. Could not save timetable.'); }
@@ -2225,11 +2233,12 @@ async function saveGoal() {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
-                'X-CSRF-Token': csrfToken
+                'X-CSRF-Token': csrfToken,
+                'X-Requested-With': 'XMLHttpRequest'
             },
-            body: JSON.stringify({ target_pct, alert_email })
+            body: JSON.stringify({ target_pct, alert_email, _csrf: csrfToken })
         });
-        
+        f
         const data = await res.json();
         const msg = document.getElementById('goal-save-msg');
         
@@ -2290,9 +2299,9 @@ async function saveSettingsChanges() {
             headers: {
                 'Content-Type': 'application/json',
                 'X-CSRF-Token': csrfToken,
-                'X-CSRFToken':  csrfToken   // Flask-WTF sometimes uses this header name
+                'X-Requested-With': 'XMLHttpRequest'
             },
-            body: JSON.stringify(settings)
+            body: JSON.stringify({ ...settings, _csrf: csrfToken })
         });
 
         // Handle non-JSON or error responses gracefully
@@ -2517,11 +2526,13 @@ async function submitPwdChange(event) {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
-                'X-CSRF-Token': csrfToken
+                'X-CSRF-Token': csrfToken,
+                'X-Requested-With': 'XMLHttpRequest'
             },
             body: JSON.stringify({
                 old_password: oldPwd,
-                new_password: newPwd
+                new_password: newPwd,
+                _csrf: csrfToken
             })
         });
         

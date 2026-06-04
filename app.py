@@ -125,15 +125,28 @@ def generate_csrf_token() -> str:
 
 
 def validate_csrf() -> bool:
-    token = (
-        request.form.get("_csrf")
-        or request.headers.get("X-CSRF-Token")
-        or (request.get_json(silent=True) or {}).get("_csrf")
-    )
+    token = None
+
+    # 1. Check form data first
+    token = request.form.get("_csrf")
+
+    # 2. Check request headers (used by all JS fetch calls)
+    if not token:
+        token = request.headers.get("X-CSRF-Token")
+
+    # 3. Check JSON body WITHOUT consuming the stream
+    if not token:
+        try:
+            data = request.get_json(silent=True, cache=True)
+            if data and isinstance(data, dict):
+                token = data.get("_csrf")
+        except Exception:
+            pass
+
     session_token = session.get("_csrf", "")
     if not token or not session_token:
         return False
-    return hmac.compare_digest(token, session_token)
+    return hmac.compare_digest(str(token), str(session_token))
 
 
 def generate_session_id() -> str:
@@ -154,13 +167,19 @@ def enforce_csrf():
         "mark_notifications_read",
         "subjects_by_standard",
         "static",
+        "health",
     }
     if request.method in ("GET", "HEAD", "OPTIONS"):
         return
     if request.endpoint in exempt_endpoints:
         return
     if not validate_csrf():
-        if request.is_json or request.headers.get("X-Requested-With") == "XMLHttpRequest":
+        if (
+            request.is_json
+            or request.headers.get("X-Requested-With") == "XMLHttpRequest"
+            or request.headers.get("X-CSRF-Token")
+            or request.content_type == "application/json"
+        ):
             return jsonify({"success": False, "error": "CSRF validation failed."}), 403
         abort(403)
 
@@ -624,7 +643,7 @@ def health():
         return jsonify({"status": "ok", "db": "connected"}), 200
     except Exception as e:
         return jsonify({"status": "error", "detail": str(e)}), 500
-        
+
 @app.route("/")
 def home():
     db = get_db()
