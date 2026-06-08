@@ -1217,3 +1217,17 @@ def update_session_last_seen(db, session_id):
         db.commit()
     except Exception as e:
         print(f"[Session] Error updating last seen: {e}")
+
+def _safe_load_face_encoding(blob: bytes, roll: str):
+    """Safely load face encoding blob, return None if invalid."""
+    EXPECTED_SIZE = 100 * 100  # 10,000 bytes
+    if not blob or len(blob) != EXPECTED_SIZE:
+        print(f"[FaceEncoding] Invalid encoding for roll={roll}: "
+              f"size={len(blob) if blob else 0}, expected={EXPECTED_SIZE}")
+        return None
+    try:
+        arr = np.frombuffer(blob, dtype=np.uint8).reshape(100, 100)
+        return arr
+    except Exception as e:
+        print(f"[FaceEncoding] Failed to load encoding for roll={roll}: {e}")
+        return None

@@ -2760,6 +2760,25 @@ function viewAllRecords() {
     showToast('Showing all attendance records.');
 }
 
+async function refreshCsrfToken() {
+    try {
+        const res  = await fetch('/api/csrf-token', { credentials: 'same-origin' });
+        const data = await res.json();
+        if (data.csrf_token) {
+            // Update meta tag
+            const meta = document.querySelector('meta[name="csrf-token"]');
+            if (meta) meta.setAttribute('content', data.csrf_token);
+            // Update all hidden inputs
+            document.querySelectorAll('input[name="_csrf"]').forEach(el => {
+                el.value = data.csrf_token;
+            });
+        }
+    } catch(e) { console.warn('CSRF refresh failed:', e); }
+}
+
+// Refresh every 30 minutes
+setInterval(refreshCsrfToken, 30 * 60 * 1000);
+
 </script>
 </body>
 </html>

@@ -28,7 +28,23 @@
             --active-bg:      #2a2a38;
             --active-border:  #6366f1;
             --pill-bg:        #2e2e3e;
-        }
+            --yellow:      var(--accent-yellow);
+            --green:       #22c55e;
+            --red:         var(--accent-red);
+            --sub:         var(--text-secondary);
+            --muted:       var(--text-muted);
+            --accent:      var(--accent-blue);
+            --accent2:     #8b5cf6;
+            --bg-card2:    var(--bg-card-hover);
+            --border-act:  var(--border-active);
+            --border-mid:  var(--border-active);
+            --green-bg:    rgba(34,197,94,0.12);
+            --red-bg:      rgba(239,68,68,0.12);
+            --bg:          var(--bg-base);
+            --text:        var(--text-primary);
+            --border2:     var(--border-active);
+}
+
         
         body.light-mode {
             --bg-base:        #f5f5f7;
@@ -1763,13 +1779,16 @@ function getMarkSubject() {
     return el ? el.value.trim() : '';
 }
 
-function resetDetectionUI() {
+// REPLACE the entire resetDetectionUI function:
+function resetDetectionUI(clearPending) {
     document.getElementById('detection-preview-wrap').style.display = 'none';
     document.getElementById('confirm-bar').style.display            = 'none';
     document.getElementById('mark-results').style.display           = 'none';
     document.getElementById('mark-present-list').innerHTML          = '';
     document.getElementById('mark-absent-list').innerHTML           = '';
-    _pendingAttendance = null;
+    if (clearPending) {
+        _pendingAttendance = null;
+    }
 }
 
 function stopMarkCamera() {
@@ -1891,21 +1910,36 @@ async function captureAndProcess() {
 
         document.getElementById('mark-results').style.display = 'block';
 
-        const pc = (data.present_students || []).length;
-        const tf = data.faces_detected || 0;
+        const pc          = (data.present_students || []).length;
+        const tf          = data.faces_detected || 0;
+        const totalSoFar  = _pendingAttendance ? _pendingAttendance.rolls.length : pc;
+
         document.getElementById('confirm-summary').textContent =
-            pc + ' student' + (pc !== 1 ? 's' : '') +
-            ' recognized out of ' + tf + ' face' + (tf !== 1 ? 's' : '') + ' detected.';
+            pc + ' recognized in this photo. ' +
+            totalSoFar + ' total student' + (totalSoFar !== 1 ? 's' : '') +
+            ' across all photos. Click Confirm to save all.';
         document.getElementById('confirm-bar').style.display = 'flex';
 
         // Store only roll + name for confirm step
-        _pendingAttendance = {
-            rolls:   (data.present_students || []).map(function(s) {
-                return { roll: s.roll, name: s.name };
-            }),
-            subject: subject
-        };
+        // ── Merge into pending list (multi-photo support) ─────────────
+        const newRolls = (data.present_students || []).map(function(s) {
+            return { roll: s.roll, name: s.name };
+        });
 
+        if (!_pendingAttendance) {
+            _pendingAttendance = { rolls: [], subject: subject };
+        }
+
+        const existingSet = new Set(
+            _pendingAttendance.rolls.map(function(r) { return r.roll; })
+        );
+        newRolls.forEach(function(r) {
+            if (!existingSet.has(r.roll)) {
+                _pendingAttendance.rolls.push(r);
+                existingSet.add(r.roll);
+            }
+        });
+        _pendingAttendance.subject = subject;
     } catch (err) {
         document.getElementById('mark-processing').style.display = 'none';
         showToast('Network error. Please check connection and try again.', true);
@@ -1940,12 +1974,15 @@ async function confirmAttendance() {
 
         const result = await res.json();
 
-        if (result.success) {
-            showToast('Attendance confirmed for ' + result.marked + ' student(s)!');
-            document.getElementById('confirm-bar').style.display = 'none';
-            _pendingAttendance = null;
+        if (result.success) {   
+            const msg = result.skipped
+                ? 'Confirmed ' + result.marked + ' student(s). ' + result.skipped + ' already marked.'
+                : 'Attendance confirmed for ' + result.marked + ' student(s)!';
+            showToast(msg);
+            resetDetectionUI(true);
             setTimeout(function() { location.reload(); }, 2200);
-        } else {
+        }
+        else {
             showToast(result.error || 'Could not save attendance.', true);
             btn.disabled = false;
             btn.innerHTML = '<i class="fas fa-check-circle"></i> Confirm Attendance';
@@ -2110,18 +2147,6 @@ async function submitPwdChange(event) {
         text.textContent = 'Update Password';
         spinner.style.display = 'none';
     }
-}
-
-function openPwdModal() {
-    updateCsrfToken();  // ✅ Refresh token when opening modal
-    document.getElementById('pwd-modal').classList.add('show');
-    document.getElementById('pwd-form').reset();
-    document.getElementById('pwd-error').style.display = 'none';
-    document.getElementById('pwd-success').style.display = 'none';
-    document.getElementById('pwd-meter-fill').style.width = '0%';
-    document.getElementById('pwd-strength-hint').innerHTML = 
-        '<i class="fas fa-shield-alt"></i> Min 8 characters';
-    document.getElementById('pwd-match-hint').style.display = 'none';
 }
 
 function closePwdModal() {
@@ -2690,6 +2715,23 @@ document.addEventListener('DOMContentLoaded', function() {
         themeIcon.classList.add('fa-sun');
     }
 });
+
+// Add to base JS (faculty_dashboard.html and student_dashboard.html)
+async function refreshCsrfToken() {
+    try {
+        const res  = await fetch('/api/csrf-token', { credentials: 'same-origin' });
+        const data = await res.json();
+        if (data.csrf_token) {
+            const meta = document.querySelector('meta[name="csrf-token"]');
+            if (meta) meta.setAttribute('content', data.csrf_token);
+            document.querySelectorAll('input[name="_csrf"]').forEach(el => {
+                el.value = data.csrf_token;
+            });
+            window.CSRF_TOKEN = data.csrf_token;
+        }
+    } catch(e) { console.warn('CSRF refresh failed:', e); }
+}
+setInterval(refreshCsrfToken, 30 * 60 * 1000);
 
 </script>
 </body>

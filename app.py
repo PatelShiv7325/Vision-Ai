@@ -52,6 +52,15 @@ import smtplib
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
 from flask import jsonify, request, session
+import re
+
+try:
+    import bcrypt as _bcrypt
+    _USE_BCRYPT = True
+except ImportError:
+    _bcrypt = None
+    _USE_BCRYPT = False
+    print("[Security] WARNING: bcrypt not installed, falling back to SHA-256")
 
 try:
     from email_config import EMAIL_CONFIG, is_email_configured
@@ -74,18 +83,17 @@ IST_OFFSET = timedelta(hours=5, minutes=30)
 def get_ist_now():
     return datetime.utcnow() + IST_OFFSET
 
+_TABLE_MAP = {"student": "students", "faculty": "faculty"}
+
 # ── App setup ─────────────────────────────────────────────────────────
 app = Flask(__name__)
 
-_SECRET = os.environ.get("SECRET_KEY")
-
-if _SECRET:
-    app.secret_key = _SECRET
-else:
-    _SECRET = os.environ.get("SECRET_KEY")
+_SECRET = os.environ.get("SECRET_KEY", "").strip()
 if not _SECRET:
-    raise RuntimeError("SECRET_KEY environment variable must be set. "
-                       "Generate one with: python -c \"import secrets; print(secrets.token_hex(32))\"")
+    raise RuntimeError(
+        "SECRET_KEY environment variable must be set. "
+        "Generate one with: python -c \"import secrets; print(secrets.token_hex(32))\""
+    )
 app.secret_key = _SECRET
 
 app.config["SESSION_COOKIE_HTTPONLY"]     = True
@@ -974,10 +982,7 @@ def student_login():
                     error="Account locked due to too many failed attempts. Try again in 15 minutes."
                 )
 
-            input_hash  = hash_password(password_raw)
-            stored_hash = student["password"]
-
-            if not hmac.compare_digest(stored_hash, input_hash):
+            if not verify_password(password_raw, student["password"]):
                 record_failed_login(db, "students", "email", email)
                 attempts  = (student["login_attempts"] or 0) + 1
                 remaining = max(0, 5 - attempts)
@@ -1726,9 +1731,9 @@ def faculty_login():
                     error="Account locked. Too many failed attempts. Try again in 15 minutes."
                 )
 
-            if not hmac.compare_digest(faculty["password"], hash_password(password)):
+            if not verify_password(password, faculty["password"]):
                 record_failed_login(db, "faculty", login_field, login_value)
-                attempts  = (faculty["login_attempts"] or 0) + 1
+                attempts  = (faculty["login_attempts"] or   0) + 1
                 remaining = max(0, 5 - attempts)
                 log_security_event(db, "FAILED_LOGIN", login_value, "faculty",
                                    get_client_ip(), severity="medium")
@@ -2019,26 +2024,12 @@ def process_attendance():
                     "hist_score": round(hist_score, 3),
                     "confidence": f"{max(0, 100 - lbph_conf):.0f}%",
                 })
-                existing = db.execute(
-                    "SELECT id FROM attendance WHERE student_roll=? AND subject=? AND date=?",
-                    (roll, subject, now.strftime("%Y-%m-%d"))
-                ).fetchone()
-                if not existing:
-                    db.execute(
-                        "INSERT INTO attendance "
-                        "(student_roll, student_name, subject, date, time, "
-                        " marked_by, method, lbph_conf, hist_score) "
-                        "VALUES (?,?,?,?,?,?,?,?,?)",
-                        (roll, name, subject,
-                         now.strftime("%Y-%m-%d"), now.strftime("%H:%M:%S"),
-                         session["faculty_id"], "face", lbph_conf, hist_score)
-                    )
+        
 
         absent_students = [
             {"roll": s["roll"], "name": s["name"]}
             for s in all_students if s["roll"] not in detected_rolls
         ]
-        db.commit()
 
         # ── Draw annotations ──────────────────────────────────────────
         annotated  = image_cv.copy()
@@ -2246,7 +2237,11 @@ def forgot_password():
             flash(msg, "error")
             return redirect(url_for("forgot_password"))
 
-        table = "students" if role == "student" else "faculty"
+        table = _TABLE_MAP.get(role)
+        if not table:
+            if request.is_json:
+                return jsonify({"success": False, "error": "Invalid role."})
+            return redirect(url_for("forgot_password"))
         db    = get_db()
         try:
             user = db.execute(
@@ -2360,7 +2355,9 @@ def reset_password():
         if not row:
             return jsonify({"success": False, "error": "Invalid or expired OTP."})
 
-        table = "students" if role == "student" else "faculty"
+        table = _TABLE_MAP.get(role)
+        if not table:
+            return jsonify({"success": False, "error": "Invalid role."})
         db.execute(
             f"UPDATE {table} SET password=?, login_attempts=0, locked_until=NULL "
             f"WHERE email=?",
@@ -2510,11 +2507,6 @@ def delete_all_data():
                 except Exception:
                     pass
 
-        # NOTE: secret key rotation only affects current process;
-        # persist to file/env for production restart safety.
-        new_secret = secrets.token_hex(32)
-        app.secret_key     = new_secret
-        os.environ["SECRET_KEY"] = new_secret
 
         session.clear()
         flash("All data has been successfully deleted. Please register again.", "success")
@@ -3132,43 +3124,77 @@ def confirm_attendance():
     data    = request.get_json(silent=True, cache=True) or {}
     rolls   = data.get("rolls",   [])
     subject = data.get("subject", "").strip()
+
     from datetime import timezone, timedelta
-    IST = timezone(timedelta(hours=5, minutes=30))
-    now = datetime.now(IST).replace(tzinfo=None)
+    IST   = timezone(timedelta(hours=5, minutes=30))
+    now   = datetime.now(IST).replace(tzinfo=None)
+    today = now.strftime("%Y-%m-%d")
+    time_now = now.strftime("%H:%M:%S")
+
     if not rolls or not subject:
-        return jsonify({"success": False, "error": "Missing data."})
+        return jsonify({"success": False, "error": "Missing rolls or subject."})
 
     db = get_db()
     try:
-        marked = 0
+        marked  = 0
+        skipped = 0
+
+        # ── Deduplicate incoming list ─────────────────────────────────
+        seen   = set()
+        unique = []
         for s in rolls:
-            roll = s.get("roll", "").strip() if isinstance(s, dict) else str(s).strip()
-            if not roll:
-                continue
+            # handles both {"roll":"001","name":"X"} and plain "001"
+            roll = (s.get("roll", "") if isinstance(s, dict) else str(s)).strip()
+            if roll and roll not in seen:
+                seen.add(roll)
+                unique.append(roll)
+
+        for roll in unique:
             student = db.execute(
-                "SELECT * FROM students WHERE roll=? AND is_active=1", (roll,)
+                "SELECT name FROM students WHERE roll=? AND is_active=1",
+                (roll,)
             ).fetchone()
             if not student:
                 continue
+
+            # ── Skip if already marked today for this subject ─────────
             existing = db.execute(
-                "SELECT id FROM attendance WHERE student_roll=? AND subject=? AND date=?",
-                (roll, subject, now.strftime("%Y-%m-%d"))
+                """SELECT id FROM attendance
+                   WHERE student_roll=? AND subject=? AND date=?""",
+                (roll, subject, today)
             ).fetchone()
-            if not existing:
-                db.execute(
-                    "INSERT INTO attendance "
-                    "(student_roll, student_name, subject, date, time, marked_by, method) "
-                    "VALUES (?,?,?,?,?,?,?)",
-                    (roll, student["name"], subject,
-                     now.strftime("%Y-%m-%d"), now.strftime("%H:%M:%S"),
-                     session["faculty_id"], "face")
-                )
-                marked += 1
+
+            if existing:
+                skipped += 1
+                continue
+
+            db.execute(
+                """INSERT INTO attendance
+                   (student_roll, student_name, subject,
+                    date, time, marked_by, method)
+                   VALUES (?,?,?,?,?,?,?)""",
+                (roll, student["name"], subject,
+                 today, time_now,
+                 session["faculty_id"], "face")
+            )
+            marked += 1
+
         db.commit()
-        return jsonify({"success": True, "marked": marked,
-                        "message": f"Attendance confirmed for {marked} student(s)!"})
+
+        msg = f"Attendance confirmed for {marked} student(s)."
+        if skipped:
+            msg += f" ({skipped} already marked today.)"
+
+        return jsonify({
+            "success": True,
+            "marked":  marked,
+            "skipped": skipped,
+            "message": msg
+        })
+
     except Exception as e:
         db.rollback()
+        print(f"[ConfirmAttendance] Error: {e}")
         return jsonify({"success": False, "error": str(e)})
     finally:
         db.close()
