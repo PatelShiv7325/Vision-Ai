@@ -82,7 +82,11 @@ _SECRET = os.environ.get("SECRET_KEY")
 if _SECRET:
     app.secret_key = _SECRET
 else:
-    app.secret_key = "vision_ai_fixed_secret_key_2024_do_not_change"
+    _SECRET = os.environ.get("SECRET_KEY")
+if not _SECRET:
+    raise RuntimeError("SECRET_KEY environment variable must be set. "
+                       "Generate one with: python -c \"import secrets; print(secrets.token_hex(32))\"")
+app.secret_key = _SECRET
 
 app.config["SESSION_COOKIE_HTTPONLY"]     = True
 app.config["SESSION_COOKIE_SAMESITE"]     = "Lax"
@@ -177,9 +181,9 @@ def enforce_csrf():
     
     # Exempt endpoints
     exempt_endpoints = {
-        "student_face_login", "student_login", "forgot_password",
-        "verify_otp", "reset_password", "mark_notifications_read",
-        "subjects_by_standard", "static", "health",
+    "student_face_login", "student_login", "forgot_password",
+    "verify_otp", "reset_password", "mark_notifications_read",
+    "subjects_by_standard", "static", "health", "get_csrf_token",
     }
     
     # Skip enforcement for GET/HEAD/OPTIONS
@@ -671,6 +675,11 @@ def health():
         return jsonify({"status": "ok", "db": "connected"}), 200
     except Exception as e:
         return jsonify({"status": "error", "detail": str(e)}), 500
+
+@app.route("/api/csrf-token", methods=["GET"])
+def get_csrf_token():
+    """Return a fresh CSRF token for JS clients."""
+    return jsonify({"csrf_token": generate_csrf_token()})
 
 @app.route("/")
 def home():
@@ -3072,7 +3081,7 @@ def mark_attendance():
     subject = request.form.get("subject", "").strip()
     from datetime import timezone, timedelta
     IST = timezone(timedelta(hours=5, minutes=30))
-    now = datetime.now(IST).replace(tzinfo=None)()
+    now = datetime.now(IST).replace(tzinfo=None)
 
     if not roll or not subject:
         flash("Roll number and subject are required.", "error")
