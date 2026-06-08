@@ -1151,19 +1151,21 @@
                                 <td>
                                  <div style="display:flex;align-items:center;gap:10px;">
                                   {% if s['face_image'] %}
-                                  <img src="/static/{{ s['face_image'] | replace('\\', '/') }}"
-                                       id="face-img-{{ s['roll'] }}"
-                                       style="width:34px;height:34px;border-radius:8px;object-fit:cover;flex-shrink:0;border:1px solid var(--border);"
-                                       onerror="this.style.display='none';document.getElementById('face-init-{{ s['roll'] }}').style.display='flex';">
-                                  <div id="face-init-{{ s['roll'] }}"
-                                        style="width:34px;height:34px;border-radius:8px;background:var(--bg-card);display:none;align-items:center;justify-content:center;font-size:12px;font-weight:700;color:var(--accent-blue);flex-shrink:0;border:1px solid var(--border);">
-                                    {{ s['name'][0].upper() }}
-                                    </div>
-                                    {% else %}
-                                      <div style="width:34px;height:34px;border-radius:8px;background:var(--bg-card);display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;color:var(--accent-blue);flex-shrink:0;border:1px solid var(--border);">
-                                    {{ s['name'][0].upper() }}
-                                  </div>
-                                  {% endif %}
+{% set clean_path = s['face_image'].replace('\\', '/').lstrip('/') %}
+<img src="/static/{{ clean_path }}"
+     id="face-img-{{ s['roll'] }}"
+     style="width:34px;height:34px;border-radius:8px;object-fit:cover;flex-shrink:0;border:1px solid var(--border);"
+     onerror="this.style.display='none';document.getElementById('face-init-{{ s['roll'] }}').style.display='flex';"
+     title="{{ clean_path }}">
+<div id="face-init-{{ s['roll'] }}"
+     style="width:34px;height:34px;border-radius:8px;background:var(--bg-card);display:none;align-items:center;justify-content:center;font-size:12px;font-weight:700;color:var(--accent-blue);flex-shrink:0;border:1px solid var(--border);">
+  {{ s['name'][0].upper() }}
+</div>
+{% else %}
+<div style="width:34px;height:34px;border-radius:8px;background:var(--bg-card);display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;color:var(--accent-blue);flex-shrink:0;border:1px solid var(--border);">
+  {{ s['name'][0].upper() }}
+</div>
+{% endif %}
                                  <strong>{{ s['name'] }}</strong>
                                   </div>
                                     </td>
