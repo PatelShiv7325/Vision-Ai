@@ -54,6 +54,56 @@ from email.mime.multipart import MIMEMultipart
 from flask import jsonify, request, session
 import re
 
+import cloudinary
+import cloudinary.uploader
+
+# ── Cloudinary setup ──────────────────────────────────────────────────
+_CLOUDINARY_CONFIGURED = False
+if os.environ.get("CLOUDINARY_CLOUD_NAME"):
+    cloudinary.config(
+        cloud_name = os.environ["CLOUDINARY_CLOUD_NAME"],
+        api_key    = os.environ["CLOUDINARY_API_KEY"],
+        api_secret = os.environ["CLOUDINARY_API_SECRET"],
+        secure     = True
+    )
+    _CLOUDINARY_CONFIGURED = True
+    print("[Cloudinary] Configured successfully")
+else:
+    print("[Cloudinary] Not configured — using local storage")
+
+
+def _save_face_image(img_data: bytes, roll: str) -> str:
+    """
+    Save face image. Returns the path/URL to store in DB.
+    Uses Cloudinary on Render, local disk otherwise.
+    """
+    if _CLOUDINARY_CONFIGURED:
+        try:
+            result = cloudinary.uploader.upload(
+                img_data,
+                public_id   = f"vision_ai/faces/{roll}",
+                overwrite   = True,
+                resource_type = "image",
+                format      = "jpg",
+            )
+            url = result["secure_url"]
+            print(f"[Cloudinary] Uploaded face for {roll}: {url}")
+            return url   # full https:// URL stored in DB
+        except Exception as e:
+            print(f"[Cloudinary] Upload failed for {roll}: {e}")
+            # fall through to local save
+
+    # Local fallback
+    faces_dir = os.path.join(
+        os.environ.get("DATA_DIR", "") or os.path.dirname(os.path.abspath(__file__)),
+        "static", "faces"
+    )
+    os.makedirs(faces_dir, exist_ok=True)
+    path = os.path.join(faces_dir, f"{roll}.jpg")
+    with open(path, "wb") as f:
+        f.write(img_data)
+    return f"faces/{roll}.jpg"   # relative path stored in DB
+
 try:
     import bcrypt as _bcrypt
     _USE_BCRYPT = True
