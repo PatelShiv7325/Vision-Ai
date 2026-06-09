@@ -185,9 +185,11 @@ STANDARD_SUBJECTS = {
 # HELPERS
 # =====================================================================
 
+# !! NEVER change this constant — it's baked into all stored password hashes
+_HASH_SECRET = "vision_ai_fixed_secret_key_2024_do_not_change"
+
 def hash_password(password: str, salt: str = "vision_ai_v2") -> str:
-    secret = app.secret_key or "vision_ai_fixed_secret_key_2024_do_not_change"
-    key = (secret + salt + password).encode()
+    key = (_HASH_SECRET + salt + password).encode()
     return hashlib.sha256(key).hexdigest()
 
 def verify_password(password_raw: str, stored_hash: str) -> bool:
@@ -207,10 +209,6 @@ def generate_csrf_token() -> str:
     return session["_csrf"]
 
 
-    return False
-    return hmac.compare_digest(str(token), str(session_token))
-
-
 def generate_session_id() -> str:
     """Generate a unique session ID for each login instance."""
     return secrets.token_hex(32)
@@ -228,11 +226,11 @@ def enforce_csrf():
 
     # Exempt endpoints
     exempt_endpoints = {
-        "student_face_login", "student_login", "forgot_password",
-        "verify_otp", "reset_password", "mark_notifications_read",
-        "subjects_by_standard", "static", "health", "get_csrf_token",
-        "faculty_login", "faculty_register", "student_register",
-    }
+    "student_face_login", "student_login", "forgot_password",
+    "verify_otp", "reset_password", "mark_notifications_read",
+    "subjects_by_standard", "static", "health", "get_csrf_token",
+    "faculty_login", "faculty_register", "student_register",
+}
 
     # Skip exempt endpoints
     if request.endpoint in exempt_endpoints:

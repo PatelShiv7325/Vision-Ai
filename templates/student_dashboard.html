@@ -760,8 +760,10 @@ body.light-mode .nav-item.active .nav-icon {
 </head>
 <body>
 
-<script>const CSRF_TOKEN = "{{ csrf_token }}";</script>
-
+<script>
+  const CSRF_TOKEN = "{{ csrf_token }}";
+  window.CSRF_TOKEN = CSRF_TOKEN; 
+</script>
 <!-- ── CHANGE PASSWORD MODAL ── -->
 <!-- ── CHANGE PASSWORD MODAL ── (CSRF FIXED) ──-->
 <div class="pwd-modal-overlay" id="pwd-modal">
