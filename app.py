@@ -222,12 +222,9 @@ def generate_session_id() -> str:
 
 
 # ── CSRF enforcement ──────────────────────────────────────────────────
-# ── CSRF enforcement (FIXED) ──────────────────────────────────────
 def generate_csrf_token() -> str:
-    """Generate CSRF token - ALWAYS return a fresh token for safety."""
     if "_csrf" not in session:
         session["_csrf"] = secrets.token_hex(24)
-        session.modified = True  # Force save to avoid losing token
     return session["_csrf"]
 
 
@@ -736,8 +733,11 @@ def health():
 
 @app.route("/api/csrf-token", methods=["GET"])
 def get_csrf_token():
-    """Return a fresh CSRF token for JS clients."""
-    return jsonify({"csrf_token": generate_csrf_token()})
+    """Return the current session CSRF token (never generate a new one mid-session)."""
+    token = session.get("_csrf", "")
+    if not token:
+        token = generate_csrf_token()  # only if session somehow lost it
+    return jsonify({"csrf_token": token})
 
 @app.route("/")
 def home():

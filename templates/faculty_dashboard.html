@@ -1602,35 +1602,14 @@
         </div>
 
 <script>
-
-// ✅ CSRF TOKEN HELPER - GET FRESH TOKEN FROM SESSION
+    
+// ✅ CSRF TOKEN HELPER - window.CSRF_TOKEN is always freshest
 function getCsrfToken() {
-    // Try to get from meta tag first
-    const meta = document.querySelector('meta[name="csrf-token"]');
-    if (meta) return meta.getAttribute('content');
-    
-    // Try from existing hidden input
-    const field = document.getElementById('csrf-token-field');
-    if (field && field.value) return field.value;
-    
-    // Fallback to window variable (if available)
-    if (typeof CSRF_TOKEN !== 'undefined') return CSRF_TOKEN;
-    
-    // Last resort - fetch from server
-    return '';
+    return window.CSRF_TOKEN || 
+           document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || 
+           '';
 }
 
-// ✅ UPDATE CSRF TOKEN IN MODAL
-function updateCsrfToken() {
-    const token = getCsrfToken();
-    const field = document.getElementById('csrf-token-field');
-    if (field && token) {
-        field.value = token;
-    }
-}
-
-// Call on page load
-document.addEventListener('DOMContentLoaded', updateCsrfToken);
 
 // ── PAGE NAVIGATION ──────────────────────────────────────────────────
 const pageTitles = {
@@ -2645,33 +2624,44 @@ function autoFillTimetable() {
     .catch(() => showToast('Error fetching subjects.', true));
 }
 
+// ── SINGLE SOURCE OF TRUTH for CSRF token ────────────────────────
+function getLiveCsrfToken() {
+    // Priority: window.CSRF_TOKEN (kept fresh by refreshCsrfToken)
+    return window.CSRF_TOKEN || 
+           document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || 
+           '';
+}
+
 async function saveFacultyTimetable() {
     const standard = document.getElementById('tt-standard').value;
     const division = document.getElementById('tt-division').value;
     if (!standard) { showToast('Please select a standard first.', true); return; }
     if (ftEntries.length === 0) { showToast('No entries to save.', true); return; }
 
-    // Get a fresh CSRF token from the page's injected value (always current)
-    const freshToken = document.querySelector('meta[name="csrf-token"]') 
-        ? document.querySelector('meta[name="csrf-token"]').getAttribute('content')
-        : CSRF_TOKEN;
+    const token = getLiveCsrfToken();
+    if (!token) { showToast('Security error. Please refresh the page.', true); return; }
 
     try {
-        const res  = await fetch('/api/faculty/timetable/save', {
-            method:  'POST',
+        const res = await fetch('/api/faculty/timetable/save', {
+            method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
-                'X-CSRF-Token': freshToken,
+                'X-CSRF-Token': token,
                 'X-Requested-With': 'XMLHttpRequest'
             },
-            body:    JSON.stringify({ standard, division, entries: ftEntries, _csrf: freshToken })
+            body: JSON.stringify({ 
+                standard, 
+                division, 
+                entries: ftEntries, 
+                _csrf: token 
+            })
         });
         const data = await res.json();
         if (data.success) {
             showToast(data.message || 'Timetable saved!');
             const info = document.getElementById('faculty-tt-info');
             info.style.display = 'block';
-            info.textContent   = `✓ Saved ${ftEntries.length} periods for Standard ${standard}. Students will see this automatically.`;
+            info.textContent = `✓ Saved ${ftEntries.length} periods for Standard ${standard}. Students will see this automatically.`;
         } else {
             showToast('Error: ' + (data.error || 'Could not save.'), true);
         }
@@ -2679,6 +2669,27 @@ async function saveFacultyTimetable() {
         showToast('Network error. Could not save.', true);
     }
 }
+
+// ── CSRF refresh: sync from server, update all sources ────────────
+async function refreshCsrfToken() {
+    try {
+        const res = await fetch('/api/csrf-token', { credentials: 'same-origin' });
+        const data = await res.json();
+        if (data.csrf_token) {
+            // Update ALL sources so they stay in sync
+            window.CSRF_TOKEN = data.csrf_token;
+            const meta = document.querySelector('meta[name="csrf-token"]');
+            if (meta) meta.setAttribute('content', data.csrf_token);
+            document.querySelectorAll('input[name="_csrf"]').forEach(el => {
+                el.value = data.csrf_token;
+            });
+        }
+    } catch(e) { console.warn('CSRF refresh failed:', e); }
+}
+// Sync every 10 minutes (well within Flask's 8-hour session)
+setInterval(refreshCsrfToken, 10 * 60 * 1000);
+// Also sync once on load to ensure meta tag matches session
+document.addEventListener('DOMContentLoaded', refreshCsrfToken);
 
 // ── THEME TOGGLE ──
 function showProfileFromHeader() {
@@ -2717,22 +2728,6 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 });
 
-// Add to base JS (faculty_dashboard.html and student_dashboard.html)
-async function refreshCsrfToken() {
-    try {
-        const res  = await fetch('/api/csrf-token', { credentials: 'same-origin' });
-        const data = await res.json();
-        if (data.csrf_token) {
-            const meta = document.querySelector('meta[name="csrf-token"]');
-            if (meta) meta.setAttribute('content', data.csrf_token);
-            document.querySelectorAll('input[name="_csrf"]').forEach(el => {
-                el.value = data.csrf_token;
-            });
-            window.CSRF_TOKEN = data.csrf_token;
-        }
-    } catch(e) { console.warn('CSRF refresh failed:', e); }
-}
-setInterval(refreshCsrfToken, 30 * 60 * 1000);
 
 </script>
 </body>
