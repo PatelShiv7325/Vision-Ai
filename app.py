@@ -207,28 +207,7 @@ def generate_csrf_token() -> str:
     return session["_csrf"]
 
 
-def validate_csrf() -> bool:
-    token = None
-
-    # 1. Check form data first
-    token = request.form.get("_csrf")
-
-    # 2. Check request headers (used by all JS fetch calls)
-    if not token:
-        token = request.headers.get("X-CSRF-Token")
-
-    # 3. Check JSON body WITHOUT consuming the stream
-    if not token:
-        try:
-            data = request.get_json(silent=True, cache=True)
-            if data and isinstance(data, dict):
-                token = data.get("_csrf")
-        except Exception:
-            pass
-
-    session_token = session.get("_csrf", "")
-    if not token or not session_token:
-        return False
+    return False
     return hmac.compare_digest(str(token), str(session_token))
 
 
