@@ -190,6 +190,9 @@ def hash_password(password: str, salt: str = "vision_ai_v2") -> str:
     key = (secret + salt + password).encode()
     return hashlib.sha256(key).hexdigest()
 
+def verify_password(password_raw: str, stored_hash: str) -> bool:
+    """Verify a plaintext password against its stored hash."""
+    return hash_password(password_raw) == stored_hash
 
 def get_client_ip() -> str:
     xff = request.headers.get("X-Forwarded-For", "")
@@ -238,55 +241,55 @@ def generate_session_id() -> str:
 def enforce_csrf():
     """Enforce CSRF on POST/PUT/DELETE requests."""
     # Generate token FIRST (ensures session has _csrf)
-    token = generate_csrf_token()
-    
-    # Exempt endpoints
-    exempt_endpoints = {
-    "student_face_login", "student_login", "forgot_password",
-    "verify_otp", "reset_password", "mark_notifications_read",
-    "subjects_by_standard", "static", "health", "get_csrf_token",
-    "faculty_login", "faculty_register", "student_register",
-    }
-    
+    generate_csrf_token()
+
     # Skip enforcement for GET/HEAD/OPTIONS
     if request.method in ("GET", "HEAD", "OPTIONS"):
         return
-    
+
+    # Exempt endpoints
+    exempt_endpoints = {
+        "student_face_login", "student_login", "forgot_password",
+        "verify_otp", "reset_password", "mark_notifications_read",
+        "subjects_by_standard", "static", "health", "get_csrf_token",
+        "faculty_login", "faculty_register", "student_register",
+    }
+
     # Skip exempt endpoints
     if request.endpoint in exempt_endpoints:
         return
-    
+
     received_token = None
 
-# 1. Try form data
-if request.form:
-    received_token = request.form.get("_csrf", "").strip()
+    # 1. Try form data
+    if request.form:
+        received_token = request.form.get("_csrf", "").strip()
 
-# 2. Try X-CSRF-Token header (used by all JS fetch calls)
-if not received_token:
-    received_token = request.headers.get("X-CSRF-Token", "").strip()
+    # 2. Try X-CSRF-Token header (used by all JS fetch calls)
+    if not received_token:
+        received_token = request.headers.get("X-CSRF-Token", "").strip()
 
-# 3. Try JSON body — use cached parse to avoid consuming stream
-if not received_token and request.is_json:
-    try:
-        json_data = request.get_json(silent=True, force=True)
-        if isinstance(json_data, dict):
-            received_token = str(json_data.get("_csrf", "")).strip()
-    except Exception:
-        pass
+    # 3. Try JSON body
+    if not received_token and request.is_json:
+        try:
+            json_data = request.get_json(silent=True, force=True)
+            if isinstance(json_data, dict):
+                received_token = str(json_data.get("_csrf", "")).strip()
+        except Exception:
+            pass
 
-stored_token = session.get("_csrf", "").strip()
+    stored_token = session.get("_csrf", "").strip()
 
-# Debug log to help trace mismatches on Render
-if not received_token or not stored_token:
-    print(f"[CSRF] MISSING — received='{received_token}' stored='{stored_token}' endpoint={request.endpoint}")
-elif not hmac.compare_digest(received_token, stored_token):
-    print(f"[CSRF] MISMATCH — received='{received_token[:8]}...' stored='{stored_token[:8]}...' endpoint={request.endpoint}")
+    # Debug log
+    if not received_token or not stored_token:
+        print(f"[CSRF] MISSING — received='{received_token}' stored='{stored_token}' endpoint={request.endpoint}")
+    elif not hmac.compare_digest(received_token, stored_token):
+        print(f"[CSRF] MISMATCH — received='{received_token[:8]}...' stored='{stored_token[:8]}...' endpoint={request.endpoint}")
 
-if not received_token or not stored_token or not hmac.compare_digest(received_token, stored_token):
-    if request.is_json or request.headers.get("X-Requested-With") == "XMLHttpRequest":
-        return jsonify({"success": False, "error": "CSRF validation failed. Please refresh the page."}), 403
-    abort(403)
+    if not received_token or not stored_token or not hmac.compare_digest(received_token, stored_token):
+        if request.is_json or request.headers.get("X-Requested-With") == "XMLHttpRequest":
+            return jsonify({"success": False, "error": "CSRF validation failed. Please refresh the page."}), 403
+        abort(403)
 
 
 @app.context_processor
