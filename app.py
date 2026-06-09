@@ -153,6 +153,19 @@ app.config["PERMANENT_SESSION_LIFETIME"]  = timedelta(hours=8)
 app.config["MAX_CONTENT_LENGTH"]          = 10 * 1024 * 1024   # 10 MB
 
 
+# Force server-side session so all gunicorn workers share the same session store
+# Without this, each worker has its own in-memory session = CSRF mismatches
+from flask.sessions import SecureCookieSessionInterface
+app.session_interface = SecureCookieSessionInterface()
+
+# Ensure session cookie is written on every response (prevents token loss)
+@app.after_request
+def ensure_session_saved(response):
+    if "_csrf" in session:
+        session.modified = True
+    return response
+
+
 # ── CBSE Standard → Subjects map ──────────────────────────────────────
 STANDARD_SUBJECTS = {
     "1":  ["English", "Hindi", "Mathematics", "General Knowledge"],
@@ -221,13 +234,6 @@ def generate_session_id() -> str:
     return secrets.token_hex(32)
 
 
-# ── CSRF enforcement ──────────────────────────────────────────────────
-def generate_csrf_token() -> str:
-    if "_csrf" not in session:
-        session["_csrf"] = secrets.token_hex(24)
-    return session["_csrf"]
-
-
 @app.before_request
 def enforce_csrf():
     """Enforce CSRF on POST/PUT/DELETE requests."""
@@ -239,6 +245,7 @@ def enforce_csrf():
     "student_face_login", "student_login", "forgot_password",
     "verify_otp", "reset_password", "mark_notifications_read",
     "subjects_by_standard", "static", "health", "get_csrf_token",
+    "faculty_login", "faculty_register", "student_register",
     }
     
     # Skip enforcement for GET/HEAD/OPTIONS
@@ -249,35 +256,37 @@ def enforce_csrf():
     if request.endpoint in exempt_endpoints:
         return
     
-    # ✅ FIX: Improved token extraction
     received_token = None
-    
-    # 1. Try form data
-    if request.form:
-        received_token = request.form.get("_csrf", "").strip()
-    
-    # 2. Try headers
-    if not received_token:
-        received_token = request.headers.get("X-CSRF-Token", "").strip()
-    
-    # 3. Try JSON body
-    if not received_token and request.is_json:
-        try:
-            json_data = request.get_json(silent=True, cache=True)
-            if json_data and isinstance(json_data, dict):
-                received_token = json_data.get("_csrf", "").strip()
-        except Exception:
-            pass
-    
-    # ✅ FIX: Get stored token from session
-    stored_token = session.get("_csrf", "").strip()
-    
-    # Validate
-    if not received_token or not stored_token or not hmac.compare_digest(received_token, stored_token):
-        # Return appropriate error based on request type
-        if request.is_json or request.headers.get("X-Requested-With") == "XMLHttpRequest":
-            return jsonify({"success": False, "error": "CSRF validation failed. Please refresh the page."}), 403
-        abort(403)
+
+# 1. Try form data
+if request.form:
+    received_token = request.form.get("_csrf", "").strip()
+
+# 2. Try X-CSRF-Token header (used by all JS fetch calls)
+if not received_token:
+    received_token = request.headers.get("X-CSRF-Token", "").strip()
+
+# 3. Try JSON body — use cached parse to avoid consuming stream
+if not received_token and request.is_json:
+    try:
+        json_data = request.get_json(silent=True, force=True)
+        if isinstance(json_data, dict):
+            received_token = str(json_data.get("_csrf", "")).strip()
+    except Exception:
+        pass
+
+stored_token = session.get("_csrf", "").strip()
+
+# Debug log to help trace mismatches on Render
+if not received_token or not stored_token:
+    print(f"[CSRF] MISSING — received='{received_token}' stored='{stored_token}' endpoint={request.endpoint}")
+elif not hmac.compare_digest(received_token, stored_token):
+    print(f"[CSRF] MISMATCH — received='{received_token[:8]}...' stored='{stored_token[:8]}...' endpoint={request.endpoint}")
+
+if not received_token or not stored_token or not hmac.compare_digest(received_token, stored_token):
+    if request.is_json or request.headers.get("X-Requested-With") == "XMLHttpRequest":
+        return jsonify({"success": False, "error": "CSRF validation failed. Please refresh the page."}), 403
+    abort(403)
 
 
 @app.context_processor
@@ -733,10 +742,10 @@ def health():
 
 @app.route("/api/csrf-token", methods=["GET"])
 def get_csrf_token():
-    """Return the current session CSRF token (never generate a new one mid-session)."""
+    """Return the current session CSRF token. Never generate a new one."""
     token = session.get("_csrf", "")
     if not token:
-        token = generate_csrf_token()  # only if session somehow lost it
+        token = generate_csrf_token()
     return jsonify({"csrf_token": token})
 
 @app.route("/")

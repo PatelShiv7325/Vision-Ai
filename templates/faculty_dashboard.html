@@ -2686,10 +2686,21 @@ async function refreshCsrfToken() {
         }
     } catch(e) { console.warn('CSRF refresh failed:', e); }
 }
+
 // Sync every 10 minutes (well within Flask's 8-hour session)
 setInterval(refreshCsrfToken, 10 * 60 * 1000);
-// Also sync once on load to ensure meta tag matches session
-document.addEventListener('DOMContentLoaded', refreshCsrfToken);
+
+// On load: trust the server-rendered meta tag (it's always correct)
+// Only start polling after 30s to let session fully settle
+document.addEventListener('DOMContentLoaded', function() {
+    // Set window.CSRF_TOKEN from the server-rendered value (most reliable on load)
+    window.CSRF_TOKEN = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '';
+});
+// Start periodic refresh after 2 minutes, then every 10 minutes
+setTimeout(function() {
+    refreshCsrfToken();
+    setInterval(refreshCsrfToken, 10 * 60 * 1000);
+}, 2 * 60 * 1000);
 
 // ── THEME TOGGLE ──
 function showProfileFromHeader() {
