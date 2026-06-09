@@ -81,17 +81,16 @@ def _save_face_image(img_data: bytes, roll: str) -> str:
         try:
             result = cloudinary.uploader.upload(
                 img_data,
-                public_id   = f"vision_ai/faces/{roll}",
-                overwrite   = True,
+                public_id     = f"vision_ai/faces/{roll}",
+                overwrite     = True,
                 resource_type = "image",
-                format      = "jpg",
+                format        = "jpg",
             )
             url = result["secure_url"]
             print(f"[Cloudinary] Uploaded face for {roll}: {url}")
-            return url   # full https:// URL stored in DB
+            return url
         except Exception as e:
             print(f"[Cloudinary] Upload failed for {roll}: {e}")
-            # fall through to local save
 
     # Local fallback
     faces_dir = os.path.join(
@@ -102,7 +101,8 @@ def _save_face_image(img_data: bytes, roll: str) -> str:
     path = os.path.join(faces_dir, f"{roll}.jpg")
     with open(path, "wb") as f:
         f.write(img_data)
-    return f"faces/{roll}.jpg"   # relative path stored in DB
+    return f"faces/{roll}.jpg"
+
 
 try:
     import bcrypt as _bcrypt
@@ -124,9 +124,11 @@ except ImportError:
     def is_email_configured():
         return False
 
-# Persistent data directory (override with DATA_DIR env var on Render)
 DATA_DIR = os.environ.get("DATA_DIR", "")
-FACES_STATIC_DIR = os.path.join(DATA_DIR, "static", "faces") if DATA_DIR else os.path.join(os.path.dirname(os.path.abspath(__file__)), "static", "faces")
+FACES_STATIC_DIR = (
+    os.path.join(DATA_DIR, "static", "faces") if DATA_DIR
+    else os.path.join(os.path.dirname(os.path.abspath(__file__)), "static", "faces")
+)
 
 IST_OFFSET = timedelta(hours=5, minutes=30)
 
@@ -146,19 +148,15 @@ if not _SECRET:
     )
 app.secret_key = _SECRET
 
-app.config["SESSION_COOKIE_HTTPONLY"]     = True
-app.config["SESSION_COOKIE_SAMESITE"]     = "Lax"
-app.config["SESSION_COOKIE_SECURE"]       = os.environ.get("PRODUCTION", "0") == "1"
-app.config["PERMANENT_SESSION_LIFETIME"]  = timedelta(hours=8)
-app.config["MAX_CONTENT_LENGTH"]          = 10 * 1024 * 1024   # 10 MB
+app.config["SESSION_COOKIE_HTTPONLY"]    = True
+app.config["SESSION_COOKIE_SAMESITE"]    = "Lax"
+app.config["SESSION_COOKIE_SECURE"]      = os.environ.get("PRODUCTION", "0") == "1"
+app.config["PERMANENT_SESSION_LIFETIME"] = timedelta(hours=8)
+app.config["MAX_CONTENT_LENGTH"]         = 10 * 1024 * 1024  # 10 MB
 
-
-# Force server-side session so all gunicorn workers share the same session store
-# Without this, each worker has its own in-memory session = CSRF mismatches
 from flask.sessions import SecureCookieSessionInterface
 app.session_interface = SecureCookieSessionInterface()
 
-# Ensure session cookie is written on every response (prevents token loss)
 @app.after_request
 def ensure_session_saved(response):
     if "_csrf" in session:
@@ -185,7 +183,6 @@ STANDARD_SUBJECTS = {
 # HELPERS
 # =====================================================================
 
-# !! NEVER change this constant — it's baked into all stored password hashes
 _HASH_SECRET = "vision_ai_fixed_secret_key_2024_do_not_change"
 
 def hash_password(password: str, salt: str = "vision_ai_v2") -> str:
@@ -193,7 +190,6 @@ def hash_password(password: str, salt: str = "vision_ai_v2") -> str:
     return hashlib.sha256(key).hexdigest()
 
 def verify_password(password_raw: str, stored_hash: str) -> bool:
-    """Verify a plaintext password against its stored hash."""
     return hash_password(password_raw) == stored_hash
 
 def get_client_ip() -> str:
@@ -202,51 +198,40 @@ def get_client_ip() -> str:
         return xff.split(",")[0].strip()
     return request.remote_addr or "unknown"
 
-
 def generate_csrf_token() -> str:
     if "_csrf" not in session:
         session["_csrf"] = secrets.token_hex(24)
     return session["_csrf"]
 
-
 def generate_session_id() -> str:
-    """Generate a unique session ID for each login instance."""
     return secrets.token_hex(32)
 
 
 @app.before_request
 def enforce_csrf():
-    """Enforce CSRF on POST/PUT/DELETE requests."""
-    # Generate token FIRST (ensures session has _csrf)
     generate_csrf_token()
 
-    # Skip enforcement for GET/HEAD/OPTIONS
     if request.method in ("GET", "HEAD", "OPTIONS"):
         return
 
-    # Exempt endpoints
     exempt_endpoints = {
-    "student_face_login", "student_login", "forgot_password",
-    "verify_otp", "reset_password", "mark_notifications_read",
-    "subjects_by_standard", "static", "health", "get_csrf_token",
-    "faculty_login", "faculty_register", "student_register",
-}
+        "student_face_login", "student_login", "forgot_password",
+        "verify_otp", "reset_password", "mark_notifications_read",
+        "subjects_by_standard", "static", "health", "get_csrf_token",
+        "faculty_login", "faculty_register", "student_register",
+    }
 
-    # Skip exempt endpoints
     if request.endpoint in exempt_endpoints:
         return
 
     received_token = None
 
-    # 1. Try form data
     if request.form:
         received_token = request.form.get("_csrf", "").strip()
 
-    # 2. Try X-CSRF-Token header (used by all JS fetch calls)
     if not received_token:
         received_token = request.headers.get("X-CSRF-Token", "").strip()
 
-    # 3. Try JSON body
     if not received_token and request.is_json:
         try:
             json_data = request.get_json(silent=True, force=True)
@@ -257,7 +242,6 @@ def enforce_csrf():
 
     stored_token = session.get("_csrf", "").strip()
 
-    # Debug log
     if not received_token or not stored_token:
         print(f"[CSRF] MISSING — received='{received_token}' stored='{stored_token}' endpoint={request.endpoint}")
     elif not hmac.compare_digest(received_token, stored_token):
@@ -271,32 +255,31 @@ def enforce_csrf():
 
 @app.context_processor
 def inject_csrf():
-    """Inject CSRF token into all templates."""
     return {"csrf_token": generate_csrf_token()}
 
 
-# ── Login decorators (FIXED with session validation) ──────────────────
+# ── Login decorators ──────────────────────────────────────────────────
 
 def login_required_student(f):
     @wraps(f)
     def wrapper(*args, **kwargs):
-        # Check basic session existence
+        # 1. Basic session check
         if "student_roll" not in session:
             flash("Please login to continue.", "warning")
             return redirect(url_for("student_login"))
-        
-        # Check session user type consistency
+
+        # 2. Session type consistency
         if session.get("session_user_type") not in ("student", None):
             session.clear()
             flash("Session mismatch. Please login again.", "warning")
             return redirect(url_for("student_login"))
-        
+
         roll             = session["student_roll"]
         session_instance = session.get("session_instance", "")
-        
+
         db = get_db()
         try:
-            # Validate student still exists and is active
+            # 3. Student account still exists and active
             student = db.execute(
                 "SELECT id FROM students WHERE roll=? AND is_active=1",
                 (roll,)
@@ -305,20 +288,28 @@ def login_required_student(f):
                 session.clear()
                 flash("Your account no longer exists. Please register again.", "warning")
                 return redirect(url_for("student_login"))
-            
-            # ── VALIDATE SESSION INSTANCE ─────────────────────────────
+
+            # 4. Validate session instance — safe: only redirect on confirmed False
             if session_instance:
-                is_valid = validate_session_instance(
-                    db, session_instance, "student", roll
-                )
-                if not is_valid:
-                    session.clear()
-                    flash("Your session has expired or was replaced. Please login again.", "warning")
-                    return redirect(url_for("student_login"))
-                    
+                try:
+                    is_valid = validate_session_instance(
+                        db, session_instance, "student", roll
+                    )
+                    if is_valid is False:
+                        # Explicit False = session was replaced by a newer login
+                        session.clear()
+                        flash("Your session has expired or was replaced. Please login again.", "warning")
+                        return redirect(url_for("student_login"))
+                    # Update last_seen to keep long sessions alive
+                    update_session_last_seen(db, session_instance)
+                    db.commit()
+                except Exception as e:
+                    # DB error — don't kill valid session, just log
+                    print(f"[SessionValidate] Student check error (non-fatal): {e}")
+
         finally:
             db.close()
-            
+
         return f(*args, **kwargs)
     return wrapper
 
@@ -326,20 +317,23 @@ def login_required_student(f):
 def login_required_faculty(f):
     @wraps(f)
     def wrapper(*args, **kwargs):
+        # 1. Basic session check
         if "faculty_id" not in session:
             flash("Please login to continue.", "warning")
             return redirect(url_for("faculty_login"))
-        
+
+        # 2. Session type consistency
         if session.get("session_user_type") == "student":
             session.clear()
             flash("Session mismatch. Please login again.", "warning")
             return redirect(url_for("faculty_login"))
-        
+
         faculty_id       = session["faculty_id"]
         session_instance = session.get("session_instance", "")
-        
+
         db = get_db()
         try:
+            # 3. Faculty account still exists and active
             faculty = db.execute(
                 "SELECT id FROM faculty WHERE faculty_id=? AND is_active=1",
                 (faculty_id,)
@@ -348,20 +342,25 @@ def login_required_faculty(f):
                 session.clear()
                 flash("Your account no longer exists.", "warning")
                 return redirect(url_for("faculty_login"))
-            
-            # Validate session instance
+
+            # 4. Validate session instance — safe: only redirect on confirmed False
             if session_instance:
-                is_valid = validate_session_instance(
-                    db, session_instance, "faculty", faculty_id
-                )
-                if not is_valid:
-                    session.clear()
-                    flash("Your session has expired or was replaced. Please login again.", "warning")
-                    return redirect(url_for("faculty_login"))
-                    
+                try:
+                    is_valid = validate_session_instance(
+                        db, session_instance, "faculty", faculty_id
+                    )
+                    if is_valid is False:
+                        session.clear()
+                        flash("Your session has expired or was replaced. Please login again.", "warning")
+                        return redirect(url_for("faculty_login"))
+                    update_session_last_seen(db, session_instance)
+                    db.commit()
+                except Exception as e:
+                    print(f"[SessionValidate] Faculty check error (non-fatal): {e}")
+
         finally:
             db.close()
-            
+
         return f(*args, **kwargs)
     return wrapper
 
@@ -722,7 +721,6 @@ def health():
 
 @app.route("/api/csrf-token", methods=["GET"])
 def get_csrf_token():
-    """Return the current session CSRF token. Never generate a new one."""
     token = session.get("_csrf", "")
     if not token:
         token = generate_csrf_token()
@@ -776,21 +774,21 @@ def student_register():
         ] if not v]
         if missing:
             return render_template("student_register.html",
-                                error=f"Missing: {', '.join(missing)}")
+                                   error=f"Missing: {', '.join(missing)}")
         if len(password_raw) < 8:
             return render_template("student_register.html",
-                                error="Password must be at least 8 characters.")
+                                   error="Password must be at least 8 characters.")
         if not face_data or "," not in face_data:
             return render_template("student_register.html",
-                                error="Please capture your face photo.")
+                                   error="Please capture your face photo.")
 
         phone_digits = "".join(filter(str.isdigit, phone))
         if len(phone_digits) != 10:
             return render_template("student_register.html",
-                                error="Phone must be exactly 10 digits.")
+                                   error="Phone must be exactly 10 digits.")
         if phone_digits[0] not in "6789":
             return render_template("student_register.html",
-                                error="Phone must start with 6, 7, 8, or 9.")
+                                   error="Phone must start with 6, 7, 8, or 9.")
 
         db = None
         try:
@@ -825,20 +823,20 @@ def student_register():
                         return render_template(
                             "student_register.html",
                             error=(f'{label} is already registered '
-                            f'to "{existing["name"]}"! Please use a different one.')
+                                   f'to "{existing["name"]}"! Please use a different one.')
                         )
 
             try:
                 img_data = base64.b64decode(face_data.split(",")[1])
             except Exception:
                 return render_template("student_register.html",
-                                    error="Invalid image data. Please retake your photo.")
+                                       error="Invalid image data. Please retake your photo.")
 
             np_arr = np.frombuffer(img_data, np.uint8)
             img_cv = cv2.imdecode(np_arr, cv2.IMREAD_COLOR)
             if img_cv is None:
                 return render_template("student_register.html",
-                                    error="Could not decode image. Please retake.")
+                                       error="Could not decode image. Please retake.")
 
             gray    = cv2.cvtColor(img_cv, cv2.COLOR_BGR2GRAY)
             gray_eq = cv2.equalizeHist(gray)
@@ -919,19 +917,18 @@ def student_register():
                         )
                     )
 
-            faces_dir = os.environ.get("DATA_DIR", "")
-        
-            if faces_dir:
-                faces_save_dir = os.path.join(faces_dir, "static", "faces")
-                face_filename = f"faces/{roll}.jpg"
-                face_save_path = os.path.join(faces_dir, "static", face_filename)
+            faces_dir_env = os.environ.get("DATA_DIR", "")
+            if faces_dir_env:
+                faces_save_dir = os.path.join(faces_dir_env, "static", "faces")
+                face_filename  = f"faces/{roll}.jpg"
+                face_save_path = os.path.join(faces_dir_env, "static", face_filename)
             else:
                 faces_save_dir = "static/faces"
-                face_filename = f"faces/{roll}.jpg"
+                face_filename  = f"faces/{roll}.jpg"
                 face_save_path = f"static/{face_filename}"
 
-            os.makedirs(faces_save_dir, exist_ok=True)   
-            with open(face_save_path, "wb") as f:        
+            os.makedirs(faces_save_dir, exist_ok=True)
+            with open(face_save_path, "wb") as f:
                 f.write(img_data)
 
             db.execute(
@@ -956,20 +953,19 @@ def student_register():
                                get_client_ip())
             db.commit()
 
-            # ✅ FIX: Create session instance after successful registration
             session_instance_id = generate_session_id()
             create_session_record(db, session_instance_id, "student", roll, get_client_ip())
-            
+
             session.clear()
-            session.permanent            = True
-            session["student_roll"]      = roll
-            session["student_name"]      = name
-            session["student_id"]        = new_id
-            session["student_email"]     = email
-            session["session_instance"]  = session_instance_id
+            session.permanent             = True
+            session["student_roll"]       = roll
+            session["student_name"]       = name
+            session["student_id"]         = new_id
+            session["student_email"]      = email
+            session["session_instance"]   = session_instance_id
             session["session_created_at"] = get_ist_now().isoformat()
-            session["session_user_type"] = "student"
-            
+            session["session_user_type"]  = "student"
+
             return redirect(url_for("student_dashboard"))
 
         except Exception as e:
@@ -991,7 +987,7 @@ def student_register():
 
 
 # =====================================================================
-# STUDENT — LOGIN (FIXED with session instance)
+# STUDENT — LOGIN
 # =====================================================================
 @app.route("/student-login", methods=["GET", "POST"])
 def student_login():
@@ -1036,24 +1032,22 @@ def student_login():
             record_successful_login(db, "students", "email", email)
             log_security_event(db, "STUDENT_LOGIN", student["roll"],
                                "student", get_client_ip())
-            
-            # ── CREATE SESSION INSTANCE ───────────────────────────────
+
             session_instance_id = generate_session_id()
-            
             create_session_record(db, session_instance_id, "student",
-                                 student["roll"], get_client_ip())
+                                  student["roll"], get_client_ip())
             db.commit()
 
             session.clear()
-            session.permanent            = True
-            session["student_roll"]      = student["roll"]
-            session["student_name"]      = student["name"]
-            session["student_id"]        = student["id"]
-            session["student_email"]     = student["email"]
-            session["session_instance"]  = session_instance_id
+            session.permanent             = True
+            session["student_roll"]       = student["roll"]
+            session["student_name"]       = student["name"]
+            session["student_id"]         = student["id"]
+            session["student_email"]      = student["email"]
+            session["session_instance"]   = session_instance_id
             session["session_created_at"] = get_ist_now().isoformat()
-            session["session_user_type"] = "student"
-            
+            session["session_user_type"]  = "student"
+
             return redirect(url_for("student_dashboard"))
         except Exception as e:
             import traceback
@@ -1166,25 +1160,21 @@ def student_face_login():
             )
             log_security_event(db, "FACE_LOGIN_SUCCESS", roll, "student", ip,
                                f"LBPH={lbph_conf:.1f} HIST={hist_score:.3f}")
-            
-            # ── FIX: Generate unique session instance ID ──────────────
+
             session_instance_id = generate_session_id()
-            
-            # ── FIX: Correct function call with proper indentation ──
-            create_session_record(db, session_instance_id, "student", 
-                                 roll, ip)
+            create_session_record(db, session_instance_id, "student", roll, ip)
             db.commit()
 
             session.clear()
-            session.permanent            = True
-            session["student_roll"]      = student["roll"]
-            session["student_name"]      = student["name"]
-            session["student_id"]        = student["id"]
-            session["student_email"]     = student["email"]
-            session["session_instance"]  = session_instance_id
+            session.permanent             = True
+            session["student_roll"]       = student["roll"]
+            session["student_name"]       = student["name"]
+            session["student_id"]         = student["id"]
+            session["student_email"]      = student["email"]
+            session["session_instance"]   = session_instance_id
             session["session_created_at"] = get_ist_now().isoformat()
-            session["session_user_type"] = "student"
-            
+            session["session_user_type"]  = "student"
+
             return jsonify({"success": True, "name": name})
 
         db.execute(
@@ -1248,14 +1238,13 @@ def student_dashboard():
         except Exception:
             subject_stats = []
 
-        # ── Timetable — today's classes ───────────────────────────────
         today_day     = ""
         today_classes = []
         try:
             days_map  = {0: "Monday", 1: "Tuesday", 2: "Wednesday", 3: "Thursday",
                          4: "Friday", 5: "Saturday", 6: "Sunday"}
             today_day = days_map[get_ist_now().weekday()]
-            
+
             student_info = db.execute(
                 "SELECT standard, division FROM students WHERE roll=?",
                 (session["student_roll"],)
@@ -1286,7 +1275,6 @@ def student_dashboard():
             today_classes = []
             marked_today  = set()
 
-        # ── Attendance goal ───────────────────────────────────────────
         target_pct  = 75
         alert_email = True
         try:
@@ -1300,7 +1288,6 @@ def student_dashboard():
         except Exception:
             pass
 
-        # ── Per-subject goal tracker ──────────────────────────────────
         subject_goal_data = {}
         try:
             subj_rows = db.execute(
@@ -1309,12 +1296,12 @@ def student_dashboard():
                 (session["student_roll"],)
             ).fetchall()
 
-            total_all = len(attendance)  # Total attendance records for this student
+            total_all = len(attendance)
 
             for sr in subj_rows:
                 subj       = sr["subject"]
                 present    = sr["cnt"]
-                subj_total = present  # All records are "present"
+                subj_total = present
                 pct        = round((present / subj_total) * 100) if subj_total > 0 else 0
                 needed     = 0
                 can_miss   = 0
@@ -1339,14 +1326,12 @@ def student_dashboard():
         except Exception:
             subject_goal_data = {}
 
-        # ── Totals ────────────────────────────────────────────────────
         total   = len(attendance)
         present = total
         percent = 100 if total > 0 else 0
 
         student_dict = dict(student) if student else {}
 
-        # ── Auto low-attendance email alert ──────────────────────────
         try:
             if alert_email and student_dict.get("email"):
                 subj_counts = {}
@@ -1380,7 +1365,6 @@ def student_dashboard():
         except Exception:
             pass
 
-        # ✅ FIXED: Complete return statement with all required variables
         return render_template(
             "student_dashboard.html",
             student=student_dict,
@@ -1407,6 +1391,7 @@ def student_dashboard():
     finally:
         if db:
             db.close()
+
 
 # =====================================================================
 # STUDENT — PROFILE EDIT
@@ -1475,11 +1460,9 @@ def student_profile_edit():
 @app.route("/student-face-enroll", methods=["GET", "POST"])
 @login_required_student
 def student_face_enroll():
-    # GET request redirects to dashboard (enrollment UI is embedded there)
     if request.method == "GET":
         return redirect(url_for("student_dashboard"))
 
-    # Support both form POST and JSON (AJAX)
     if request.is_json:
         face_data = (request.get_json(silent=True, cache=True) or {}).get("face_image", "")
     else:
@@ -1549,15 +1532,14 @@ def student_face_enroll():
             flash(msg, "error")
             return redirect(url_for("student_dashboard"))
 
-        faces_dir = os.environ.get("DATA_DIR", "")
-        
-        if faces_dir:
-            faces_save_dir = os.path.join(faces_dir, "static", "faces")
-            face_filename = f"faces/{roll}.jpg"
-            face_save_path = os.path.join(faces_dir, "static", face_filename)
+        faces_dir_env = os.environ.get("DATA_DIR", "")
+        if faces_dir_env:
+            faces_save_dir = os.path.join(faces_dir_env, "static", "faces")
+            face_filename  = f"faces/{roll}.jpg"
+            face_save_path = os.path.join(faces_dir_env, "static", face_filename)
         else:
             faces_save_dir = "static/faces"
-            face_filename = f"faces/{roll}.jpg"
+            face_filename  = f"faces/{roll}.jpg"
             face_save_path = f"static/{face_filename}"
 
         os.makedirs(faces_save_dir, exist_ok=True)
@@ -1588,7 +1570,7 @@ def student_face_enroll():
 
 
 # =====================================================================
-# FACULTY — REGISTER (FIXED with session instance)
+# FACULTY — REGISTER
 # =====================================================================
 @app.route("/faculty-register", methods=["GET", "POST"])
 def faculty_register():
@@ -1678,8 +1660,10 @@ def faculty_register():
                         "AND user_id=(SELECT faculty_id FROM faculty WHERE email=?)",
                         (email,)
                     )
-                    db.execute("DELETE FROM active_sessions WHERE user_type='faculty' "
-                              "AND user_id=(SELECT faculty_id FROM faculty WHERE email=?)", (email,))
+                    db.execute(
+                        "DELETE FROM active_sessions WHERE user_type='faculty' "
+                        "AND user_id=(SELECT faculty_id FROM faculty WHERE email=?)", (email,)
+                    )
                     db.execute("DELETE FROM faculty WHERE email=?", (email,))
                     db.commit()
 
@@ -1693,19 +1677,20 @@ def faculty_register():
             db.commit()
             log_security_event(db, "FACULTY_REGISTER", faculty_id,
                                "faculty", get_client_ip())
-            
+
             session_instance_id = generate_session_id()
             create_session_record(db, session_instance_id, "faculty",
-                      faculty_id, get_client_ip())
+                                  faculty_id, get_client_ip())
             db.commit()
+
             session.clear()
-            session.permanent            = True
-            session["faculty_id"]        = faculty_id
-            session["faculty_name"]      = name
-            session["session_instance"]  = session_instance_id
+            session.permanent             = True
+            session["faculty_id"]         = faculty_id
+            session["faculty_name"]       = name
+            session["session_instance"]   = session_instance_id
             session["session_created_at"] = get_ist_now().isoformat()
-            session["session_user_type"] = "faculty"
-            
+            session["session_user_type"]  = "faculty"
+
             return redirect(url_for("faculty_dashboard"))
 
         except Exception as e:
@@ -1727,7 +1712,7 @@ def faculty_register():
 
 
 # =====================================================================
-# FACULTY — LOGIN (FIXED with session instance)
+# FACULTY — LOGIN
 # =====================================================================
 @app.route("/faculty-login", methods=["GET", "POST"])
 def faculty_login():
@@ -1772,7 +1757,7 @@ def faculty_login():
 
             if not verify_password(password, faculty["password"]):
                 record_failed_login(db, "faculty", login_field, login_value)
-                attempts  = (faculty["login_attempts"] or   0) + 1
+                attempts  = (faculty["login_attempts"] or 0) + 1
                 remaining = max(0, 5 - attempts)
                 log_security_event(db, "FAILED_LOGIN", login_value, "faculty",
                                    get_client_ip(), severity="medium")
@@ -1785,21 +1770,20 @@ def faculty_login():
             record_successful_login(db, "faculty", login_field, login_value)
             log_security_event(db, "FACULTY_LOGIN", faculty["faculty_id"],
                                "faculty", get_client_ip())
-            
-            # ── CREATE SESSION INSTANCE ───────────────────────────────
+
             session_instance_id = generate_session_id()
             create_session_record(db, session_instance_id, "faculty",
-                     faculty["faculty_id"], get_client_ip())            
+                                  faculty["faculty_id"], get_client_ip())
             db.commit()
 
             session.clear()
-            session.permanent            = True
-            session["faculty_id"]        = faculty["faculty_id"]
-            session["faculty_name"]      = faculty["name"]
-            session["session_instance"]  = session_instance_id
+            session.permanent             = True
+            session["faculty_id"]         = faculty["faculty_id"]
+            session["faculty_name"]       = faculty["name"]
+            session["session_instance"]   = session_instance_id
             session["session_created_at"] = get_ist_now().isoformat()
-            session["session_user_type"] = "faculty"
-            
+            session["session_user_type"]  = "faculty"
+
             return redirect(url_for("faculty_dashboard"))
 
         except Exception as e:
@@ -1877,7 +1861,6 @@ def faculty_dashboard():
             ).fetchone()[0]
             student_stats[s["roll"]] = count
 
-        # ✅ FIXED: return is correctly inside the try block
         return render_template(
             "faculty_dashboard.html",
             faculty=faculty,
@@ -1979,7 +1962,7 @@ def process_attendance():
         gray_eq  = cv2.equalizeHist(cv2.cvtColor(image_cv, cv2.COLOR_BGR2GRAY))
         faces    = _detect_faces_multipass(gray_eq)
 
-        db = get_db()               
+        db = get_db()
 
         faculty = db.execute(
             "SELECT subject FROM faculty WHERE faculty_id=?",
@@ -1999,7 +1982,6 @@ def process_attendance():
         ]
         use_encoding = True
 
-        # ✅ FIX: fallback correctly queries face_image (not face_encoding again)
         if not all_students:
             all_students = [
                 dict(r) for r in db.execute(
@@ -2034,7 +2016,7 @@ def process_attendance():
 
         from datetime import timezone, timedelta
         IST = timezone(timedelta(hours=5, minutes=30))
-        now = datetime.now(IST).replace(tzinfo=None)        
+        now = datetime.now(IST).replace(tzinfo=None)
         present_students = []
         low_quality      = []
         detected_rolls   = set()
@@ -2063,14 +2045,12 @@ def process_attendance():
                     "hist_score": round(hist_score, 3),
                     "confidence": f"{max(0, 100 - lbph_conf):.0f}%",
                 })
-        
 
         absent_students = [
             {"roll": s["roll"], "name": s["name"]}
             for s in all_students if s["roll"] not in detected_rolls
         ]
 
-        # ── Draw annotations ──────────────────────────────────────────
         annotated  = image_cv.copy()
         clahe_draw = cv2.createCLAHE(clipLimit=2.0, tileGridSize=(8, 8))
 
@@ -2165,7 +2145,6 @@ def attendance():
             ]
             use_encoding = True
 
-            # ✅ FIX: fallback correctly uses face_image filter
             if not all_students:
                 all_students = [
                     dict(r) for r in db.execute(
@@ -2211,7 +2190,7 @@ def attendance():
 
             from datetime import timezone, timedelta
             IST = timezone(timedelta(hours=5, minutes=30))
-            now = datetime.now(IST).replace(tzinfo=None)            
+            now = datetime.now(IST).replace(tzinfo=None)
             existing = db.execute(
                 "SELECT id FROM attendance WHERE student_roll=? AND subject=? AND date=?",
                 (roll, subject, now.strftime("%Y-%m-%d"))
@@ -2265,7 +2244,6 @@ def forgot_password():
         email = (data.get("email") or "").strip().lower()
         role  = (data.get("role")  or "student").lower()
 
-        # ✅ FIX: Whitelist role FIRST — before role is used anywhere
         if role not in ("student", "faculty"):
             role = "student"
 
@@ -2406,8 +2384,7 @@ def reset_password():
             "UPDATE reset_tokens SET used=1 WHERE email=? AND otp=?",
             (email, otp)
         )
-        
-        # ✅ FIX: Invalidate all existing sessions on password reset
+
         user_id = None
         if role == "student":
             user_row = db.execute("SELECT roll FROM students WHERE email=?", (email,)).fetchone()
@@ -2417,10 +2394,10 @@ def reset_password():
             user_row = db.execute("SELECT faculty_id FROM faculty WHERE email=?", (email,)).fetchone()
             if user_row:
                 user_id = user_row["faculty_id"]
-        
+
         if user_id:
             invalidate_all_user_sessions(db, role, user_id)
-        
+
         db.commit()
         log_security_event(db, "PASSWORD_RESET", email, role, get_client_ip())
         db.commit()
@@ -2545,7 +2522,6 @@ def delete_all_data():
                     os.remove(face_path)
                 except Exception:
                     pass
-
 
         session.clear()
         flash("All data has been successfully deleted. Please register again.", "success")
@@ -2804,21 +2780,21 @@ def change_password():
 
 
 # =====================================================================
-# LOGOUT (FIXED with session invalidation)
+# LOGOUT
 # =====================================================================
 @app.route("/logout")
 def logout():
     db = get_db()
     try:
         session_instance = session.get("session_instance", "")
-        
+
         if "student_roll" in session:
             log_security_event(db, "STUDENT_LOGOUT", session["student_roll"],
                                "student", get_client_ip())
             if session_instance:
                 invalidate_session(db, session_instance)
             db.commit()
-            
+
         elif "faculty_id" in session:
             log_security_event(db, "FACULTY_LOGOUT", session["faculty_id"],
                                "faculty", get_client_ip())
@@ -2829,7 +2805,7 @@ def logout():
         print(f"[Logout] Error: {e}")
     finally:
         db.close()
-        
+
     session.clear()
     flash("You have been logged out successfully.", "success")
     return redirect(url_for("home"))
@@ -2852,14 +2828,12 @@ def subjects_by_standard(standard):
 def get_timetable():
     db = get_db()
     try:
-        # First try student's personal timetable
         rows = db.execute(
             "SELECT day, period, subject, start_time, end_time "
             "FROM student_timetable WHERE student_roll=? ORDER BY day, period",
             (session["student_roll"],)
         ).fetchall()
-        
-        # If empty, fall back to faculty timetable for student's standard
+
         if not rows:
             student = db.execute(
                 "SELECT standard, division FROM students WHERE roll=?",
@@ -2949,13 +2923,9 @@ def faculty_save_timetable():
     division = data.get("division", "").strip()
 
     if not standard:
-        return jsonify({
-            "success": False,
-            "error": "Standard is required."
-        })
+        return jsonify({"success": False, "error": "Standard is required."})
 
     db = get_db()
-    
     try:
         if division:
             db.execute(
@@ -2996,7 +2966,6 @@ def faculty_save_timetable():
 @app.route("/api/student/timetable/standard", methods=["GET"])
 @login_required_student
 def student_get_standard_timetable():
-    """Get the timetable set by faculty for student's standard."""
     db = get_db()
     try:
         student = db.execute(
@@ -3019,6 +2988,7 @@ def student_get_standard_timetable():
         return jsonify({"success": False, "error": str(e)})
     finally:
         db.close()
+
 
 # =====================================================================
 # STUDENT — ATTENDANCE GOAL + EMAIL ALERT
@@ -3102,6 +3072,7 @@ def save_attendance_goal():
     finally:
         db.close()
 
+
 # =====================================================================
 # MARK ATTENDANCE — Manual (single student)
 # =====================================================================
@@ -3165,9 +3136,9 @@ def confirm_attendance():
     subject = data.get("subject", "").strip()
 
     from datetime import timezone, timedelta
-    IST   = timezone(timedelta(hours=5, minutes=30))
-    now   = datetime.now(IST).replace(tzinfo=None)
-    today = now.strftime("%Y-%m-%d")
+    IST      = timezone(timedelta(hours=5, minutes=30))
+    now      = datetime.now(IST).replace(tzinfo=None)
+    today    = now.strftime("%Y-%m-%d")
     time_now = now.strftime("%H:%M:%S")
 
     if not rolls or not subject:
@@ -3178,11 +3149,9 @@ def confirm_attendance():
         marked  = 0
         skipped = 0
 
-        # ── Deduplicate incoming list ─────────────────────────────────
         seen   = set()
         unique = []
         for s in rolls:
-            # handles both {"roll":"001","name":"X"} and plain "001"
             roll = (s.get("roll", "") if isinstance(s, dict) else str(s)).strip()
             if roll and roll not in seen:
                 seen.add(roll)
@@ -3196,7 +3165,6 @@ def confirm_attendance():
             if not student:
                 continue
 
-            # ── Skip if already marked today for this subject ─────────
             existing = db.execute(
                 """SELECT id FROM attendance
                    WHERE student_roll=? AND subject=? AND date=?""",
@@ -3238,23 +3206,22 @@ def confirm_attendance():
     finally:
         db.close()
 
+
 @app.route('/api/save-student-settings', methods=['POST'])
 def save_student_settings():
     try:
-        # Check if student is logged in
         if 'student_roll' not in session:
             return jsonify({'success': False, 'error': 'Not logged in'}), 401
-        
+
         data = request.get_json(force=True)
         if data is None:
             return jsonify({'success': False, 'error': 'Invalid data'}), 400
-        
-        # Settings received - you can save to DB here if needed
-        # For now just return success
+
         return jsonify({'success': True, 'message': 'Settings saved'})
-    
+
     except Exception as e:
         return jsonify({'success': False, 'error': str(e)}), 500
+
 
 # =====================================================================
 if __name__ == "__main__":
