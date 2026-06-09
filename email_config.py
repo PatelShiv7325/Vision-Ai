@@ -13,3 +13,4 @@ def is_email_configured():
     email = EMAIL_CONFIG['sender_email']
     bad = ('', 'your-app-password', 'SET_YOUR_GMAIL_APP_PASSWORD_HERE')
     return bool(email and pwd and pwd not in bad)
+    

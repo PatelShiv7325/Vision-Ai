@@ -12,4 +12,4 @@ services:
     disk:
       name: vision-ai-data
       mountPath: /data
-      sizeGB: 5
+      sizeGB: 1

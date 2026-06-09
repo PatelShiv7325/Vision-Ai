@@ -2727,18 +2727,6 @@ async function submitPwdChange(event) {
     }
 }
 
-function openPwdModal() {
-    updateCsrfToken();  // ✅ Refresh token when opening modal
-    document.getElementById('pwd-modal').classList.add('show');
-    document.getElementById('pwd-form').reset();
-    document.getElementById('pwd-error').style.display = 'none';
-    document.getElementById('pwd-success').style.display = 'none';
-    document.getElementById('pwd-meter-fill').style.width = '0%';
-    document.getElementById('pwd-strength-hint').innerHTML = 
-        '<i class="fas fa-shield-alt"></i> Min 8 characters';
-    document.getElementById('pwd-match-hint').style.display = 'none';
-}
-
 function closePwdModal() {
     const modal = document.getElementById('pwd-modal');
     if (modal) modal.classList.remove('show');
