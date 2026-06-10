@@ -234,10 +234,12 @@ CREATE TABLE IF NOT EXISTS active_sessions (
     user_id      TEXT     NOT NULL,
     created_at   DATETIME DEFAULT CURRENT_TIMESTAMP,
     ip_address   TEXT,
-    last_seen    DATETIME DEFAULT CURRENT_TIMESTAMP
+    last_seen    DATETIME DEFAULT CURRENT_TIMESTAMP,
+    is_active    INTEGER  DEFAULT 1
 );
-"""
 
+
+"""
 _INDEXES = """
 CREATE INDEX IF NOT EXISTS idx_att_roll      ON attendance(student_roll);
 CREATE INDEX IF NOT EXISTS idx_att_date      ON attendance(date);
@@ -279,6 +281,7 @@ _MIGRATIONS = [
     ("attendance",    "device_info",     "TEXT"),
     ("notifications", "title",           "TEXT NOT NULL DEFAULT ''"),
     ("notifications", "type",            "TEXT DEFAULT 'info'"),
+    ("active_sessions", "is_active",     "INTEGER DEFAULT 1"),
 ]
 
 
@@ -1079,26 +1082,33 @@ def verify_database_integrity():
 # ── Active Sessions Management ────────────────────────────────────────
 
 def create_session_record(db, session_id, user_type, user_id, ip_address):
-    """Create a new session record when user logs in."""
+    """Create a new session record when user logs in.
+    Marks all previous sessions for this user as inactive (is_active=0),
+    so validate_session_instance returns False for old sessions.
+    """
     try:
-        # First, invalidate any existing sessions for this user
+        # Mark previous sessions as inactive (not deleted, so we can detect theft)
         db.execute(
-            """DELETE FROM active_sessions 
-               WHERE user_type=? AND user_id=?""",
-            (user_type, user_id)
+            """UPDATE active_sessions SET is_active=0
+               WHERE user_type=? AND user_id=? AND session_id!=?""",
+            (user_type, user_id, session_id)
         )
-        
-        # Create new session record (without is_valid column)
+        # Insert new active session
         db.execute(
-            """INSERT INTO active_sessions 
-               (session_id, user_type, user_id, created_at, ip_address, last_seen)
-               VALUES (?, ?, ?, CURRENT_TIMESTAMP, ?, CURRENT_TIMESTAMP)""",
+            """INSERT OR REPLACE INTO active_sessions
+               (session_id, user_type, user_id,
+                created_at, ip_address, last_seen, is_active)
+               VALUES (?, ?, ?, CURRENT_TIMESTAMP, ?, CURRENT_TIMESTAMP, 1)""",
             (session_id, user_type, user_id, ip_address)
         )
         db.commit()
         print(f"[Session] Created {user_type}:{user_id} session {session_id[:8]}...")
     except Exception as e:
         print(f"[Session] Error creating session: {e}")
+        try:
+            db.rollback()
+        except Exception:
+            pass
 
 
 def validate_session_instance(db, session_instance_id, user_type, user_id):

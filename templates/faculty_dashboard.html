@@ -659,19 +659,8 @@
 </div>
 
 <script>
-  const CSRF_TOKEN = "{{ csrf_token }}";
-  
-  // Always fetch a fresh CSRF token before any POST request
-  async function getFreshCsrfToken() {
-    try {
-      const res = await fetch('/api/csrf-token', { method: 'GET', credentials: 'same-origin' });
-      if (res.ok) {
-        const data = await res.json();
-        return data.csrf_token || CSRF_TOKEN;
-      }
-    } catch(e) {}
-    return CSRF_TOKEN;
-  }
+    const CSRF_TOKEN = "{{ csrf_token }}";
+    window.CSRF_TOKEN = CSRF_TOKEN;
 </script>
 
 <!-- ── TOAST ── -->
@@ -1605,8 +1594,10 @@
     
 // ✅ CSRF TOKEN HELPER - window.CSRF_TOKEN is always freshest
 function getCsrfToken() {
-    return window.CSRF_TOKEN || 
-           document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || 
+    // Read from ALL sources in priority order — always returns a value
+    return window.CSRF_TOKEN ||
+           (document.querySelector('meta[name="csrf-token"]') || {}).getAttribute('content') ||
+           CSRF_TOKEN ||
            '';
 }
 
@@ -2647,10 +2638,25 @@ async function saveFacultyTimetable() {
     const division = document.getElementById('tt-division').value;
     if (!standard) { showToast('Please select a standard first.', true); return; }
     if (ftEntries.length === 0) { showToast('No entries to save.', true); return; }
-
-    const token = getLiveCsrfToken();
-    if (!token) { showToast('Security error. Please refresh the page.', true); return; }
-
+ 
+    // Always get the freshest token — fetch from server to be safe
+    let token = getCsrfToken();
+    if (!token) {
+        // Last resort: fetch fresh token from server before giving up
+        try {
+            const r = await fetch('/api/csrf-token', { credentials: 'same-origin' });
+            const d = await r.json();
+            if (d.csrf_token) {
+                window.CSRF_TOKEN = d.csrf_token;
+                token = d.csrf_token;
+            }
+        } catch(e) {}
+    }
+    if (!token) {
+        showToast('Security error. Please refresh the page.', true);
+        return;
+    }
+ 
     try {
         const res = await fetch('/api/faculty/timetable/save', {
             method: 'POST',
@@ -2659,11 +2665,11 @@ async function saveFacultyTimetable() {
                 'X-CSRF-Token': token,
                 'X-Requested-With': 'XMLHttpRequest'
             },
-            body: JSON.stringify({ 
-                standard, 
-                division, 
-                entries: ftEntries, 
-                _csrf: token 
+            body: JSON.stringify({
+                standard,
+                division,
+                entries: ftEntries,
+                _csrf: token
             })
         });
         const data = await res.json();
@@ -2673,7 +2679,13 @@ async function saveFacultyTimetable() {
             info.style.display = 'block';
             info.textContent = `✓ Saved ${ftEntries.length} periods for Standard ${standard}. Students will see this automatically.`;
         } else {
-            showToast('Error: ' + (data.error || 'Could not save.'), true);
+            // If CSRF failed, auto-refresh token and show helpful message
+            if (data.error && data.error.includes('CSRF')) {
+                await refreshCsrfToken();
+                showToast('Session refreshed. Please click Save again.', true);
+            } else {
+                showToast('Error: ' + (data.error || 'Could not save.'), true);
+            }
         }
     } catch(e) {
         showToast('Network error. Could not save.', true);
@@ -2684,9 +2696,9 @@ async function saveFacultyTimetable() {
 async function refreshCsrfToken() {
     try {
         const res = await fetch('/api/csrf-token', { credentials: 'same-origin' });
+        if (!res.ok) return;
         const data = await res.json();
         if (data.csrf_token) {
-            // Update ALL sources so they stay in sync
             window.CSRF_TOKEN = data.csrf_token;
             const meta = document.querySelector('meta[name="csrf-token"]');
             if (meta) meta.setAttribute('content', data.csrf_token);
@@ -2694,23 +2706,11 @@ async function refreshCsrfToken() {
                 el.value = data.csrf_token;
             });
         }
-    } catch(e) { console.warn('CSRF refresh failed:', e); }
+    } catch(e) { /* silent — old token still valid */ }
 }
-
-// Sync every 10 minutes (well within Flask's 8-hour session)
-setInterval(refreshCsrfToken, 10 * 60 * 1000);
-
-// On load: trust the server-rendered meta tag (it's always correct)
-// Only start polling after 30s to let session fully settle
-document.addEventListener('DOMContentLoaded', function() {
-    // Set window.CSRF_TOKEN from the server-rendered value (most reliable on load)
-    window.CSRF_TOKEN = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '';
-});
-// Start periodic refresh after 2 minutes, then every 10 minutes
-setTimeout(function() {
-    refreshCsrfToken();
-    setInterval(refreshCsrfToken, 10 * 60 * 1000);
-}, 2 * 60 * 1000);
+ 
+// Refresh every 5 minutes (safe margin within 8-hour session)
+setInterval(refreshCsrfToken, 5 * 60 * 1000);
 
 // ── THEME TOGGLE ──
 function showProfileFromHeader() {
