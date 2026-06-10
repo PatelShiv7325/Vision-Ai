@@ -206,10 +206,20 @@ def generate_csrf_token() -> str:
 def generate_session_id() -> str:
     return secrets.token_hex(32)
 
+    
+## EXACT REPLACEMENT FOR THE DUPLICATE enforce_csrf IN app.py
+## ============================================================
+## Find BOTH @app.before_request blocks (lines roughly ~130–175 in your app.py)
+## DELETE BOTH OF THEM entirely, then paste this single one in their place:
 
 @app.before_request
 def enforce_csrf():
     generate_csrf_token()
+
+    # Keep session alive on every request — prevents logout on refresh/navigation
+    if "student_roll" in session or "faculty_id" in session:
+        session.permanent = True
+        session.modified = True
 
     if request.method in ("GET", "HEAD", "OPTIONS"):
         return
@@ -242,11 +252,6 @@ def enforce_csrf():
 
     stored_token = session.get("_csrf", "").strip()
 
-    if not received_token or not stored_token:
-        print(f"[CSRF] MISSING — received='{received_token}' stored='{stored_token}' endpoint={request.endpoint}")
-    elif not hmac.compare_digest(received_token, stored_token):
-        print(f"[CSRF] MISMATCH — received='{received_token[:8]}...' stored='{stored_token[:8]}...' endpoint={request.endpoint}")
-
     if not received_token or not stored_token or not hmac.compare_digest(received_token, stored_token):
         if request.is_json or request.headers.get("X-Requested-With") == "XMLHttpRequest":
             return jsonify({"success": False, "error": "CSRF validation failed. Please refresh the page."}), 403
@@ -263,52 +268,59 @@ def inject_csrf():
 def login_required_student(f):
     @wraps(f)
     def wrapper(*args, **kwargs):
-        # 1. Basic session check
         if "student_roll" not in session:
             flash("Please login to continue.", "warning")
             return redirect(url_for("student_login"))
 
-        # 2. Session type consistency
         if session.get("session_user_type") not in ("student", None):
             session.clear()
             flash("Session mismatch. Please login again.", "warning")
             return redirect(url_for("student_login"))
 
-        roll             = session["student_roll"]
+        roll = session["student_roll"]
         session_instance = session.get("session_instance", "")
 
         db = get_db()
         try:
-            # 3. Student account still exists and active
             student = db.execute(
                 "SELECT id FROM students WHERE roll=? AND is_active=1",
                 (roll,)
             ).fetchone()
             if not student:
                 session.clear()
-                flash("Your account no longer exists. Please register again.", "warning")
+                flash("Your account no longer exists.", "warning")
                 return redirect(url_for("student_login"))
 
-            # 4. Validate session instance — safe: only redirect on confirmed False
+            # Only invalidate on CONFIRMED mismatch - never on DB error or missing record
             if session_instance:
                 try:
                     is_valid = validate_session_instance(
                         db, session_instance, "student", roll
                     )
+                    # ONLY redirect if explicitly False (confirmed stolen/replaced)
+                    # None, True, or any error = keep session alive
                     if is_valid is False:
-                        # Explicit False = session was replaced by a newer login
                         session.clear()
-                        flash("Your session has expired or was replaced. Please login again.", "warning")
+                        flash("Your session expired. Please login again.", "warning")
                         return redirect(url_for("student_login"))
-                    # Update last_seen to keep long sessions alive
-                    update_session_last_seen(db, session_instance)
-                    db.commit()
+                    # Update last seen to keep session fresh
+                    try:
+                        update_session_last_seen(db, session_instance)
+                        db.commit()
+                    except Exception:
+                        pass  # Non-fatal
                 except Exception as e:
-                    # DB error — don't kill valid session, just log
-                    print(f"[SessionValidate] Student check error (non-fatal): {e}")
+                    print(f"[SessionValidate] Student non-fatal: {e}")
+                    # DB error = don't kill valid session, just continue
 
+        except Exception as e:
+            print(f"[LoginRequired] Student DB error: {e}")
+            # If we can't check, trust the cookie-based session
         finally:
-            db.close()
+            try:
+                db.close()
+            except Exception:
+                pass
 
         return f(*args, **kwargs)
     return wrapper
@@ -317,23 +329,20 @@ def login_required_student(f):
 def login_required_faculty(f):
     @wraps(f)
     def wrapper(*args, **kwargs):
-        # 1. Basic session check
         if "faculty_id" not in session:
             flash("Please login to continue.", "warning")
             return redirect(url_for("faculty_login"))
 
-        # 2. Session type consistency
         if session.get("session_user_type") == "student":
             session.clear()
             flash("Session mismatch. Please login again.", "warning")
             return redirect(url_for("faculty_login"))
 
-        faculty_id       = session["faculty_id"]
+        faculty_id = session["faculty_id"]
         session_instance = session.get("session_instance", "")
 
         db = get_db()
         try:
-            # 3. Faculty account still exists and active
             faculty = db.execute(
                 "SELECT id FROM faculty WHERE faculty_id=? AND is_active=1",
                 (faculty_id,)
@@ -343,7 +352,6 @@ def login_required_faculty(f):
                 flash("Your account no longer exists.", "warning")
                 return redirect(url_for("faculty_login"))
 
-            # 4. Validate session instance — safe: only redirect on confirmed False
             if session_instance:
                 try:
                     is_valid = validate_session_instance(
@@ -351,15 +359,23 @@ def login_required_faculty(f):
                     )
                     if is_valid is False:
                         session.clear()
-                        flash("Your session has expired or was replaced. Please login again.", "warning")
+                        flash("Your session expired. Please login again.", "warning")
                         return redirect(url_for("faculty_login"))
-                    update_session_last_seen(db, session_instance)
-                    db.commit()
+                    try:
+                        update_session_last_seen(db, session_instance)
+                        db.commit()
+                    except Exception:
+                        pass
                 except Exception as e:
-                    print(f"[SessionValidate] Faculty check error (non-fatal): {e}")
+                    print(f"[SessionValidate] Faculty non-fatal: {e}")
 
+        except Exception as e:
+            print(f"[LoginRequired] Faculty DB error: {e}")
         finally:
-            db.close()
+            try:
+                db.close()
+            except Exception:
+                pass
 
         return f(*args, **kwargs)
     return wrapper

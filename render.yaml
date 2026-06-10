@@ -5,11 +5,5 @@ services:
     buildCommand: pip install -r requirements.txt
     startCommand: gunicorn app:app --workers 2 --timeout 120
     envVars:
-      - key: DATA_DIR
-        value: /data
       - key: PRODUCTION
         value: "1"
-    disk:
-      name: vision-ai-data
-      mountPath: /data
-      sizeGB: 1

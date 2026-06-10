@@ -25,6 +25,7 @@ from datetime import datetime, timedelta
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 _DATA_DIR = os.environ.get("DATA_DIR", "")
 if _DATA_DIR:
+    os.makedirs(_DATA_DIR, exist_ok=True)
     DB_PATH = os.path.normpath(os.path.join(_DATA_DIR, "db.sqlite3"))
 else:
     DB_PATH = os.path.normpath(os.path.join(BASE_DIR, "db.sqlite3"))
@@ -1100,29 +1101,44 @@ def create_session_record(db, session_id, user_type, user_id, ip_address):
         print(f"[Session] Error creating session: {e}")
 
 
-def validate_session_instance(db, session_id, user_type, user_id):
-    """Validate that a session instance is still valid."""
+def validate_session_instance(db, session_instance_id, user_type, user_id):
+    """
+    Returns:
+      True  - session is valid and current
+      False - session was explicitly replaced by a newer login (should logout)
+      None  - record not found or DB error (trust the cookie, don't logout)
+    """
     try:
         row = db.execute(
-            """SELECT session_id FROM active_sessions 
-               WHERE session_id=? AND user_type=? AND user_id=? 
-               AND created_at > datetime('now', '-8 hours')""",
-            (session_id, user_type, user_id)
+            """SELECT id, is_active, user_id FROM active_sessions 
+               WHERE session_id = ? AND user_type = ?""",
+            (session_instance_id, user_type)
         ).fetchone()
         
-        if row:
-            # Update last_seen timestamp
-            db.execute(
-                """UPDATE active_sessions SET last_seen=CURRENT_TIMESTAMP 
-                   WHERE session_id=?""",
-                (session_id,)
-            )
-            db.commit()
-            return True
-        return False
+        if row is None:
+            # Record missing (server restart, cleanup, etc.) - DON'T logout
+            # Just re-create the session record so future checks work
+            try:
+                db.execute(
+                    """INSERT OR IGNORE INTO active_sessions 
+                       (session_id, user_type, user_id, created_at, last_seen, is_active)
+                       VALUES (?, ?, ?, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP, 1)""",
+                    (session_instance_id, user_type, user_id)
+                )
+                db.commit()
+            except Exception:
+                pass
+            return None  # Not False - don't logout
+        
+        if not row["is_active"]:
+            # Explicitly deactivated = someone logged in from elsewhere
+            return False
+        
+        return True
+        
     except Exception as e:
-        print(f"[Session] Validation error: {e}")
-        return False
+        print(f"[validate_session_instance] DB error (non-fatal): {e}")
+        return None  # Not False - don't logout on errors
 
 
 def invalidate_session(db, session_id):
