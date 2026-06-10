@@ -1222,7 +1222,6 @@ def student_dashboard():
                 return redirect(url_for("student_login"))
         else:
             student_dict = dict(student)
-    student_dict = dict(student)
 
         try:
             attendance = db.execute(
