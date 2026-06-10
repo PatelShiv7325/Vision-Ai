@@ -1048,7 +1048,7 @@ body.light-mode .nav-item.active .nav-icon {
             
             <button class="profile-btn" title="View Profile" onclick="showProfileFromHeader()">
                 {% if student['face_image'] %}
-                    <img src="{{ url_for('static', filename=student['face_image']) }}" alt="Profile">
+                    <img src="{% if student['face_image'].startswith('http') %}{{ student['face_image'] }}{% else %}{{ url_for('static', filename=student['face_image']) }}{% endif %}" alt="Profile">
                 {% else %}
                     <i class="fas fa-user"></i>
                 {% endif %}
@@ -1066,7 +1066,7 @@ body.light-mode .nav-item.active .nav-icon {
                 <div class="profile-left">
                     <div class="avatar-circle">
                         {% if student['face_image'] %}
-                            <img src="{{ url_for('static', filename=student['face_image']) }}" alt="Face">
+                            <img src="{% if student['face_image'].startswith('http') %}{{ student['face_image'] }}{% else %}{{ url_for('static', filename=student['face_image']) }}{% endif %}" alt="Face">
                         {% else %}
                             {{ student['name'][:2].upper() if student['name'] else 'ST' }}
                         {% endif %}
@@ -1254,7 +1254,7 @@ body.light-mode .nav-item.active .nav-icon {
             <div class="profile-page-card">
                 <div class="profile-page-avatar">
                     {% if student['face_image'] %}
-                        <img src="{{ url_for('static', filename=student['face_image']) }}" alt="Face">
+                        <img src="{% if student['face_image'].startswith('http') %}{{ student['face_image'] }}{% else %}{{ url_for('static', filename=student['face_image']) }}{% endif %}" alt="Face">
                     {% else %}
                         {{ student['name'][:2].upper() if student['name'] else 'ST' }}
                     {% endif %}
