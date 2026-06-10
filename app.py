@@ -278,50 +278,26 @@ def login_required_student(f):
             return redirect(url_for("student_login"))
 
         roll = session["student_roll"]
-        session_instance = session.get("session_instance", "")
-
         db = get_db()
         try:
             student = db.execute(
-                "SELECT id FROM students WHERE roll=? AND is_active=1",
-                (roll,)
+                "SELECT id FROM students WHERE roll=? AND is_active=1", (roll,)
             ).fetchone()
             if not student:
                 session.clear()
                 flash("Your account no longer exists.", "warning")
                 return redirect(url_for("student_login"))
-
-            # Only invalidate on CONFIRMED mismatch - never on DB error or missing record
-            if session_instance:
-                try:
-                    is_valid = validate_session_instance(
-                        db, session_instance, "student", roll
-                    )
-                    # ONLY redirect if explicitly False (confirmed stolen/replaced)
-                    # None, True, or any error = keep session alive
-                    if is_valid is False:
-                        session.clear()
-                        flash("Your session expired. Please login again.", "warning")
-                        return redirect(url_for("student_login"))
-                    # Update last seen to keep session fresh
-                    try:
-                        update_session_last_seen(db, session_instance)
-                        db.commit()
-                    except Exception:
-                        pass  # Non-fatal
-                except Exception as e:
-                    print(f"[SessionValidate] Student non-fatal: {e}")
-                    # DB error = don't kill valid session, just continue
-
+            # Keep session alive
+            session.permanent = True
+            session.modified = True
         except Exception as e:
-            print(f"[LoginRequired] Student DB error: {e}")
-            # If we can't check, trust the cookie-based session
+            print(f"[LoginRequired] Student DB error (non-fatal): {e}")
+            # DB error — trust cookie, never kill valid session
         finally:
             try:
                 db.close()
             except Exception:
                 pass
-
         return f(*args, **kwargs)
     return wrapper
 
@@ -339,8 +315,6 @@ def login_required_faculty(f):
             return redirect(url_for("faculty_login"))
 
         faculty_id = session["faculty_id"]
-        session_instance = session.get("session_instance", "")
-
         db = get_db()
         try:
             faculty = db.execute(
@@ -349,34 +323,18 @@ def login_required_faculty(f):
             ).fetchone()
             if not faculty:
                 session.clear()
-                flash("Your account no longer exists.", "warning")
+                flash("Account not found.", "warning")
                 return redirect(url_for("faculty_login"))
-
-            if session_instance:
-                try:
-                    is_valid = validate_session_instance(
-                        db, session_instance, "faculty", faculty_id
-                    )
-                    if is_valid is False:
-                        session.clear()
-                        flash("Your session expired. Please login again.", "warning")
-                        return redirect(url_for("faculty_login"))
-                    try:
-                        update_session_last_seen(db, session_instance)
-                        db.commit()
-                    except Exception:
-                        pass
-                except Exception as e:
-                    print(f"[SessionValidate] Faculty non-fatal: {e}")
-
+            # Keep session alive
+            session.permanent = True
+            session.modified = True
         except Exception as e:
-            print(f"[LoginRequired] Faculty DB error: {e}")
+            print(f"[LoginRequired] Faculty DB error (non-fatal): {e}")
         finally:
             try:
                 db.close()
             except Exception:
                 pass
-
         return f(*args, **kwargs)
     return wrapper
 
