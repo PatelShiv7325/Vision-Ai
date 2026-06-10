@@ -2919,10 +2919,12 @@ def faculty_get_timetable():
     try:
         rows = db.execute(
             """SELECT id, day_of_week, period_number, subject, start_time, end_time
-               FROM timetable WHERE standard=? AND (division=? OR division='')
+               FROM timetable WHERE standard=?
+               AND (division=? OR division='' OR division IS NULL)
                ORDER BY day_of_week, period_number""",
             (standard, division or "")
         ).fetchall()
+        
         return jsonify({"success": True, "timetable": [dict(r) for r in rows]})
     except Exception as e:
         return jsonify({"success": False, "error": str(e)})

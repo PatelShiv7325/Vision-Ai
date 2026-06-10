@@ -282,6 +282,7 @@ _MIGRATIONS = [
     ("notifications", "title",           "TEXT NOT NULL DEFAULT ''"),
     ("notifications", "type",            "TEXT DEFAULT 'info'"),
     ("active_sessions", "is_active",     "INTEGER DEFAULT 1"),
+    ("timetable", "faculty_id", "TEXT"),
 ]
 
 
