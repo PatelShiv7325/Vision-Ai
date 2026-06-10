@@ -299,6 +299,12 @@ def init_db():
                 "DELETE FROM active_sessions "
                 "WHERE created_at < datetime('now', '-8 hours')"
             )
+            try:
+                db.execute("ALTER TABLE active_sessions ADD COLUMN is_active INTEGER DEFAULT 1")
+                db.execute("UPDATE active_sessions SET is_active=1 WHERE is_active IS NULL")
+                print("[DB] Added is_active column to active_sessions")
+            except Exception:
+                pass
         except Exception as e:
             print(f"[DB] Session cleanup on init skipped: {e}")
 
@@ -1151,19 +1157,6 @@ def validate_session_instance(db, session_instance_id, user_type, user_id):
         return None  # Not False - don't logout on errors
 
 
-def invalidate_session(db, session_id):
-    """Invalidate a session (on logout or when replaced by new login)."""
-    try:
-        db.execute(
-            """DELETE FROM active_sessions WHERE session_id=?""",
-            (session_id,)
-        )
-        db.commit()
-        print(f"[Session] Invalidated {session_id[:8]}...")
-    except Exception as e:
-        print(f"[Session] Error invalidating session: {e}")
-
-
 def get_user_active_sessions(db, user_type, user_id):
     """Get all active sessions for a user (to detect multiple logins)."""
     try:
@@ -1257,3 +1250,7 @@ def _safe_load_face_encoding(blob: bytes, roll: str):
     except Exception as e:
         print(f"[FaceEncoding] Failed to load encoding for roll={roll}: {e}")
         return None
+
+def invalidate_session(db, session_id: str) -> bool:
+    """Alias for delete_active_session — called on logout."""
+    return delete_active_session(db, session_id)
