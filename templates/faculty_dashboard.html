@@ -669,6 +669,30 @@
     <span id="toast-msg"></span>
 </div>
 
+<!-- ── DELETE STUDENT MODAL ── -->
+<div class="modal-overlay" id="delete-student-modal">
+    <div class="modal-box">
+        <div class="modal-icon" style="color:var(--accent-red);">
+            <i class="fas fa-user-minus"></i>
+        </div>
+        <div class="modal-title">Remove Student?</div>
+        <div class="modal-desc">
+            Removing <strong id="delete-student-name"></strong> will permanently delete
+            their account, all attendance records, and face data.
+            They can re-register anytime.
+        </div>
+        <div class="modal-actions">
+            <button class="btn" onclick="closeDeleteStudentModal()">Cancel</button>
+            <form id="delete-student-form" method="POST" style="display:inline;">
+                <input type="hidden" name="_csrf" id="delete-student-csrf">
+                <button type="submit" class="btn btn-red">
+                    <i class="fas fa-trash"></i> Yes, Remove
+                </button>
+            </form>
+        </div>
+    </div>
+</div>
+
 <!-- ── LOGOUT MODAL ── -->
 <div class="modal-overlay" id="logout-modal">
     <div class="modal-box">
@@ -1166,12 +1190,18 @@
                                        {% endif %}
                                 </td>
                                 <td style="color:var(--text-secondary);font-size:13px;">{{ s['email'] }}</td>
-                                <td>
+                               <td>
                                     {% if s['face_image'] %}
                                     <span class="face-yes"><i class="fas fa-check-circle"></i> Enrolled</span>
                                     {% else %}
                                     <span class="face-no"><i class="fas fa-times-circle"></i> Pending</span>
                                     {% endif %}
+                                </td>
+                                <td>
+                                    <button onclick="confirmDeleteStudent('{{ s['roll'] }}', '{{ s['name'] | replace(\"'\", \"\\'\") }}')"
+                                            class="btn btn-red" style="padding:5px 11px;font-size:12px;">
+                                        <i class="fas fa-user-minus"></i>
+                                    </button>
                                 </td>
                             </tr>
                             {% else %}
@@ -1391,14 +1421,6 @@
                                 <td><input type="checkbox" class="student-check" value="{{ s['roll'] }}"></td>
                                 <td>{{ s['name'] }}</td>
                                 <td><span class="roll-badge">{{ s['roll'] }}</span></td>
-
-                                <td>
-                                    <button onclick="confirmDeleteStudent('{{ s['roll'] }}', '{{ s['name'] }}')"
-                                            class="btn btn-red" style="padding:6px 12px;font-size:12px;">
-                                        <i class="fas fa-trash"></i>
-                                    </button>
-                                </td>
-
                             </tr>
                             {% endfor %}
                         </tbody>
@@ -1597,27 +1619,6 @@
 
             </div>
         </div>
-<!-- ── DELETE STUDENT MODAL ── -->
-<div class="modal-overlay" id="delete-student-modal">
-    <div class="modal-box">
-        <div class="modal-icon"><i class="fas fa-user-minus"></i></div>
-        <div class="modal-title">Remove Student?</div>
-        <div class="modal-desc">
-            Removing <strong id="delete-student-name"></strong> will permanently delete their account,
-            attendance records, and face data from the system.
-            They will need to re-register to rejoin.
-        </div>
-        <div class="modal-actions">
-            <button class="btn" onclick="closeDeleteStudentModal()">Cancel</button>
-            <form id="delete-student-form" method="POST" style="display:inline;">
-                <input type="hidden" name="_csrf" id="delete-student-csrf">
-                <button type="submit" class="btn btn-red">
-                    <i class="fas fa-trash"></i> Yes, Remove
-                </button>
-            </form>
-        </div>
-    </div>
-</div>
 
 
 <script>
@@ -1759,6 +1760,19 @@ function closeStudentDetail() { document.getElementById('student-detail-modal').
 function openLogoutModal()  { document.getElementById('logout-modal').classList.add('show'); }
 function closeLogoutModal() { document.getElementById('logout-modal').classList.remove('show'); }
 document.getElementById('logout-modal').addEventListener('click', e => { if (e.target === document.getElementById('logout-modal')) closeLogoutModal(); });
+
+function confirmDeleteStudent(roll, name) {
+    document.getElementById('delete-student-name').textContent = name;
+    document.getElementById('delete-student-form').action = '/admin/delete-student/' + roll;
+    document.getElementById('delete-student-csrf').value = getCsrfToken();
+    document.getElementById('delete-student-modal').classList.add('show');
+}
+function closeDeleteStudentModal() {
+    document.getElementById('delete-student-modal').classList.remove('show');
+}
+document.getElementById('delete-student-modal').addEventListener('click', function(e) {
+    if (e.target === this) closeDeleteStudentModal();
+});
 
 // ── BULK ATTENDANCE ───────────────────────────────────────────────────
 function toggleAll(cb) { document.querySelectorAll('.student-check').forEach(c => c.checked = cb.checked); }

@@ -2468,7 +2468,7 @@ def delete_student(student_roll):
         flash(message, "success" if success else "error")
     except Exception as e:
         flash(f"Error: {e}", "error")
-    return redirect(url_for("faculty_dashboard"))
+    return redirect(url_for("faculty_dashboard") + "#students")
 
 
 @app.route("/admin/clear-all-students", methods=["POST"])
