@@ -1630,7 +1630,13 @@ function showPage(name, btn) {
     if (btn) btn.classList.add('active');
     document.getElementById('page-heading').textContent = pageTitles[name];
     window.location.hash = name;
+ 
+    // Auto-dismiss Students badge when visiting Students page
+    if (name === 'students') {
+        dismissStudentBadge();
+    }
 }
+
 
 window.addEventListener('DOMContentLoaded', function() {
     const hash = window.location.hash.replace('#', '');
@@ -1655,11 +1661,15 @@ function dismissStudentBadge() {
     }
 }
 
+
 // Check on page load if badge was dismissed
 document.addEventListener('DOMContentLoaded', function() {
-    if (localStorage.getItem('studentBadgeDismissed') === 'true') {
-        const badge = document.getElementById('students-badge');
-        if (badge && badge.textContent.match(/^\d+$/)) {
+    const badge = document.getElementById('students-badge');
+    if (badge) {
+        // If previously dismissed OR badge is 0, hide it
+        const dismissed = localStorage.getItem('studentBadgeDismissed') === 'true';
+        const count = parseInt(badge.textContent.trim()) || 0;
+        if (dismissed || count === 0) {
             badge.style.display = 'none';
         }
     }
