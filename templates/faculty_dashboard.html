@@ -1132,7 +1132,7 @@
                 </div>
                 <div class="table-wrap">
                     <table id="students-table">
-                        <thead><tr><th>#</th><th>Name</th><th>Roll No.</th><th>Email</th><th>Face</th></tr></thead>
+                        <thead><tr><th>#</th><th>Name</th><th>Roll No.</th><th>Email</th><th>Face</th><th>Action</th></tr></thead>
                         <tbody>
                             {% for s in students %}
                             <tr>
@@ -1391,6 +1391,14 @@
                                 <td><input type="checkbox" class="student-check" value="{{ s['roll'] }}"></td>
                                 <td>{{ s['name'] }}</td>
                                 <td><span class="roll-badge">{{ s['roll'] }}</span></td>
+
+                                <td>
+                                    <button onclick="confirmDeleteStudent('{{ s['roll'] }}', '{{ s['name'] }}')"
+                                            class="btn btn-red" style="padding:6px 12px;font-size:12px;">
+                                        <i class="fas fa-trash"></i>
+                                    </button>
+                                </td>
+
                             </tr>
                             {% endfor %}
                         </tbody>
@@ -1589,8 +1597,45 @@
 
             </div>
         </div>
+<!-- ── DELETE STUDENT MODAL ── -->
+<div class="modal-overlay" id="delete-student-modal">
+    <div class="modal-box">
+        <div class="modal-icon"><i class="fas fa-user-minus"></i></div>
+        <div class="modal-title">Remove Student?</div>
+        <div class="modal-desc">
+            Removing <strong id="delete-student-name"></strong> will permanently delete their account,
+            attendance records, and face data from the system.
+            They will need to re-register to rejoin.
+        </div>
+        <div class="modal-actions">
+            <button class="btn" onclick="closeDeleteStudentModal()">Cancel</button>
+            <form id="delete-student-form" method="POST" style="display:inline;">
+                <input type="hidden" name="_csrf" id="delete-student-csrf">
+                <button type="submit" class="btn btn-red">
+                    <i class="fas fa-trash"></i> Yes, Remove
+                </button>
+            </form>
+        </div>
+    </div>
+</div>
+
 
 <script>
+
+function confirmDeleteStudent(roll, name) {
+    document.getElementById('delete-student-name').textContent = name;
+    document.getElementById('delete-student-form').action = '/admin/delete-student/' + roll;
+    document.getElementById('delete-student-csrf').value = getCsrfToken();
+    document.getElementById('delete-student-modal').classList.add('show');
+}
+
+function closeDeleteStudentModal() {
+    document.getElementById('delete-student-modal').classList.remove('show');
+}
+
+document.getElementById('delete-student-modal').addEventListener('click', function(e) {
+    if (e.target === this) closeDeleteStudentModal();
+});
     
 // ✅ CSRF TOKEN HELPER - window.CSRF_TOKEN is always freshest
 function getCsrfToken() {
