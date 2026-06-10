@@ -1961,6 +1961,15 @@ const pageTitles = {
     'face-enroll':  'Face Enrollment'
 };
 
+// ── ATTENDANCE BADGE — hide on load like faculty dashboard ────────
+document.addEventListener('DOMContentLoaded', function() {
+    const badge = document.getElementById('attendance-badge');
+    if (badge) {
+        // Always hide on load — only show if there are NEW unread notifications
+        badge.style.display = 'none';
+    }
+});
+
 // ── PAGE NAVIGATION ──
 function showPage(name, btn) {
     const faceEnrollPage = document.getElementById('page-face-enroll');
