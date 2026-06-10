@@ -277,27 +277,39 @@ def login_required_student(f):
             flash("Session mismatch. Please login again.", "warning")
             return redirect(url_for("student_login"))
 
+        # Keep session alive on every request
+        session.permanent = True
+        session.modified = True
+
         roll = session["student_roll"]
-        db = get_db()
+        db = None
         try:
+            db = get_db()
             student = db.execute(
                 "SELECT id FROM students WHERE roll=? AND is_active=1", (roll,)
             ).fetchone()
-            if not student:
+            if student is None:
+                # Only redirect if we CONFIRMED the student doesn't exist
+                # Check if the table even has any rows first (guards against empty DB)
+                count = db.execute("SELECT COUNT(*) FROM students").fetchone()[0]
+                if count == 0:
+                    # DB was wiped (Render restart) — trust the cookie
+                    print(f"[LoginRequired] DB empty, trusting cookie for {roll}")
+                    return f(*args, **kwargs)
+                # Table has rows but this roll isn't there — genuinely deleted
                 session.clear()
                 flash("Your account no longer exists.", "warning")
                 return redirect(url_for("student_login"))
-            # Keep session alive
-            session.permanent = True
-            session.modified = True
         except Exception as e:
             print(f"[LoginRequired] Student DB error (non-fatal): {e}")
-            # DB error — trust cookie, never kill valid session
+            # Any DB error — trust cookie, never kill valid session
         finally:
-            try:
-                db.close()
-            except Exception:
-                pass
+            if db:
+                try:
+                    db.close()
+                except Exception:
+                    pass
+
         return f(*args, **kwargs)
     return wrapper
 
@@ -314,27 +326,36 @@ def login_required_faculty(f):
             flash("Session mismatch. Please login again.", "warning")
             return redirect(url_for("faculty_login"))
 
+        # Keep session alive on every request
+        session.permanent = True
+        session.modified = True
+
         faculty_id = session["faculty_id"]
-        db = get_db()
+        db = None
         try:
+            db = get_db()
             faculty = db.execute(
                 "SELECT id FROM faculty WHERE faculty_id=? AND is_active=1",
                 (faculty_id,)
             ).fetchone()
-            if not faculty:
+            if faculty is None:
+                count = db.execute("SELECT COUNT(*) FROM faculty").fetchone()[0]
+                if count == 0:
+                    # DB was wiped (Render restart) — trust the cookie
+                    print(f"[LoginRequired] DB empty, trusting cookie for {faculty_id}")
+                    return f(*args, **kwargs)
                 session.clear()
                 flash("Account not found.", "warning")
                 return redirect(url_for("faculty_login"))
-            # Keep session alive
-            session.permanent = True
-            session.modified = True
         except Exception as e:
             print(f"[LoginRequired] Faculty DB error (non-fatal): {e}")
         finally:
-            try:
-                db.close()
-            except Exception:
-                pass
+            if db:
+                try:
+                    db.close()
+                except Exception:
+                    pass
+
         return f(*args, **kwargs)
     return wrapper
 
@@ -1185,9 +1206,23 @@ def student_dashboard():
         ).fetchone()
 
         if not student:
-            session.clear()
-            flash("Your account no longer exists. Please register again.", "warning")
-            return redirect(url_for("student_login"))
+            count = db.execute("SELECT COUNT(*) FROM students").fetchone()[0]
+            if count == 0:
+                # DB was wiped (Render restart) — build a minimal student dict from session
+                student_dict = {
+                    "name": session.get("student_name", "Student"),
+                    "roll": session.get("student_roll", ""),
+                    "email": session.get("student_email", ""),
+                    "phone": "", "standard": "", "division": "",
+                    "subject": "", "gender": "", "face_image": None,
+                }
+            else:
+                session.clear()
+                flash("Your account no longer exists. Please register again.", "warning")
+                return redirect(url_for("student_login"))
+        else:
+            student_dict = dict(student)
+    student_dict = dict(student)
 
         try:
             attendance = db.execute(
@@ -1785,10 +1820,19 @@ def faculty_dashboard():
             (session["faculty_id"],)
         ).fetchone()
         if not faculty:
-            session.clear()
-            flash("Account not found.", "warning")
-            return redirect(url_for("faculty_login"))
-        faculty = dict(faculty)
+            count = db.execute("SELECT COUNT(*) FROM faculty").fetchone()[0]
+            if count == 0:
+                faculty = {
+                    "name": session.get("faculty_name", "Faculty"),
+                    "faculty_id": session.get("faculty_id", ""),
+                    "subject": "", "email": "", "designation": "", "phone": "",
+                }
+            else:
+                session.clear()
+                flash("Account not found.", "warning")
+                return redirect(url_for("faculty_login"))
+        else:
+            faculty = dict(faculty)
 
         faculty_subjects = db.execute(
             "SELECT DISTINCT subject FROM attendance WHERE marked_by=?",
