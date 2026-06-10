@@ -16,6 +16,9 @@ ALL FEATURES:
   ✅ Complete data deletion (GDPR compliant)
 """
 
+from dotenv import load_dotenv
+load_dotenv()
+
 from flask import (
     Flask, render_template, request, redirect,
     session, jsonify, flash, url_for, abort, Response
