@@ -2455,6 +2455,10 @@ def view_attendance():
 @app.route("/admin/delete-student/<student_roll>", methods=["POST"])
 @login_required_faculty
 def delete_student(student_roll):
+    is_ajax = (
+        request.is_json
+        or request.headers.get("X-Requested-With") == "XMLHttpRequest"
+    )
     try:
         success, message = delete_student_completely(
             student_roll, deleted_by=session.get("faculty_id", "faculty")
@@ -2467,8 +2471,14 @@ def delete_student(student_roll):
                 db.commit()
         finally:
             db.close()
+
+        if is_ajax:
+            return jsonify({"success": success, "message": message,
+                            "error": message if not success else None})
         flash(message, "success" if success else "error")
     except Exception as e:
+        if is_ajax:
+            return jsonify({"success": False, "error": str(e)})
         flash(f"Error: {e}", "error")
     return redirect(url_for("faculty_dashboard") + "#students")
 
