@@ -957,7 +957,7 @@
     <div class="stat-num">{{ total_students }}</div>
     <div class="stat-sub"><span class="hl-green">Registered</span> <i class="fas fa-arrow-right" style="font-size:10px;margin-left:4px;"></i></div>
 </div>
-                <div class="stat-card" onclick="showPage('reports', document.querySelectorAll('.nav-item')[3])" style="cursor:pointer;" title="Click to view all attendance records">
+                <div class="stat-card" onclick="showPage('reports', document.querySelectorAll('.nav-item')[4])" style="cursor:pointer;" title="Click to view all attendance records">
     <div class="stat-label"><span class="stat-dot dot-green"></span> Total Attendance</div>
     <div class="stat-num">{{ total_attendance }}</div>
     <div class="stat-sub">All time records <i class="fas fa-arrow-right" style="font-size:10px;margin-left:4px;"></i></div>
@@ -1659,7 +1659,7 @@ const pageTitles = {
     timetable: 'Timetable'
 };
 
-window.addEventListener('DOMContentLoaded', function() {
+window.addEventListener('DOMContentLoaded', function()) {
     const hash = window.location.hash.replace('#', '');
     const validPages = Object.keys(pageTitles);
 
@@ -1671,7 +1671,7 @@ window.addEventListener('DOMContentLoaded', function() {
             }
         });
     }
-
+  
 function showPage(pageId, navItem) {
     document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
     document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
@@ -1687,11 +1687,6 @@ function showPage(pageId, navItem) {
     window.location.hash = pageId;
     document.getElementById('sidebar').classList.remove('open');
 }
-
-    // Always render empty state on timetable page load
-    renderFacultyTimetableGrid();
-});
-  
 
 window.addEventListener('DOMContentLoaded', function() {
     const hash = window.location.hash.replace('#', '');
