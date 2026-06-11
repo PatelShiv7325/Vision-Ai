@@ -1672,10 +1672,26 @@ window.addEventListener('DOMContentLoaded', function() {
         });
     }
 
+function showPage(pageId, navItem) {
+    document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+    document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+
+    const target = document.getElementById('page-' + pageId);
+    if (target) target.classList.add('active');
+
+    if (navItem) navItem.classList.add('active');
+
+    const heading = document.getElementById('page-heading');
+    if (heading) heading.textContent = pageTitles[pageId] || pageId;
+
+    window.location.hash = pageId;
+    document.getElementById('sidebar').classList.remove('open');
+}
+
     // Always render empty state on timetable page load
     renderFacultyTimetableGrid();
 });
-
+  
 
 window.addEventListener('DOMContentLoaded', function() {
     const hash = window.location.hash.replace('#', '');
