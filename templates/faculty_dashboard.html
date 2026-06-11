@@ -1659,18 +1659,6 @@ const pageTitles = {
     timetable: 'Timetable'
 };
 
-window.addEventListener('DOMContentLoaded', function()) {
-    const hash = window.location.hash.replace('#', '');
-    const validPages = Object.keys(pageTitles);
-
-    if (hash && validPages.includes(hash) && document.getElementById('page-' + hash)) {
-        document.querySelectorAll('.nav-item').forEach(function(btn) {
-            const oc = btn.getAttribute('onclick') || '';
-            if (oc.includes("'" + hash + "'")) {
-                showPage(hash, btn);
-            }
-        });
-    }
   
 function showPage(pageId, navItem) {
     document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
@@ -1700,6 +1688,8 @@ window.addEventListener('DOMContentLoaded', function() {
             }
         });
     }
+
+    renderFacultyTimetableGrid();
 });
 
 // ── DISMISS STUDENT BADGE ────────────────────────────────────────────
