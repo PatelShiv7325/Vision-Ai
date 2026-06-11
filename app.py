@@ -1870,6 +1870,12 @@ def faculty_dashboard():
             ).fetchone()[0]
             student_stats[s["roll"]] = count
 
+        deleted_students_log = [dict(r) for r in db.execute(
+            "SELECT name, roll, email, standard, division, subject, "
+            "had_face, deleted_by, deleted_at "
+            "FROM deleted_students ORDER BY deleted_at DESC LIMIT 50"
+        ).fetchall()]
+
         return render_template(
             "faculty_dashboard.html",
             faculty=faculty,
@@ -1881,6 +1887,7 @@ def faculty_dashboard():
             notifications=notifications,
             student_stats=student_stats,
             faculty_subjects=faculty_subject_list,
+            deleted_students_log=deleted_students_log,
         )
 
     except Exception:
@@ -2449,7 +2456,9 @@ def view_attendance():
 @login_required_faculty
 def delete_student(student_roll):
     try:
-        success, message = delete_student_completely(student_roll)
+        success, message = delete_student_completely(
+            student_roll, deleted_by=session.get("faculty_id", "faculty")
+        )
         db = get_db()
         try:
             if success:

@@ -1147,7 +1147,7 @@
             <div class="section-card">
                 <div class="section-header">
                     <div class="section-icon green"><i class="fas fa-users"></i></div>
-                    <div class="section-title-text">All Registered Students</div>
+                    <div class="section-title-text">All Registered Students</div>                    
                     <span class="nav-badge" style="margin-left:auto;border-radius:50px;padding:3px 12px;font-size:12px;">{{ total_students }} students</span>
                 </div>
                 <div class="student-search">
@@ -1156,7 +1156,7 @@
                 </div>
                 <div class="table-wrap">
                     <table id="students-table">
-                        <thead><tr><th>#</th><th>Name</th><th>Roll No.</th><th>Email</th><th>Face</th><th>Remove</th></tr></thead>
+                        <thead><tr><th>#</th><th>Name</th><th>Roll No.</th><th>Email</th><th>Face</th><th>Action/th></tr></thead>
                         <tbody>
                             {% for s in students %}
                             <tr>
@@ -1210,6 +1210,76 @@
                     </table>
                 </div>
             </div>
+        </div>
+
+        </div><!-- end students section-card -->
+
+            <!-- ── Deleted Students Log ── -->
+            <div class="section-card" style="margin-top:18px;">
+                <div class="section-header">
+                    <div class="section-icon red"><i class="fas fa-user-slash"></i></div>
+                    <div class="section-title-text">Deleted Students Log</div>
+                    <span class="nav-badge" style="margin-left:auto;background:var(--accent-red);border-radius:50px;padding:3px 12px;font-size:12px;">
+                        {{ deleted_students_log | length }} removed
+                    </span>
+                </div>
+                {% if deleted_students_log %}
+                <div class="table-wrap">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>#</th><th>Name</th><th>Roll No.</th>
+                                <th>Standard</th><th>Subject</th><th>Face</th>
+                                <th>Deleted By</th><th>Deleted At</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for d in deleted_students_log %}
+                            <tr>
+                                <td>{{ loop.index }}</td>
+                                <td>
+                                    <div style="display:flex;align-items:center;gap:8px;">
+                                        <div style="width:30px;height:30px;border-radius:7px;background:rgba(239,68,68,0.12);display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;color:var(--accent-red);flex-shrink:0;border:1px solid rgba(239,68,68,0.2);">
+                                            {{ d['name'][0].upper() }}
+                                        </div>
+                                        <span style="font-weight:600;color:var(--text-secondary);text-decoration:line-through;font-size:13px;">
+                                            {{ d['name'] }}
+                                        </span>
+                                    </div>
+                                </td>
+                                <td><span class="roll-badge" style="opacity:0.6;">{{ d['roll'] }}</span></td>
+                                <td style="font-size:12px;color:var(--text-secondary);">
+                                    {{ ('Std ' + d['standard'] + ((' / ' + d['division']) if d['division'] else '')) if d['standard'] else '—' }}
+                                </td>
+                                <td style="font-size:12px;color:var(--text-secondary);">{{ d['subject'] or '—' }}</td>
+                                <td>
+                                    {% if d['had_face'] %}
+                                    <span style="color:var(--accent-green);font-size:12px;font-weight:700;"><i class="fas fa-check-circle"></i> Was enrolled</span>
+                                    {% else %}
+                                    <span style="color:var(--text-muted);font-size:12px;"><i class="fas fa-times-circle"></i> None</span>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    <span style="font-size:11.5px;font-weight:600;padding:3px 9px;border-radius:5px;background:rgba(239,68,68,0.1);color:var(--accent-red);border:1px solid rgba(239,68,68,0.2);">
+                                        {{ d['deleted_by'] }}
+                                    </span>
+                                </td>
+                                <td style="font-size:12px;color:var(--text-secondary);">
+                                    {{ d['deleted_at'][:16] if d['deleted_at'] else '—' }}
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                {% else %}
+                <div class="empty-state">
+                    <i class="fas fa-user-check"></i>
+                    <p>No students have been deleted yet.</p>
+                </div>
+                {% endif %}
+            </div>
+
         </div>
 
         <!-- ══ MARK ATTENDANCE ══ -->

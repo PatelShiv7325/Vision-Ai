@@ -238,6 +238,22 @@ CREATE TABLE IF NOT EXISTS active_sessions (
     is_active    INTEGER  DEFAULT 1
 );
 
+CREATE TABLE IF NOT EXISTS deleted_students (
+    id             INTEGER  PRIMARY KEY AUTOINCREMENT,
+    name           TEXT     NOT NULL,
+    roll           TEXT     NOT NULL,
+    email          TEXT,
+    phone          TEXT,
+    standard       TEXT,
+    division       TEXT,
+    subject        TEXT,
+    gender         TEXT,
+    had_face       INTEGER  DEFAULT 0,
+    deleted_by     TEXT,
+    deleted_at     DATETIME DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE INDEX IF NOT EXISTS idx_del_stu ON deleted_students(roll, deleted_at);
 
 """
 _INDEXES = """
@@ -836,46 +852,117 @@ def get_active_sessions_count(db, user_type: str = None) -> int:
 
 # ── Student / faculty delete helpers ─────────────────────────────────
 
-def delete_student_completely(student_roll):
+def delete_student_completely(student_roll, deleted_by="faculty"):
     db = None
     try:
         db = get_db()
 
-        # Get face image path before deleting
+        # Get student info BEFORE deleting (to log it)
         student = db.execute(
-            "SELECT face_image FROM students WHERE roll=?", (student_roll,)
+            "SELECT name, email, phone, standard, division, subject, gender, face_image "
+            "FROM students WHERE roll=?", (student_roll,)
         ).fetchone()
 
-        # Delete from all tables
-        db.execute("DELETE FROM attendance WHERE student_roll=?", (student_roll,))
-        db.execute("DELETE FROM notifications WHERE user_type='student' AND user_id=?", (student_roll,))
-        db.execute("DELETE FROM reset_tokens WHERE email=(SELECT email FROM students WHERE roll=?)", (student_roll,))
-        db.execute("DELETE FROM face_attempts WHERE roll=?", (student_roll,))
-        db.execute("DELETE FROM active_sessions WHERE user_type='student' AND user_id=?", (student_roll,))
-        db.execute("DELETE FROM attendance_goals WHERE student_roll=?", (student_roll,))
-        db.execute("DELETE FROM student_timetable WHERE student_roll=?", (student_roll,))
-        db.execute("DELETE FROM security_events WHERE user_type='student' AND user_id=?", (student_roll,))
-        db.execute("DELETE FROM audit_log WHERE user_type='student' AND user_id=?", (student_roll,))
+        if not student:
+            return False, f"Student {student_roll} not found."
 
-        # Delete the student record itself
+        # ── Log to deleted_students BEFORE any deletion ────────────────
+        try:
+            db.execute(
+                """INSERT INTO deleted_students
+                   (name, roll, email, phone, standard, division,
+                    subject, gender, had_face, deleted_by)
+                   VALUES (?,?,?,?,?,?,?,?,?,?)""",
+                (
+                    student["name"],
+                    student_roll,
+                    student["email"],
+                    student["phone"],
+                    student["standard"],
+                    student["division"],
+                    student["subject"],
+                    student["gender"],
+                    1 if student["face_image"] else 0,
+                    deleted_by,
+                )
+            )
+        except Exception as e:
+            print(f"[DeleteStudent] Could not log to deleted_students: {e}")
+
+        # ── Delete from all child tables ───────────────────────────────
+        for tbl, col in [
+            ("attendance",        "student_roll"),
+            ("face_attempts",     "roll"),
+            ("emotion_tracking",  "student_roll"),
+            ("student_timetable", "student_roll"),
+            ("attendance_goals",  "student_roll"),
+        ]:
+            try:
+                db.execute(f"DELETE FROM {tbl} WHERE {col}=?", (student_roll,))
+            except Exception as e:
+                print(f"[DeleteStudent] {tbl}: {e}")
+
+        for tbl in ("notifications", "security_events", "audit_log"):
+            try:
+                db.execute(
+                    f"DELETE FROM {tbl} WHERE user_type='student' AND user_id=?",
+                    (student_roll,)
+                )
+            except Exception as e:
+                print(f"[DeleteStudent] {tbl}: {e}")
+
+        try:
+            db.execute(
+                "DELETE FROM active_sessions WHERE user_type='student' AND user_id=?",
+                (student_roll,)
+            )
+        except Exception as e:
+            print(f"[DeleteStudent] active_sessions: {e}")
+
+        try:
+            db.execute(
+                "DELETE FROM reset_tokens WHERE email=? AND user_type='student'",
+                (student["email"],)
+            )
+        except Exception as e:
+            print(f"[DeleteStudent] reset_tokens: {e}")
+
+        # ── Delete the student row itself ──────────────────────────────
         db.execute("DELETE FROM students WHERE roll=?", (student_roll,))
         db.commit()
 
-        # Delete face image file from disk
-        if student and student["face_image"]:
-            face_path = os.path.join(
-                os.path.dirname(os.path.abspath(__file__)),
-                "..", "static", student["face_image"]
-            )
-            face_path = os.path.normpath(face_path)
-            if os.path.exists(face_path):
+        # ── Delete face image (local disk) ─────────────────────────────
+        face_image_path = student["face_image"]
+        if face_image_path:
+            # Handle both "faces/ROLL.jpg" and full URLs (Cloudinary)
+            if face_image_path.startswith("http"):
+                # Cloudinary — optionally destroy (needs cloudinary import)
                 try:
-                    os.remove(face_path)
-                    print(f"[Delete] Removed face image: {face_path}")
+                    import cloudinary.uploader
+                    public_id = f"vision_ai/faces/{student_roll}"
+                    cloudinary.uploader.destroy(public_id)
+                    print(f"[DeleteStudent] Cloudinary image deleted: {public_id}")
                 except Exception as e:
-                    print(f"[Delete] Could not remove face file: {e}")
+                    print(f"[DeleteStudent] Cloudinary delete skipped: {e}")
+            else:
+                # Local file
+                possible_bases = [
+                    os.path.dirname(os.path.abspath(__file__)),
+                    os.path.join(os.path.dirname(os.path.abspath(__file__)), ".."),
+                ]
+                for base in possible_bases:
+                    full_path = os.path.normpath(
+                        os.path.join(base, "static", face_image_path)
+                    )
+                    if os.path.exists(full_path):
+                        try:
+                            os.remove(full_path)
+                            print(f"[DeleteStudent] Removed face: {full_path}")
+                        except OSError as e:
+                            print(f"[DeleteStudent] Could not remove face: {e}")
+                        break
 
-        return True, f"Student {student_roll} deleted successfully."
+        return True, f"Student {student_roll} ({student['name']}) deleted successfully."
 
     except Exception as e:
         if db:
@@ -884,6 +971,8 @@ def delete_student_completely(student_roll):
             except Exception:
                 pass
         print(f"[DeleteStudent] Error: {e}")
+        import traceback
+        traceback.print_exc()
         return False, f"Error deleting student: {str(e)}"
     finally:
         if db:
