@@ -1659,19 +1659,22 @@ const pageTitles = {
     timetable: 'Timetable'
 };
 
-function showPage(name, btn) {
-    document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
-    document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
-    document.getElementById('page-' + name).classList.add('active');
-    if (btn) btn.classList.add('active');
-    document.getElementById('page-heading').textContent = pageTitles[name];
-    window.location.hash = name;
- 
-    // Auto-dismiss Students badge when visiting Students page
-    if (name === 'students') {
-        dismissStudentBadge();
+window.addEventListener('DOMContentLoaded', function() {
+    const hash = window.location.hash.replace('#', '');
+    const validPages = Object.keys(pageTitles);
+
+    if (hash && validPages.includes(hash) && document.getElementById('page-' + hash)) {
+        document.querySelectorAll('.nav-item').forEach(function(btn) {
+            const oc = btn.getAttribute('onclick') || '';
+            if (oc.includes("'" + hash + "'")) {
+                showPage(hash, btn);
+            }
+        });
     }
-}
+
+    // Always render empty state on timetable page load
+    renderFacultyTimetableGrid();
+});
 
 
 window.addEventListener('DOMContentLoaded', function() {
@@ -2509,7 +2512,16 @@ async function loadFacultyTimetable() {
             }
             renderFacultyTimetableGrid();
         }
-    } catch(e) { showToast('Error loading timetable.', true); }
+    } catch(e) {
+        console.error('[Timetable] Load error:', e);
+        const grid = document.getElementById('faculty-timetable-grid');
+        if (grid) {
+            grid.innerHTML = `<div class="empty-state" style="padding:30px;">
+                <i class="fas fa-calendar-plus"></i>
+                <p>No timetable set yet. Click "Add Period" or "Auto-Fill All Days" to create one.</p>
+            </div>`;
+        }
+    }
 }
 
 function renderFacultyTimetableGrid() {
