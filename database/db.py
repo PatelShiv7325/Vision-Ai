@@ -837,21 +837,57 @@ def get_active_sessions_count(db, user_type: str = None) -> int:
 # ── Student / faculty delete helpers ─────────────────────────────────
 
 def delete_student_completely(student_roll):
-    db = get_db()
+    db = None
     try:
+        db = get_db()
+
+        # Get face image path before deleting
         student = db.execute(
-            "SELECT name FROM students WHERE roll=?", (student_roll,)
+            "SELECT face_image FROM students WHERE roll=?", (student_roll,)
         ).fetchone()
-        if not student:
-            return False, f"Student {student_roll} not found."
-        _purge_student_by_roll(db, student_roll)
+
+        # Delete from all tables
+        db.execute("DELETE FROM attendance WHERE student_roll=?", (student_roll,))
+        db.execute("DELETE FROM notifications WHERE user_type='student' AND user_id=?", (student_roll,))
+        db.execute("DELETE FROM reset_tokens WHERE email=(SELECT email FROM students WHERE roll=?)", (student_roll,))
+        db.execute("DELETE FROM face_attempts WHERE roll=?", (student_roll,))
+        db.execute("DELETE FROM active_sessions WHERE user_type='student' AND user_id=?", (student_roll,))
+        db.execute("DELETE FROM attendance_goals WHERE student_roll=?", (student_roll,))
+        db.execute("DELETE FROM student_timetable WHERE student_roll=?", (student_roll,))
+        db.execute("DELETE FROM security_events WHERE user_type='student' AND user_id=?", (student_roll,))
+        db.execute("DELETE FROM audit_log WHERE user_type='student' AND user_id=?", (student_roll,))
+
+        # Delete the student record itself
+        db.execute("DELETE FROM students WHERE roll=?", (student_roll,))
         db.commit()
-        return True, f"Student {student['name']} ({student_roll}) deleted completely."
+
+        # Delete face image file from disk
+        if student and student["face_image"]:
+            face_path = os.path.join(
+                os.path.dirname(os.path.abspath(__file__)),
+                "..", "static", student["face_image"]
+            )
+            face_path = os.path.normpath(face_path)
+            if os.path.exists(face_path):
+                try:
+                    os.remove(face_path)
+                    print(f"[Delete] Removed face image: {face_path}")
+                except Exception as e:
+                    print(f"[Delete] Could not remove face file: {e}")
+
+        return True, f"Student {student_roll} deleted successfully."
+
     except Exception as e:
-        db.rollback()
-        return False, f"Error deleting student: {e}"
+        if db:
+            try:
+                db.rollback()
+            except Exception:
+                pass
+        print(f"[DeleteStudent] Error: {e}")
+        return False, f"Error deleting student: {str(e)}"
     finally:
-        db.close()
+        if db:
+            db.close()
 
 
 def clear_all_students():

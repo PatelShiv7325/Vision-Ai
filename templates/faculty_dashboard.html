@@ -1156,7 +1156,7 @@
                 </div>
                 <div class="table-wrap">
                     <table id="students-table">
-                        <thead><tr><th>#</th><th>Name</th><th>Roll No.</th><th>Email</th><th>Face</th><th>Action</th></tr></thead>
+                        <thead><tr><th>#</th><th>Name</th><th>Roll No.</th><th>Email</th><th>Face</th><th>Remove</th></tr></thead>
                         <tbody>
                             {% for s in students %}
                             <tr>
@@ -1199,7 +1199,7 @@
                                 <td>
                                     <button onclick='confirmDeleteStudent({{ s["roll"]|tojson }}, {{ s["name"]|tojson }})'
                                             class="btn btn-red" style="padding:5px 11px;font-size:12px;">
-                                        <i class="fas fa-user-minus"></i>
+                                        <i class="fas fa-user-minus"></i>Remove
                                     </button>
                                 </td>
                             </tr>
