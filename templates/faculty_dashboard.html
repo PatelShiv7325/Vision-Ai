@@ -1164,7 +1164,7 @@
                                 <td>
                                  <div style="display:flex;align-items:center;gap:10px;">
                          {% if s['face_image'] %}
-<img src="/static/{{ s['face_image'].replace('\\\\', '/').lstrip('/') }}"
+<img src="/static/{{ s['face_image'].replace('\\', '/').lstrip('/') }}"
      id="face-img-{{ s['roll'] }}"
      style="width:34px;height:34px;border-radius:8px;object-fit:cover;flex-shrink:0;border:1px solid var(--border);"
      onerror="this.style.display='none';document.getElementById('face-init-{{ s['roll'] }}').style.display='flex';"
@@ -1197,7 +1197,7 @@
                                     {% endif %}
                                 </td>
                                 <td>
-                                    <button onclick="confirmDeleteStudent('{{ s['roll'] }}', '{{ s['name'] | replace(\"'\", \"\\'\") }}')"
+                                    <button onclick='confirmDeleteStudent({{ s["roll"]|tojson }}, {{ s["name"]|tojson }})'
                                             class="btn btn-red" style="padding:5px 11px;font-size:12px;">
                                         <i class="fas fa-user-minus"></i>
                                     </button>

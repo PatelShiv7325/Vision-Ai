@@ -1894,10 +1894,12 @@ def faculty_dashboard():
             faculty_subjects=faculty_subject_list,
         )
 
-    except Exception as e:
-        print(f"[FacultyDashboard] Error: {e}")
+    except Exception:
+        import traceback
+        traceback.print_exc()
         flash("Error loading dashboard.", "error")
         return redirect(url_for("faculty_login"))
+
     finally:
         db.close()
 
