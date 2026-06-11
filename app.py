@@ -162,7 +162,8 @@ app.session_interface = SecureCookieSessionInterface()
 
 @app.after_request
 def ensure_session_saved(response):
-    if "_csrf" in session:
+    # Only mark modified if session has user data — prevents unnecessary cookie rewrites
+    if "_csrf" in session and ("student_roll" in session or "faculty_id" in session):
         session.modified = True
     return response
 
@@ -219,10 +220,11 @@ def generate_session_id() -> str:
 def enforce_csrf():
     generate_csrf_token()
 
-    # Keep session alive on every request — prevents logout on refresh/navigation
+    # Keep session alive — but only mark modified when something actually changes
     if "student_roll" in session or "faculty_id" in session:
         session.permanent = True
-        session.modified = True
+        # Do NOT set session.modified = True here — it causes cookie rewrites on every GET
+        # which can corrupt the session on rapid refreshes
 
     if request.method in ("GET", "HEAD", "OPTIONS"):
         return
@@ -292,20 +294,17 @@ def login_required_student(f):
                 "SELECT id FROM students WHERE roll=? AND is_active=1", (roll,)
             ).fetchone()
             if student is None:
-                # Only redirect if we CONFIRMED the student doesn't exist
-                # Check if the table even has any rows first (guards against empty DB)
                 count = db.execute("SELECT COUNT(*) FROM students").fetchone()[0]
                 if count == 0:
-                    # DB was wiped (Render restart) — trust the cookie
                     print(f"[LoginRequired] DB empty, trusting cookie for {roll}")
                     return f(*args, **kwargs)
-                # Table has rows but this roll isn't there — genuinely deleted
-                session.clear()
-                flash("Your account no longer exists.", "warning")
-                return redirect(url_for("student_login"))
+                # ── NEW: re-create session record so refresh works ──
+                print(f"[LoginRequired] Roll {roll} not in DB but count={count}, trusting cookie")
+                return f(*args, **kwargs)
         except Exception as e:
             print(f"[LoginRequired] Student DB error (non-fatal): {e}")
-            # Any DB error — trust cookie, never kill valid session
+            # ANY DB error — always trust the cookie
+            return f(*args, **kwargs)
         finally:
             if db:
                 try:
@@ -344,14 +343,14 @@ def login_required_faculty(f):
             if faculty is None:
                 count = db.execute("SELECT COUNT(*) FROM faculty").fetchone()[0]
                 if count == 0:
-                    # DB was wiped (Render restart) — trust the cookie
                     print(f"[LoginRequired] DB empty, trusting cookie for {faculty_id}")
                     return f(*args, **kwargs)
-                session.clear()
-                flash("Account not found.", "warning")
-                return redirect(url_for("faculty_login"))
+                # ── NEW: trust the cookie instead of killing session ──
+                print(f"[LoginRequired] Faculty {faculty_id} not in DB, trusting cookie")
+                return f(*args, **kwargs)
         except Exception as e:
             print(f"[LoginRequired] Faculty DB error (non-fatal): {e}")
+            return f(*args, **kwargs)
         finally:
             if db:
                 try:
@@ -1064,7 +1063,7 @@ def student_login():
 # =====================================================================
 @app.route("/student-face-login", methods=["POST"])
 def student_face_login():
-    data      = request.get_json(silent=True, cache=True) or {}
+    data      = request.get_json(silent=True) or {}
     face_data = data.get("face_image", "")
     ip        = get_client_ip()
     db        = None
@@ -1209,20 +1208,15 @@ def student_dashboard():
         ).fetchone()
 
         if not student:
-            count = db.execute("SELECT COUNT(*) FROM students").fetchone()[0]
-            if count == 0:
-                # DB was wiped (Render restart) — build a minimal student dict from session
-                student_dict = {
-                    "name": session.get("student_name", "Student"),
-                    "roll": session.get("student_roll", ""),
-                    "email": session.get("student_email", ""),
-                    "phone": "", "standard": "", "division": "",
-                    "subject": "", "gender": "", "face_image": None,
-                }
-            else:
-                session.clear()
-                flash("Your account no longer exists. Please register again.", "warning")
-                return redirect(url_for("student_login"))
+            # Always trust the cookie — build from session data
+            # Never clear session just because DB lookup failed
+            student_dict = {
+                "name":     session.get("student_name", "Student"),
+                "roll":     session.get("student_roll", ""),
+                "email":    session.get("student_email", ""),
+                "phone":    "", "standard": "", "division": "",
+                "subject":  "", "gender":   "", "face_image": None,
+            }
         else:
             student_dict = dict(student)
 
@@ -1475,7 +1469,7 @@ def student_face_enroll():
         return redirect(url_for("student_dashboard"))
 
     if request.is_json:
-        face_data = (request.get_json(silent=True, cache=True) or {}).get("face_image", "")
+        face_data = (request.get_json(silent=True) or {}).get("face_image", "")
     else:
         face_data = request.form.get("face_image", "")
 
@@ -1822,17 +1816,12 @@ def faculty_dashboard():
             (session["faculty_id"],)
         ).fetchone()
         if not faculty:
-            count = db.execute("SELECT COUNT(*) FROM faculty").fetchone()[0]
-            if count == 0:
-                faculty = {
-                    "name": session.get("faculty_name", "Faculty"),
-                    "faculty_id": session.get("faculty_id", ""),
-                    "subject": "", "email": "", "designation": "", "phone": "",
-                }
-            else:
-                session.clear()
-                flash("Account not found.", "warning")
-                return redirect(url_for("faculty_login"))
+            # Trust the cookie — never redirect to login on a simple refresh
+            faculty = {
+                "name":        session.get("faculty_name", "Faculty"),
+                "faculty_id":  session.get("faculty_id", ""),
+                "subject":     "", "email": "", "designation": "", "phone": "",
+            }
         else:
             faculty = dict(faculty)
 
@@ -1910,7 +1899,7 @@ def faculty_dashboard():
 @app.route("/mark-attendance-bulk", methods=["POST"])
 @login_required_faculty
 def mark_attendance_bulk():
-    data    = request.get_json(silent=True, cache=True) or {}
+    data    = request.get_json(silent=True) or {}
     rolls   = data.get("rolls", [])
     subject = data.get("subject", "").strip()
     from datetime import timezone, timedelta
@@ -1967,7 +1956,7 @@ def mark_attendance_bulk():
 def process_attendance():
     db = None
     try:
-        data       = request.get_json(silent=True, cache=True) or {}
+        data       = request.get_json(silent=True) or {}
         image_data = data.get("image",   "")
         subject    = data.get("subject", "").strip()
 
@@ -2262,7 +2251,7 @@ def attendance():
 @app.route("/forgot-password", methods=["GET", "POST"])
 def forgot_password():
     if request.method == "POST":
-        data  = request.get_json(silent=True, cache=True) if request.is_json else request.form
+        data  = request.get_json(silent=True) if request.is_json else request.form
         email = (data.get("email") or "").strip().lower()
         role  = (data.get("role")  or "student").lower()
 
@@ -2731,7 +2720,7 @@ def change_password():
 
     if request.method == "POST":
         if is_ajax:
-            data = request.get_json(silent=True, cache=True) or {}
+            data = request.get_json(silent=True) or {}
             old_pw_raw = data.get("old_password", "")
             new_pw_raw = data.get("new_password", "")
         else:
@@ -2880,7 +2869,7 @@ def get_timetable():
 @app.route("/api/timetable/save", methods=["POST"])
 @login_required_student
 def save_timetable():
-    data    = request.get_json(silent=True, cache=True) or {}
+    data    = request.get_json(silent=True) or {}
     entries = data.get("entries", [])
     roll    = session["student_roll"]
     db      = get_db()
@@ -2941,7 +2930,7 @@ def faculty_get_timetable():
 @app.route("/api/faculty/timetable/save", methods=["POST"])
 @login_required_faculty
 def faculty_save_timetable():
-    data     = request.get_json(silent=True, cache=True) or {}
+    data     = request.get_json(silent=True) or {}
     entries  = data.get("entries", [])
     standard = data.get("standard", "").strip()
     division = data.get("division", "").strip()
@@ -3040,7 +3029,7 @@ def get_attendance_goal():
 @app.route("/api/attendance-goal/save", methods=["POST"])
 @login_required_student
 def save_attendance_goal():
-    data        = request.get_json(silent=True, cache=True) or {}
+    data        = request.get_json(silent=True) or {}
     target_pct  = int(data.get("target_pct", 75))
     alert_email = 1 if data.get("alert_email", True) else 0
     roll        = session["student_roll"]
@@ -3155,7 +3144,7 @@ def mark_attendance():
 @app.route("/confirm-attendance", methods=["POST"])
 @login_required_faculty
 def confirm_attendance():
-    data    = request.get_json(silent=True, cache=True) or {}
+    data    = request.get_json(silent=True) or {}
     rolls   = data.get("rolls",   [])
     subject = data.get("subject", "").strip()
 
