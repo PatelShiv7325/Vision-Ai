@@ -998,7 +998,26 @@ body.light-mode .nav-item.active .nav-icon {
     <div class="sidebar-logo" onclick="showPage('dashboard', document.querySelector('.nav-item'))" 
      style="cursor:pointer;" 
      title="Go to Dashboard">
-    <div class="logo-icon">👁️</div>
+    <div class="logo-icon">
+    <svg width="22" height="22" viewBox="0 0 22 22" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <!-- Camera body -->
+        <rect x="2" y="6" width="18" height="13" rx="2" stroke="white" stroke-width="1.5" fill="none"/>
+        <!-- Camera lens -->
+        <circle cx="11" cy="12.5" r="3.5" stroke="white" stroke-width="1.5" fill="none"/>
+        <!-- Camera bump/top -->
+        <path d="M8 6V5a1 1 0 011-1h4a1 1 0 011 1v1" stroke="white" stroke-width="1.5" fill="none"/>
+        <!-- Face detect corners - top left -->
+        <path d="M3.5 10V8.5H5" stroke="#22c55e" stroke-width="1.2" stroke-linecap="round"/>
+        <!-- Face detect corners - top right -->
+        <path d="M17 10V8.5H15.5" stroke="#22c55e" stroke-width="1.2" stroke-linecap="round"/>
+        <!-- Face detect corners - bottom left -->
+        <path d="M3.5 15V16.5H5" stroke="#22c55e" stroke-width="1.2" stroke-linecap="round"/>
+        <!-- Face detect corners - bottom right -->
+        <path d="M17 15V16.5H15.5" stroke="#22c55e" stroke-width="1.2" stroke-linecap="round"/>
+        <!-- Center dot -->
+        <circle cx="11" cy="12.5" r="1" fill="white"/>
+    </svg>
+</div>
     <div class="logo-text">
         <div class="name">Vision AI</div>
         <div class="sub">Student Portal</div>
