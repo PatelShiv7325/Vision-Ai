@@ -1599,7 +1599,7 @@ body.light-mode .nav-item.active .nav-icon {
                 <div class="face-area">
                     <div class="face-frame">
                         {% if student['face_image'] %}
-                            <img src="{% if student['face_image'].startswith('http') %}{{ student['face_image'] }}{% else %}{{ url_for('static', filename=student['face_image']) }}{% endif %}" style="width:100%;height:100%;object-fit:cover;">
+                            <img src="{{ url_for('static', filename=student['face_image']) }}" style="width:100%;height:100%;object-fit:cover;">
                         {% else %}
                             <i class="fas fa-user"></i>
                         {% endif %}
@@ -1752,7 +1752,7 @@ body.light-mode .nav-item.active .nav-icon {
                 <div style="display:flex;align-items:center;gap:20px;margin-bottom:28px;padding-bottom:24px;border-bottom:1px solid var(--border);">
                     <div style="width:80px;height:80px;border-radius:16px;background:linear-gradient(135deg,#6366f1,#8b5cf6);display:flex;align-items:center;justify-content:center;font-size:28px;font-weight:700;color:#fff;overflow:hidden;flex-shrink:0;border:2px solid var(--border-active);">
                         {% if student['face_image'] %}
-                            <img src="{% if student['face_image'].startswith('http') %}{{ student['face_image'] }}{% else %}{{ url_for('static', filename=student['face_image']) }}{% endif %}" style="width:100%;height:100%;object-fit:cover;">
+                            <img src="{{ url_for('static', filename=student['face_image']) }}" style="width:100%;height:100%;object-fit:cover;">
                         {% else %}
                             {{ student['name'][:2].upper() if student['name'] else 'ST' }}
                         {% endif %}
