@@ -60,6 +60,40 @@
             --pill-bg:        #e8e8ec;
         }
 
+        /* Light mode sidebar text — dark & bold */
+        body.light-mode .nav-item {
+            color: #2a2a3a;
+            font-weight: 600;
+        }
+
+        body.light-mode .nav-item:hover {
+            color: #1a1a2e;
+            background: #e8e8ec;
+        }
+
+        body.light-mode .nav-item .nav-icon {
+            color: #3a3a5a;
+            background: #e0e0e8;
+        }
+
+        body.light-mode .nav-section-label {
+            color: #5a5a7a;
+        }
+
+        body.light-mode .sidebar-footer .uname {
+            color: #1a1a2e;
+            font-weight: 700;
+        }
+
+        body.light-mode .sidebar-footer .urole {
+            color: #4a4a6a;
+            font-weight: 500;
+        }
+
+        body.light-mode {
+            --bg-card2: #e8e8ec;
+        }
+
         body.light-mode .nav-item.active {
             background: rgba(99,102,241,0.15);
             border-color: #6366f1;
@@ -103,6 +137,17 @@
             padding: 24px 20px 20px;
             border-bottom: 1px solid var(--border);
         }
+
+        body.light-mode .nav-item.logout {
+            color: #dc2626;
+            font-weight: 600;
+        }
+
+        body.light-mode .nav-item.logout .nav-icon {
+            background: rgba(239, 68, 68, 0.1);
+            color: #dc2626;
+        }
+        
 
         .logo-icon {
             width: 38px; height: 38px;
@@ -721,13 +766,16 @@
 
 <!-- ── SIDEBAR ── -->
 <aside class="sidebar" id="sidebar">
-    <div class="sidebar-logo">
-        <div class="logo-icon">👁️</div>
-        <div class="logo-text">
-            <div class="name">Vision AI</div>
-            <div class="sub">Faculty Portal</div>
-        </div>
+    <div class="sidebar-logo" 
+     onclick="showPage('dashboard', document.querySelector('.nav-item'))"
+     style="cursor:pointer;"
+     title="Go to Dashboard">
+    <div class="logo-icon">👁️</div>
+    <div class="logo-text">
+        <div class="name">Vision AI</div>
+        <div class="sub">Faculty Portal</div>
     </div>
+</div>
 
     <div class="nav-section-label">Main</div>
     <button class="nav-item active" onclick="showPage('dashboard', this)">
