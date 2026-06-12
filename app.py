@@ -914,19 +914,7 @@ def student_register():
                         )
                     )
 
-            faces_dir_env = os.environ.get("DATA_DIR", "")
-            if faces_dir_env:
-                faces_save_dir = os.path.join(faces_dir_env, "static", "faces")
-                face_filename  = f"faces/{roll}.jpg"
-                face_save_path = os.path.join(faces_dir_env, "static", face_filename)
-            else:
-                faces_save_dir = "static/faces"
-                face_filename  = f"faces/{roll}.jpg"
-                face_save_path = f"static/{face_filename}"
-
-            os.makedirs(faces_save_dir, exist_ok=True)
-            with open(face_save_path, "wb") as f:
-                f.write(img_data)
+            face_filename = _save_face_image(img_data, roll)
 
             db.execute(
                 """INSERT INTO students
@@ -1537,19 +1525,7 @@ def student_face_enroll():
             flash(msg, "error")
             return redirect(url_for("student_dashboard"))
 
-        faces_dir_env = os.environ.get("DATA_DIR", "")
-        if faces_dir_env:
-            faces_save_dir = os.path.join(faces_dir_env, "static", "faces")
-            face_filename  = f"faces/{roll}.jpg"
-            face_save_path = os.path.join(faces_dir_env, "static", face_filename)
-        else:
-            faces_save_dir = "static/faces"
-            face_filename  = f"faces/{roll}.jpg"
-            face_save_path = f"static/{face_filename}"
-
-        os.makedirs(faces_save_dir, exist_ok=True)
-        with open(face_save_path, "wb") as f:
-            f.write(img_data)
+        face_filename = _save_face_image(img_data, roll)
 
         db.execute(
             "UPDATE students SET face_image=?, face_encoding=? WHERE roll=?",
