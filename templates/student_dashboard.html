@@ -1047,34 +1047,26 @@ body.light-mode .nav-item.active .nav-icon {
         Face Recognition
     </button>
 
-    <button class="nav-item" onclick="showPage('settings', this)">
+<button class="nav-item" onclick="showPage('settings', this)">
         <div class="nav-icon"><i class="fas fa-cog"></i></div>
         Settings
     </button>
 
-    <div class="nav-divider"></div>
-
-    <button class="nav-item logout" onclick="openLogoutModal()">
-        <div class="nav-icon"><i class="fas fa-sign-out-alt"></i></div>
-        Logout
-    </button>
-
-    <!-- REPLACE WITH: -->
-<div class="sidebar-footer">
-    <div class="user-avatar">{{ student['name'][:2].upper() if student['name'] else 'ST' }}</div>
-    <div class="user-info">
-        <div class="uname">{{ student['name'] if student['name'] else 'Student Name' }}</div>
-        <div class="urole">{{ student['roll'] if student['roll'] else 'Roll Number' }}</div>
+    <div class="sidebar-footer">
+        <div class="user-avatar">{{ student['name'][:2].upper() if student['name'] else 'ST' }}</div>
+        <div class="user-info">
+            <div class="uname">{{ student['name'] if student['name'] else 'Student Name' }}</div>
+            <div class="urole">{{ student['roll'] if student['roll'] else 'Roll Number' }}</div>
+        </div>
+        <button onclick="openLogoutModal()" title="Logout"
+                style="margin-left:auto;background:none;border:none;cursor:pointer;
+                       color:var(--accent-red);font-size:16px;padding:6px;border-radius:8px;
+                       transition:all 0.2s;flex-shrink:0;"
+                onmouseover="this.style.background='rgba(239,68,68,0.12)'"
+                onmouseout="this.style.background='none'">
+            <i class="fas fa-arrow-right-from-bracket"></i>
+        </button>
     </div>
-    <button onclick="openLogoutModal()" title="Logout"
-            style="margin-left:auto;background:none;border:none;cursor:pointer;
-                   color:var(--accent-red);font-size:16px;padding:6px;border-radius:8px;
-                   transition:all 0.2s;flex-shrink:0;"
-            onmouseover="this.style.background='rgba(239,68,68,0.12)'"
-            onmouseout="this.style.background='none'">
-        <i class="fas fa-arrow-right-from-bracket"></i>
-    </button>
-</div>
 </aside>
 
 <!-- ─────────────────── MAIN ─────────────────── -->
