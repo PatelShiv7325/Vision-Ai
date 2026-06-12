@@ -801,18 +801,23 @@
     <button class="nav-item" onclick="showPage('settings', this)">
         <div class="nav-icon"><i class="fas fa-cog"></i></div> Settings
     </button>
-    <div class="nav-divider"></div>
-    <button class="nav-item logout" onclick="openLogoutModal()">
-        <div class="nav-icon"><i class="fas fa-sign-out-alt"></i></div> Logout
-    </button>
-
-    <div class="sidebar-footer">
-        <div class="user-avatar">{{ faculty['name'][0] | upper }}</div>
-        <div class="user-info">
-            <div class="uname">{{ faculty['name'] }}</div>
-            <div class="urole">{{ faculty['subject'] }} · {{ faculty['faculty_id'] }}</div>
-        </div>
+    
+    
+<div class="sidebar-footer">
+    <div class="user-avatar">{{ faculty['name'][0] | upper }}</div>
+    <div class="user-info">
+        <div class="uname">{{ faculty['name'] }}</div>
+        <div class="urole">{{ faculty['subject'] }} · {{ faculty['faculty_id'] }}</div>
     </div>
+    <button onclick="openLogoutModal()" title="Logout"
+            style="margin-left:auto;background:none;border:none;cursor:pointer;
+                   color:var(--accent-red);font-size:16px;padding:6px;border-radius:8px;
+                   transition:all 0.2s;flex-shrink:0;"
+            onmouseover="this.style.background='rgba(239,68,68,0.12)'"
+            onmouseout="this.style.background='none'">
+        <i class="fas fa-arrow-right-from-bracket"></i>
+    </button>
+</div>
 </aside>
 
 <!-- ── MAIN ── -->
