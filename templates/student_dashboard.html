@@ -1382,9 +1382,12 @@ window.CSRF_TOKEN = CSRF_TOKEN;
                         <div class="form-value">{{ 'Enrolled ✓' if student['face_image'] else 'Not Enrolled' }}</div>
                     </div>
                 </div>
-                <div style="margin-top:20px;">
-                    <button class="btn btn-primary" onclick="showPage('edit-profile', null)"><i class="fas fa-edit"></i> Edit Profile</button>
-                </div>
+                    <div style="margin-top:20px;display:flex;gap:10px;flex-wrap:wrap;">
+                        <button class="btn btn-primary" onclick="showPage('edit-profile', null)"><i class="fas fa-edit"></i> Edit Profile</button>
+                        <button onclick="openLogoutModal()" class="btn" style="color:var(--accent-red);border-color:rgba(239,68,68,0.35);background:rgba(239,68,68,0.08);">
+                            <i class="fas fa-arrow-right-from-bracket"></i> Logout
+                        </button>
+                    </div>
             </div>
         </div>
 
