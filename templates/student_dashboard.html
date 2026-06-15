@@ -804,7 +804,31 @@ body.light-mode .nav-item.active .nav-icon {
 
 <script>
   const CSRF_TOKEN = "{{ csrf_token }}";
-  window.CSRF_TOKEN = CSRF_TOKEN; 
+window.CSRF_TOKEN = CSRF_TOKEN;
+
+// ── TAB-LEVEL SESSION GUARD ──────────────────────────────────────────
+// Each browser tab stores its own student roll in sessionStorage.
+// On refresh, if the server session's roll doesn't match this tab's
+// stored roll, redirect to login so the tab stays independent.
+(function() {
+    const SERVER_ROLL = "{{ student['roll'] }}";
+    const TAB_KEY     = 'tab_student_roll';
+    const stored      = sessionStorage.getItem(TAB_KEY);
+
+    if (!stored) {
+        // First load in this tab — brand new login or fresh open
+        sessionStorage.setItem(TAB_KEY, SERVER_ROLL);
+    } else if (stored !== SERVER_ROLL) {
+        // The server session belongs to a DIFFERENT student now
+        // (another tab logged in and overwrote the cookie).
+        // Clear this tab's guard and redirect to login.
+        sessionStorage.removeItem(TAB_KEY);
+        window.location.href = '/student-login';
+    }
+    // stored === SERVER_ROLL → correct student, do nothing
+})();
+
+
 </script>
 <!-- ── CHANGE PASSWORD MODAL ── -->
 <!-- ── CHANGE PASSWORD MODAL ── (CSRF FIXED) ──-->
