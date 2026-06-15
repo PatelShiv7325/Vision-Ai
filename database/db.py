@@ -980,7 +980,7 @@ def delete_student_completely(student_roll, deleted_by="faculty"):
 
 
 def clear_all_students():
-    db = get_db()
+    db = get_db()       
     try:
         rolls = [
             r[0] for r in db.execute("SELECT roll FROM students").fetchall()
