@@ -1119,13 +1119,13 @@
                                 <td style="font-size:12px;color:var(--text-secondary);">
                                     {{ d['deleted_at'][:16] if d['deleted_at'] else '—' }}
                                 </td>
-                            </tr>
                             <td>
-                                <button onclick="permanentlyErase({{ d['roll']|tojson }}, {{ d['name']|tojson }})"
-                                        class="btn btn-red" style="padding:5px 11px;font-size:12px;">
-                                    <i class="fas fa-skull-crossbones"></i> Erase
-                                </button>
-                            </td>
+                                    <button onclick="permanentlyErase({{ d['roll']|tojson }}, {{ d['name']|tojson }})"
+                                            class="btn btn-red" style="padding:5px 11px;font-size:12px;">
+                                        <i class="fas fa-skull-crossbones"></i> Erase
+                                    </button>
+                                </td>
+                            </tr>
                             {% endfor %}
                         </tbody>
                     </table>
