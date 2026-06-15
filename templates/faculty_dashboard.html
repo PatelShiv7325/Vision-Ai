@@ -2268,16 +2268,26 @@ document.addEventListener('DOMContentLoaded', function () {
 // ── PERMANENTLY ERASE FROM DELETED LOG ───────────────────────────────
 async function permanentlyErase(roll, name) {
     if (!confirm(`Permanently erase ALL records of "${name}" (Roll: ${roll})?\n\nThis cannot be undone. Every trace will be removed from the database.`)) return;
-    
+
+    // Always fetch a fresh CSRF token before destructive actions
+    let token = getCsrfToken();
     try {
-        const res = await fetch('/admin/erase-deleted-student/' + roll, {
+        const tr = await fetch('/api/csrf-token', { credentials: 'same-origin' });
+        const td = await tr.json();
+        if (td.csrf_token) { token = td.csrf_token; window.CSRF_TOKEN = td.csrf_token; }
+    } catch (e) {}
+
+    if (!token) { showToast('Security error. Please refresh the page.', true); return; }
+
+    try {
+        const res = await fetch('/admin/erase-deleted-student/' + encodeURIComponent(roll), {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
-                'X-CSRF-Token': getCsrfToken(),
+                'X-CSRF-Token': token,
                 'X-Requested-With': 'XMLHttpRequest'
             },
-            body: JSON.stringify({ _csrf: getCsrfToken() })
+            body: JSON.stringify({ _csrf: token })
         });
         const data = await res.json();
         if (data.success) {
