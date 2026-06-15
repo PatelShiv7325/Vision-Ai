@@ -2482,6 +2482,105 @@ def delete_student(student_roll):
         flash(f"Error: {e}", "error")
     return redirect(url_for("faculty_dashboard") + "#students")
 
+@app.route("/admin/erase-deleted-student/<student_roll>", methods=["POST"])
+@login_required_faculty
+def erase_deleted_student(student_roll):
+    """Permanently erase all traces of a deleted student — including the deleted_students log."""
+    is_ajax = (
+        request.is_json
+        or request.headers.get("X-Requested-With") == "XMLHttpRequest"
+    )
+    db = None
+    try:
+        db = get_db()
+
+        # Confirm the entry exists in deleted_students
+        entry = db.execute(
+            "SELECT name, email FROM deleted_students WHERE roll=?",
+            (student_roll,)
+        ).fetchone()
+
+        if not entry:
+            if is_ajax:
+                return jsonify({"success": False, "error": "Record not found in deleted log."})
+            flash("Record not found.", "error")
+            return redirect(url_for("faculty_dashboard") + "#students")
+
+        # Belt-and-suspenders: also nuke anything left in active tables
+        # (in case a partial delete left orphan rows)
+        cleanup_tables = [
+            ("attendance",        "student_roll"),
+            ("face_attempts",     "roll"),
+            ("emotion_tracking",  "student_roll"),
+            ("student_timetable", "student_roll"),
+            ("attendance_goals",  "student_roll"),
+        ]
+        for tbl, col in cleanup_tables:
+            try:
+                db.execute(f"DELETE FROM {tbl} WHERE {col}=?", (student_roll,))
+            except Exception:
+                pass
+
+        for tbl in ("notifications", "security_events", "audit_log"):
+            try:
+                db.execute(
+                    f"DELETE FROM {tbl} WHERE user_type='student' AND user_id=?",
+                    (student_roll,)
+                )
+            except Exception:
+                pass
+
+        try:
+            db.execute(
+                "DELETE FROM active_sessions WHERE user_type='student' AND user_id=?",
+                (student_roll,)
+            )
+        except Exception:
+            pass
+
+        if entry["email"]:
+            try:
+                db.execute(
+                    "DELETE FROM reset_tokens WHERE email=? AND user_type='student'",
+                    (entry["email"],)
+                )
+            except Exception:
+                pass
+
+        # Make sure the student row itself is gone
+        db.execute("DELETE FROM students WHERE roll=?", (student_roll,))
+
+        # Finally, remove from deleted_students log
+        db.execute("DELETE FROM deleted_students WHERE roll=?", (student_roll,))
+
+        db.commit()
+
+        log_security_event(
+            db, "STUDENT_PERMANENTLY_ERASED", student_roll,
+            "faculty", get_client_ip(),
+            f"Erased by {session.get('faculty_id', 'unknown')}", "high"
+        )
+        db.commit()
+
+        if is_ajax:
+            return jsonify({"success": True, "message": f"Student {student_roll} permanently erased."})
+        flash(f"Student {student_roll} permanently erased from all records.", "success")
+
+    except Exception as e:
+        if db:
+            try:
+                db.rollback()
+            except Exception:
+                pass
+        print(f"[EraseDeletedStudent] Error: {e}")
+        if is_ajax:
+            return jsonify({"success": False, "error": str(e)})
+        flash(f"Error: {e}", "error")
+    finally:
+        if db:
+            db.close()
+
+    return redirect(url_for("faculty_dashboard") + "#students")
 
 @app.route("/admin/clear-all-students", methods=["POST"])
 @login_required_faculty
@@ -2502,6 +2601,16 @@ def clear_all_students_route():
         flash(f"Error: {e}", "error")
     return redirect(url_for("faculty_dashboard"))
 
+@app.route('/admin/erase-deleted-student/<roll>', methods=['POST'])
+@login_required_faculty
+def erase_deleted_student(roll):
+    try:
+        db = get_db()
+        db.execute("DELETE FROM deleted_students WHERE roll = ?", (roll,))
+        db.commit()
+        return jsonify({'success': True})
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)})
 
 # =====================================================================
 # DELETE ALL DATA
