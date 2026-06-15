@@ -1084,7 +1084,7 @@
                             <tr>
                                 <th>#</th><th>Name</th><th>Roll No.</th>
                                 <th>Standard</th><th>Subject</th><th>Face</th>
-                                <th>Deleted By</th><th>Deleted At</th>
+                                <th>Deleted By</th><th>Deleted At</th><th>Action</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -1120,6 +1120,12 @@
                                     {{ d['deleted_at'][:16] if d['deleted_at'] else '—' }}
                                 </td>
                             </tr>
+                            <td>
+                                <button onclick="permanentlyErase({{ d['roll']|tojson }}, {{ d['name']|tojson }})"
+                                        class="btn btn-red" style="padding:5px 11px;font-size:12px;">
+                                    <i class="fas fa-skull-crossbones"></i> Erase
+                                </button>
+                            </td>
                             {% endfor %}
                         </tbody>
                     </table>
@@ -2258,6 +2264,33 @@ document.addEventListener('DOMContentLoaded', function () {
         document.getElementById('theme-icon').className = 'fas fa-sun';
     }
 });
+
+// ── PERMANENTLY ERASE FROM DELETED LOG ───────────────────────────────
+async function permanentlyErase(roll, name) {
+    if (!confirm(`Permanently erase ALL records of "${name}" (Roll: ${roll})?\n\nThis cannot be undone. Every trace will be removed from the database.`)) return;
+    
+    try {
+        const res = await fetch('/admin/erase-deleted-student/' + roll, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRF-Token': getCsrfToken(),
+                'X-Requested-With': 'XMLHttpRequest'
+            },
+            body: JSON.stringify({ _csrf: getCsrfToken() })
+        });
+        const data = await res.json();
+        if (data.success) {
+            showToast('Student record permanently erased.');
+            setTimeout(() => location.reload(), 1200);
+        } else {
+            showToast(data.error || 'Failed to erase record.', true);
+        }
+    } catch (err) {
+        showToast('Network error. Please try again.', true);
+    }
+}
+
 </script>
 </body>
 </html>
