@@ -2601,16 +2601,6 @@ def clear_all_students_route():
         flash(f"Error: {e}", "error")
     return redirect(url_for("faculty_dashboard"))
 
-@app.route('/admin/erase-deleted-student/<roll>', methods=['POST'])
-@login_required_faculty
-def erase_deleted_student(roll):
-    try:
-        db = get_db()
-        db.execute("DELETE FROM deleted_students WHERE roll = ?", (roll,))
-        db.commit()
-        return jsonify({'success': True})
-    except Exception as e:
-        return jsonify({'success': False, 'error': str(e)})
 
 # =====================================================================
 # DELETE ALL DATA

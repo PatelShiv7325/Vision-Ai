@@ -866,12 +866,11 @@ window.CSRF_TOKEN = CSRF_TOKEN;
         </div>
 
         <form id="pwd-form" onsubmit="submitPwdChange(event)" style="text-align:left;">
-            <!-- ✅ CSRF TOKEN - DYNAMIC -->
             <input type="hidden" name="_csrf" id="csrf-token-field" value="">
 
             <!-- Current Password -->
             <div style="margin-bottom:16px;">
-                <label style="font-size:11px;font-weight:700;color:var(--text-secondary);
+                <label for="pwd-old" style="font-size:11px;font-weight:700;color:var(--text-secondary);
                               text-transform:uppercase;letter-spacing:0.6px;
                               display:flex;align-items:center;gap:4px;margin-bottom:7px;">
                     Current Password
@@ -881,7 +880,8 @@ window.CSRF_TOKEN = CSRF_TOKEN;
                     <i class="fas fa-lock"
                        style="position:absolute;left:13px;top:50%;transform:translateY(-50%);
                               color:var(--text-muted);font-size:13px;pointer-events:none;"></i>
-                    <input type="password" id="pwd-old"
+                    <input type="password" id="pwd-old" name="old_password"
+                           autocomplete="current-password"
                            placeholder="Enter current password" required
                            style="width:100%;background:var(--bg-input);
                                   border:1.5px solid var(--border);border-radius:10px;
@@ -904,7 +904,7 @@ window.CSRF_TOKEN = CSRF_TOKEN;
 
             <!-- New Password -->
             <div style="margin-bottom:16px;">
-                <label style="font-size:11px;font-weight:700;color:var(--text-secondary);
+                <label for="pwd-new" style="font-size:11px;font-weight:700;color:var(--text-secondary);
                               text-transform:uppercase;letter-spacing:0.6px;
                               display:flex;align-items:center;gap:4px;margin-bottom:7px;">
                     New Password
@@ -915,6 +915,7 @@ window.CSRF_TOKEN = CSRF_TOKEN;
                        style="position:absolute;left:13px;top:50%;transform:translateY(-50%);
                               color:var(--text-muted);font-size:13px;pointer-events:none;"></i>
                     <input type="password" id="pwd-new"
+                           autocomplete="new-password"
                            placeholder="Create new password" required
                            style="width:100%;background:var(--bg-input);
                                   border:1.5px solid var(--border);border-radius:10px;
@@ -931,23 +932,17 @@ window.CSRF_TOKEN = CSRF_TOKEN;
                         <i class="fas fa-eye" id="icon-new"></i>
                     </button>
                 </div>
-                <!-- Strength bar -->
-                <div style="height:3px;border-radius:2px;background:var(--border);
-                            margin-top:8px;overflow:hidden;">
-                    <div id="pwd-meter-fill"
-                         style="height:100%;border-radius:2px;width:0%;
-                                transition:width 0.3s,background 0.3s;"></div>
+                <div style="height:3px;border-radius:2px;background:var(--border);margin-top:8px;overflow:hidden;">
+                    <div id="pwd-meter-fill" style="height:100%;border-radius:2px;width:0%;transition:width 0.3s,background 0.3s;"></div>
                 </div>
-                <div id="pwd-strength-hint"
-                     style="font-size:12px;color:var(--text-secondary);
-                            margin-top:5px;display:flex;align-items:center;gap:5px;">
+                <div id="pwd-strength-hint" style="font-size:12px;color:var(--text-secondary);margin-top:5px;display:flex;align-items:center;gap:5px;">
                     <i class="fas fa-shield-alt"></i> Min 8 characters
                 </div>
             </div>
 
             <!-- Confirm Password -->
             <div style="margin-bottom:24px;">
-                <label style="font-size:11px;font-weight:700;color:var(--text-secondary);
+                <label for="pwd-confirm" style="font-size:11px;font-weight:700;color:var(--text-secondary);
                               text-transform:uppercase;letter-spacing:0.6px;
                               display:flex;align-items:center;gap:4px;margin-bottom:7px;">
                     Confirm New Password
@@ -958,6 +953,7 @@ window.CSRF_TOKEN = CSRF_TOKEN;
                        style="position:absolute;left:13px;top:50%;transform:translateY(-50%);
                               color:var(--text-muted);font-size:13px;pointer-events:none;"></i>
                     <input type="password" id="pwd-confirm"
+                           autocomplete="new-password"
                            placeholder="Repeat new password" required
                            style="width:100%;background:var(--bg-input);
                                   border:1.5px solid var(--border);border-radius:10px;
@@ -974,9 +970,7 @@ window.CSRF_TOKEN = CSRF_TOKEN;
                         <i class="fas fa-eye" id="icon-confirm"></i>
                     </button>
                 </div>
-                <div id="pwd-match-hint"
-                     style="font-size:12px;margin-top:5px;display:none;
-                            align-items:center;gap:5px;"></div>
+                <div id="pwd-match-hint" style="font-size:12px;margin-top:5px;display:none;align-items:center;gap:5px;"></div>
             </div>
 
             <!-- Submit -->
@@ -1411,7 +1405,7 @@ window.CSRF_TOKEN = CSRF_TOKEN;
                     <div class="stat-num">{{ percent }}%</div>
                 </div>
             </div>
-            <div class="section-card">
+            <div class="section-card">  
                 <div class="section-header">
                     <div class="section-icon"><i class="fas fa-calendar-check"></i></div>
                     <div class="section-title-text">Full Attendance Log</div>
@@ -1857,39 +1851,44 @@ window.CSRF_TOKEN = CSRF_TOKEN;
                         </button>
                     </div>
                 </div>
-                <form method="POST" action="/student-profile-edit">
+<form method="POST" action="/student-profile-edit">
                     <input type="hidden" name="_csrf" value="{{ csrf_token }}">
                     <div style="font-size:11px;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.8px;margin:4px 0 14px;display:flex;align-items:center;gap:10px;">
                         Personal Information <span style="flex:1;height:1px;background:var(--border);display:block;"></span>
                     </div>
                     <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:16px;">
                         <div style="display:flex;flex-direction:column;">
-                            <label style="font-size:11px;font-weight:600;color:var(--text-secondary);text-transform:uppercase;letter-spacing:0.6px;margin-bottom:7px;">Full Name</label>
-                            <input style="background:var(--bg-input);border:1.5px solid var(--border);border-radius:9px;padding:10px 14px;font-size:14px;font-family:'Inter',sans-serif;color:var(--text-primary);outline:none;"
+                            <label for="edit-name" style="font-size:11px;font-weight:600;color:var(--text-secondary);text-transform:uppercase;letter-spacing:0.6px;margin-bottom:7px;">Full Name</label>
+                            <input id="edit-name" autocomplete="name"
+                                   style="background:var(--bg-input);border:1.5px solid var(--border);border-radius:9px;padding:10px 14px;font-size:14px;font-family:'Inter',sans-serif;color:var(--text-primary);outline:none;"
                                    type="text" name="name" value="{{ student['name'] if student['name'] else '' }}" placeholder="Enter your full name" required
                                    onfocus="this.style.borderColor='var(--accent-blue)'" onblur="this.style.borderColor='var(--border)'">
                         </div>
                         <div style="display:flex;flex-direction:column;">
-                            <label style="font-size:11px;font-weight:600;color:var(--text-secondary);text-transform:uppercase;letter-spacing:0.6px;margin-bottom:7px;">Roll Number</label>
-                            <input style="background:rgba(99,102,241,0.05);border:1.5px solid rgba(99,102,241,0.2);border-radius:9px;padding:10px 14px;font-size:14px;font-family:'Inter',sans-serif;color:var(--text-secondary);outline:none;cursor:not-allowed;"
+                            <label for="edit-roll" style="font-size:11px;font-weight:600;color:var(--text-secondary);text-transform:uppercase;letter-spacing:0.6px;margin-bottom:7px;">Roll Number</label>
+                            <input id="edit-roll" autocomplete="off"
+                                   style="background:rgba(99,102,241,0.05);border:1.5px solid rgba(99,102,241,0.2);border-radius:9px;padding:10px 14px;font-size:14px;font-family:'Inter',sans-serif;color:var(--text-secondary);outline:none;cursor:not-allowed;"
                                    type="text" name="roll" value="{{ student['roll'] if student['roll'] else '' }}" readonly>
                             <span style="font-size:11px;color:var(--text-muted);margin-top:5px;">Roll number cannot be changed</span>
                         </div>
                         <div style="display:flex;flex-direction:column;">
-                            <label style="font-size:11px;font-weight:600;color:var(--text-secondary);text-transform:uppercase;letter-spacing:0.6px;margin-bottom:7px;">Email Address</label>
-                            <input style="background:var(--bg-input);border:1.5px solid var(--border);border-radius:9px;padding:10px 14px;font-size:14px;font-family:'Inter',sans-serif;color:var(--text-primary);outline:none;"
+                            <label for="edit-email" style="font-size:11px;font-weight:600;color:var(--text-secondary);text-transform:uppercase;letter-spacing:0.6px;margin-bottom:7px;">Email Address</label>
+                            <input id="edit-email" autocomplete="email"
+                                   style="background:var(--bg-input);border:1.5px solid var(--border);border-radius:9px;padding:10px 14px;font-size:14px;font-family:'Inter',sans-serif;color:var(--text-primary);outline:none;"
                                    type="email" name="email" value="{{ student['email'] if student['email'] else '' }}" placeholder="your@email.com"
                                    onfocus="this.style.borderColor='var(--accent-blue)'" onblur="this.style.borderColor='var(--border)'">
                         </div>
                         <div style="display:flex;flex-direction:column;">
-                            <label style="font-size:11px;font-weight:600;color:var(--text-secondary);text-transform:uppercase;letter-spacing:0.6px;margin-bottom:7px;">Phone Number</label>
-                            <input style="background:var(--bg-input);border:1.5px solid var(--border);border-radius:9px;padding:10px 14px;font-size:14px;font-family:'Inter',sans-serif;color:var(--text-primary);outline:none;"
+                            <label for="edit-phone" style="font-size:11px;font-weight:600;color:var(--text-secondary);text-transform:uppercase;letter-spacing:0.6px;margin-bottom:7px;">Phone Number</label>
+                            <input id="edit-phone" autocomplete="tel"
+                                   style="background:var(--bg-input);border:1.5px solid var(--border);border-radius:9px;padding:10px 14px;font-size:14px;font-family:'Inter',sans-serif;color:var(--text-primary);outline:none;"
                                    type="tel" name="phone" value="{{ student['phone'] if student['phone'] else '' }}" placeholder="10-digit mobile number" maxlength="10"
                                    onfocus="this.style.borderColor='var(--accent-blue)'" onblur="this.style.borderColor='var(--border)'">
                         </div>
                         <div style="display:flex;flex-direction:column;grid-column:1/-1;">
-                            <label style="font-size:11px;font-weight:600;color:var(--text-secondary);text-transform:uppercase;letter-spacing:0.6px;margin-bottom:7px;">Subject</label>
-                            <input style="background:var(--bg-input);border:1.5px solid var(--border);border-radius:9px;padding:10px 14px;font-size:14px;font-family:'Inter',sans-serif;color:var(--text-primary);outline:none;"
+                            <label for="edit-subject" style="font-size:11px;font-weight:600;color:var(--text-secondary);text-transform:uppercase;letter-spacing:0.6px;margin-bottom:7px;">Subject</label>
+                            <input id="edit-subject" autocomplete="off"
+                                   style="background:var(--bg-input);border:1.5px solid var(--border);border-radius:9px;padding:10px 14px;font-size:14px;font-family:'Inter',sans-serif;color:var(--text-primary);outline:none;"
                                    type="text" name="subject" value="{{ student['subject'] if student['subject'] else '' }}" placeholder="e.g. Computer Science, Science, Commerce"
                                    onfocus="this.style.borderColor='var(--accent-blue)'" onblur="this.style.borderColor='var(--border)'">
                         </div>
