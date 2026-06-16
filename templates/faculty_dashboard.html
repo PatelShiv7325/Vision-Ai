@@ -2272,10 +2272,8 @@ document.addEventListener('DOMContentLoaded', function () {
 });
 
 // ── PERMANENTLY ERASE FROM DELETED LOG ───────────────────────────────
-// ── PERMANENTLY ERASE FROM DELETED LOG ───────────────────────────────
-async function permanentlyErase(roll, name, btn) {
-    // Prevent event bubbling issues
-    event.stopPropagation();
+async function permanentlyErase(roll, name, btn, evt) {
+    if (evt) evt.stopPropagation();
     
     if (!confirm('Permanently erase ALL records of "' + name + '" (Roll: ' + roll + ')?\n\nThis cannot be undone.')) return;
 
