@@ -54,8 +54,6 @@ import io
 import smtplib
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
-from flask import jsonify, request, session
-import re
 
 import cloudinary
 import cloudinary.uploader
@@ -159,6 +157,9 @@ app.config["MAX_CONTENT_LENGTH"]         = 10 * 1024 * 1024  # 10 MB
 
 from flask.sessions import SecureCookieSessionInterface
 app.session_interface = SecureCookieSessionInterface()
+
+def favicon():
+    return '', 204
 
 @app.after_request
 def ensure_session_saved(response):
