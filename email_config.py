@@ -1,16 +1,10 @@
-import os
-
 EMAIL_CONFIG = {
-    'smtp_server': 'smtp.gmail.com',
-    'smtp_port': 587,
     'sender_email': 'shivay0735@gmail.com',
-    'sender_password': 'qhxzjtqvthhzztlv',
-    'sender_name': 'Vision AI System'
+    'sender_name':  'Vision AI System',
+    'brevo_api_key': 'PASTE_YOUR_BREVO_API_KEY_HERE',
 }
 
 def is_email_configured():
-    pwd = EMAIL_CONFIG['sender_password']
-    email = EMAIL_CONFIG['sender_email']
-    bad = ('', 'your-app-password', 'SET_YOUR_GMAIL_APP_PASSWORD_HERE')
-    return bool(email and pwd and pwd not in bad)
-    
+    key = EMAIL_CONFIG.get('brevo_api_key', '')
+    bad = ('', 'PASTE_YOUR_BREVO_API_KEY_HERE')
+    return bool(key and key not in bad)

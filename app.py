@@ -52,6 +52,8 @@ import numpy as np
 from PIL import Image
 import io
 import smtplib
+import urllib.request
+import urllib.error
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
 
@@ -365,62 +367,83 @@ def login_required_faculty(f):
 
 # ── Email ─────────────────────────────────────────────────────────────
 
-def send_otp_email(email: str, otp: str, user_type: str = "student") -> bool:
-    if not EMAIL_CONFIG.get("sender_email") or not EMAIL_CONFIG.get("sender_password"):
-        print(f"[Email] Email not configured - OTP for {email}: {otp}")
+def _send_email_via_brevo(to_email: str, subject: str, html_content: str) -> bool:
+    """Send via Brevo's HTTPS API — works on Render free tier since it only
+    needs outbound port 443, unlike raw SMTP which Render blocks (ports 25/465/587)."""
+    api_key      = EMAIL_CONFIG.get("brevo_api_key", "")
+    sender_email = EMAIL_CONFIG.get("sender_email", "")
+    sender_name  = EMAIL_CONFIG.get("sender_name", "Vision AI System")
+
+    if not api_key or not sender_email:
+        print(f"[Email] Brevo not configured — email to {to_email} not sent")
         return False
+
+    payload = json.dumps({
+        "sender":      {"name": sender_name, "email": sender_email},
+        "to":          [{"email": to_email}],
+        "subject":     subject,
+        "htmlContent": html_content,
+    }).encode("utf-8")
+
+    req = urllib.request.Request(
+        "https://api.brevo.com/v3/smtp/email",
+        data=payload,
+        method="POST",
+        headers={
+            "accept":       "application/json",
+            "api-key":      api_key,
+            "content-type": "application/json",
+        },
+    )
+
     try:
-        msg            = MIMEMultipart()
-        msg["From"]    = EMAIL_CONFIG["sender_email"]
-        msg["To"]      = email
-        msg["Subject"] = f"Vision AI - Password Reset OTP ({user_type.capitalize()})"
-        body = f"""
-        <html><body style="font-family:Arial,sans-serif;max-width:600px;margin:0 auto;padding:20px;">
-          <div style="background:linear-gradient(135deg,#6c63ff,#a78bfa);padding:30px;
-                      border-radius:10px;text-align:center;color:#fff;">
-            <h1 style="margin:0;font-size:28px;">Vision AI</h1>
-            <p style="margin:10px 0 0;opacity:.9;">Password Reset Request</p>
-          </div>
-          <div style="background:#f8f9fa;padding:30px;border-radius:10px;margin-top:20px;">
-            <h2 style="color:#333;">Hello {user_type.capitalize()},</h2>
-            <p style="color:#666;">Your OTP Code: <strong style="font-size:24px;color:#6c63ff;">{otp}</strong></p>
-            <p style="color:#666;">Valid for <strong>10 minutes</strong>.</p>
-            <p style="color:#999;font-size:12px;">If you did not request this, please ignore this email.</p>
-          </div>
-        </body></html>"""
-        msg.attach(MIMEText(body, "html"))
-        print(f"[Email] Sending OTP to {email} via {EMAIL_CONFIG['smtp_server']}")
-        with smtplib.SMTP(EMAIL_CONFIG["smtp_server"],
-                          EMAIL_CONFIG["smtp_port"], timeout=15) as server:
-            server.starttls()
-            server.login(EMAIL_CONFIG["sender_email"], EMAIL_CONFIG["sender_password"])
-            server.send_message(msg)
-        print(f"[Email] OTP sent successfully to {email}")
-        return True
-    except smtplib.SMTPAuthenticationError as e:
-        print(f"[Email] SMTP Authentication Error: {e}")
-        return False
-    except smtplib.SMTPConnectError as e:
-        print(f"[Email] SMTP Connection Error: {e}")
+        with urllib.request.urlopen(req, timeout=15) as resp:
+            print(f"[Email] Brevo accepted email to {to_email} (status {resp.status})")
+            return True
+    except urllib.error.HTTPError as e:
+        detail = e.read().decode("utf-8", "ignore")
+        print(f"[Email] Brevo HTTP error {e.code} sending to {to_email}: {detail}")
         return False
     except Exception as e:
-        print(f"[Email] Failed to send OTP to {email}: {e}")
+        print(f"[Email] Brevo request failed for {to_email}: {e}")
         return False
+
+
+def send_otp_email(email: str, otp: str, user_type: str = "student") -> bool:
+    if not is_email_configured():
+        print(f"[Email] Email not configured - OTP for {email}: {otp}")
+        return False
+    body = f"""
+    <html><body style="font-family:Arial,sans-serif;max-width:600px;margin:0 auto;padding:20px;">
+      <div style="background:linear-gradient(135deg,#6c63ff,#a78bfa);padding:30px;
+                  border-radius:10px;text-align:center;color:#fff;">
+        <h1 style="margin:0;font-size:28px;">Vision AI</h1>
+        <p style="margin:10px 0 0;opacity:.9;">Password Reset Request</p>
+      </div>
+      <div style="background:#f8f9fa;padding:30px;border-radius:10px;margin-top:20px;">
+        <h2 style="color:#333;">Hello {user_type.capitalize()},</h2>
+        <p style="color:#666;">Your OTP Code: <strong style="font-size:24px;color:#6c63ff;">{otp}</strong></p>
+        <p style="color:#666;">Valid for <strong>10 minutes</strong>.</p>
+        <p style="color:#999;font-size:12px;">If you did not request this, please ignore this email.</p>
+      </div>
+    </body></html>"""
+    return _send_email_via_brevo(
+        email, f"Vision AI - Password Reset OTP ({user_type.capitalize()})", body
+    )
 
 
 def _send_low_attendance_alert(email: str, name: str,
                                 low_subjects: list, target_pct: int) -> bool:
-    if not EMAIL_CONFIG.get("sender_email") or not EMAIL_CONFIG.get("sender_password"):
+    if not is_email_configured():
         print(f"[Alert] Email not configured — low attendance alert for {email}")
         return False
-    try:
-        rows_html = "".join(
+    rows_html = "".join(
             f"<tr><td style='padding:10px 14px;border-bottom:1px solid #eee;font-weight:600'>{s['subject']}</td>"
             f"<td style='padding:10px 14px;border-bottom:1px solid #eee;color:#ef4444;font-weight:700'>{s['pct']}%</td>"
             f"<td style='padding:10px 14px;border-bottom:1px solid #eee;color:#888'>{target_pct}% required</td></tr>"
             for s in low_subjects
         )
-        body = f"""
+    body = f"""
         <html><body style="font-family:Arial,sans-serif;max-width:600px;margin:0 auto;padding:20px;">
           <div style="background:linear-gradient(135deg,#ef4444,#f97316);padding:28px 30px;
                       border-radius:12px;text-align:center;color:#fff;margin-bottom:20px;">
@@ -456,22 +479,7 @@ def _send_low_attendance_alert(email: str, name: str,
           </div>
         </body></html>"""
 
-        msg            = MIMEMultipart()
-        msg["From"]    = EMAIL_CONFIG["sender_email"]
-        msg["To"]      = email
-        msg["Subject"] = "Low Attendance Alert — Vision AI"
-        msg.attach(MIMEText(body, "html"))
-
-        with smtplib.SMTP(EMAIL_CONFIG["smtp_server"],
-                          EMAIL_CONFIG["smtp_port"], timeout=15) as server:
-            server.starttls()
-            server.login(EMAIL_CONFIG["sender_email"], EMAIL_CONFIG["sender_password"])
-            server.send_message(msg)
-        print(f"[Alert] Low attendance email sent to {email}")
-        return True
-    except Exception as e:
-        print(f"[Alert] Failed to send alert to {email}: {e}")
-        return False
+    return _send_email_via_brevo(email, "Low Attendance Alert — Vision AI", body)
 
 
 # =====================================================================
