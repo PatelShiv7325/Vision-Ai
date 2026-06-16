@@ -367,7 +367,7 @@ def login_required_faculty(f):
 
 # ── Email ─────────────────────────────────────────────────────────────
 
-def _send_email_via_brevo(to_email: str, subject: str, html_content: str) -> bool:
+def _send_email_via_brevo(to_email: str, subject: str, html_content: str, text_content: str = None) -> bool:
     """Send via Brevo's HTTPS API — works on Render free tier since it only
     needs outbound port 443, unlike raw SMTP which Render blocks (ports 25/465/587)."""
     api_key      = EMAIL_CONFIG.get("brevo_api_key", "")
@@ -378,12 +378,17 @@ def _send_email_via_brevo(to_email: str, subject: str, html_content: str) -> boo
         print(f"[Email] Brevo not configured — email to {to_email} not sent")
         return False
 
-    payload = json.dumps({
+    body_dict = {
         "sender":      {"name": sender_name, "email": sender_email},
         "to":          [{"email": to_email}],
         "subject":     subject,
         "htmlContent": html_content,
-    }).encode("utf-8")
+        "replyTo":     {"email": sender_email, "name": sender_name},
+    }
+    if text_content:
+        body_dict["textContent"] = text_content
+
+    payload = json.dumps(body_dict).encode("utf-8")
 
     req = urllib.request.Request(
         "https://api.brevo.com/v3/smtp/email",
@@ -427,8 +432,9 @@ def send_otp_email(email: str, otp: str, user_type: str = "student") -> bool:
         <p style="color:#999;font-size:12px;">If you did not request this, please ignore this email.</p>
       </div>
     </body></html>"""
+    text_body = f"Hello {user_type.capitalize()},\n\nYour Vision AI OTP code is: {otp}\nValid for 10 minutes.\n\nIf you did not request this, ignore this email."
     return _send_email_via_brevo(
-        email, f"Vision AI - Password Reset OTP ({user_type.capitalize()})", body
+        email, f"Vision AI - Password Reset OTP ({user_type.capitalize()})", body, text_body
     )
 
 
