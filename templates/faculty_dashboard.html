@@ -1125,11 +1125,11 @@
                                     {{ d['deleted_at'][:16] if d['deleted_at'] else '—' }}
                                 </td>
                             <td>
-                                    <button onclick="permanentlyErase({{ d['roll']|tojson }}, {{ d['name']|tojson }})"
-                                            class="btn btn-red" style="padding:5px 11px;font-size:12px;">
-                                        <i class="fas fa-skull-crossbones"></i> Erase
-                                    </button>
-                                </td>
+                                <button onclick="permanentlyErase({{ d['roll']|tojson }}, {{ d['name']|tojson }}, this)"
+                                        class="btn btn-red" style="padding:5px 11px;font-size:12px;">
+                                    <i class="fas fa-skull-crossbones"></i> Erase
+                                </button>
+                            </td>
                             </tr>
                             {% endfor %}
                         </tbody>
@@ -2271,47 +2271,27 @@ document.addEventListener('DOMContentLoaded', function () {
 });
 
 // ── PERMANENTLY ERASE FROM DELETED LOG ───────────────────────────────
-async function permanentlyErase(roll, name) {
-    // Use a custom confirm approach instead of browser confirm()
-    if (!window.confirm(`Permanently erase ALL records of "${name}" (Roll: ${roll})?\n\nThis cannot be undone.`)) return;
+// ── PERMANENTLY ERASE FROM DELETED LOG ───────────────────────────────
+async function permanentlyErase(roll, name, btn) {
+    if (!confirm('Permanently erase ALL records of "' + name + '" (Roll: ' + roll + ')?\n\nThis cannot be undone.')) return;
 
-    // Find the button and show loading state
-    const allBtns = document.querySelectorAll('button');
-    let eraseBtn = null;
-    allBtns.forEach(b => {
-        if (b.onclick && b.getAttribute('onclick') && b.getAttribute('onclick').includes(String(roll))) {
-            eraseBtn = b;
-        }
-    });
-    if (eraseBtn) {
-        eraseBtn.disabled = true;
-        eraseBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Erasing…';
-    }
+    // btn is passed directly — no searching needed
+    btn.disabled = true;
+    btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Erasing…';
 
-    // Get CSRF token - try multiple sources
-    let token = window.CSRF_TOKEN || 
-                (document.querySelector('meta[name="csrf-token"]') || {}).getAttribute?.('content') || '';
-
-    // Try to refresh it
+    let token = window.CSRF_TOKEN || '';
     try {
         const tr = await fetch('/api/csrf-token', { credentials: 'same-origin' });
         if (tr.ok) {
             const td = await tr.json();
-            if (td.csrf_token) {
-                token = td.csrf_token;
-                window.CSRF_TOKEN = td.csrf_token;
-            }
+            if (td.csrf_token) { token = td.csrf_token; window.CSRF_TOKEN = td.csrf_token; }
         }
-    } catch (e) {
-        console.warn('Could not refresh CSRF token:', e);
-    }
+    } catch (e) {}
 
     if (!token) {
         showToast('Security error. Please refresh the page.', true);
-        if (eraseBtn) {
-            eraseBtn.disabled = false;
-            eraseBtn.innerHTML = '<i class="fas fa-skull-crossbones"></i> Erase';
-        }
+        btn.disabled = false;
+        btn.innerHTML = '<i class="fas fa-skull-crossbones"></i> Erase';
         return;
     }
 
@@ -2323,20 +2303,14 @@ async function permanentlyErase(roll, name) {
                 'X-CSRF-Token': token,
                 'X-Requested-With': 'XMLHttpRequest'
             },
-            body: JSON.stringify({ _csrf: token, roll: roll })
+            body: JSON.stringify({ _csrf: token })
         });
 
-        console.log('Erase response status:', res.status);
-
-        // Handle non-JSON responses gracefully
-        const contentType = res.headers.get('content-type') || '';
         let data = {};
-        if (contentType.includes('application/json')) {
+        const ct = res.headers.get('content-type') || '';
+        if (ct.includes('application/json')) {
             data = await res.json();
         } else {
-            const text = await res.text();
-            console.warn('Non-JSON response:', text);
-            // If it's a redirect or 200 HTML, treat as success
             if (res.ok) {
                 showToast('Student record permanently erased.');
                 setTimeout(() => location.reload(), 1200);
@@ -2344,26 +2318,21 @@ async function permanentlyErase(roll, name) {
             }
         }
 
-        if (data.success || res.ok) {
-            showToast('Student record permanently erased.');
+        if (data.success) {
+            showToast('Student permanently erased!');
             setTimeout(() => location.reload(), 1200);
         } else {
-            showToast(data.error || 'Failed to erase record. Check server logs.', true);
-            if (eraseBtn) {
-                eraseBtn.disabled = false;
-                eraseBtn.innerHTML = '<i class="fas fa-skull-crossbones"></i> Erase';
-            }
+            showToast(data.error || 'Failed to erase.', true);
+            btn.disabled = false;
+            btn.innerHTML = '<i class="fas fa-skull-crossbones"></i> Erase';
         }
     } catch (err) {
-        console.error('Erase error:', err);
         showToast('Network error: ' + err.message, true);
-        if (eraseBtn) {
-            eraseBtn.disabled = false;
-            eraseBtn.innerHTML = '<i class="fas fa-skull-crossbones"></i> Erase';
-        }
+        btn.disabled = false;
+        btn.innerHTML = '<i class="fas fa-skull-crossbones"></i> Erase';
     }
 }
 
 </script>
 </body>
-</html>
+</html> 
