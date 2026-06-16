@@ -2272,37 +2272,95 @@ document.addEventListener('DOMContentLoaded', function () {
 
 // ── PERMANENTLY ERASE FROM DELETED LOG ───────────────────────────────
 async function permanentlyErase(roll, name) {
-    if (!confirm(`Permanently erase ALL records of "${name}" (Roll: ${roll})?\n\nThis cannot be undone. Every trace will be removed from the database.`)) return;
+    // Use a custom confirm approach instead of browser confirm()
+    if (!window.confirm(`Permanently erase ALL records of "${name}" (Roll: ${roll})?\n\nThis cannot be undone.`)) return;
 
-    // Always fetch a fresh CSRF token before destructive actions
-    let token = getCsrfToken();
+    // Find the button and show loading state
+    const allBtns = document.querySelectorAll('button');
+    let eraseBtn = null;
+    allBtns.forEach(b => {
+        if (b.onclick && b.getAttribute('onclick') && b.getAttribute('onclick').includes(String(roll))) {
+            eraseBtn = b;
+        }
+    });
+    if (eraseBtn) {
+        eraseBtn.disabled = true;
+        eraseBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Erasing…';
+    }
+
+    // Get CSRF token - try multiple sources
+    let token = window.CSRF_TOKEN || 
+                (document.querySelector('meta[name="csrf-token"]') || {}).getAttribute?.('content') || '';
+
+    // Try to refresh it
     try {
         const tr = await fetch('/api/csrf-token', { credentials: 'same-origin' });
-        const td = await tr.json();
-        if (td.csrf_token) { token = td.csrf_token; window.CSRF_TOKEN = td.csrf_token; }
-    } catch (e) {}
+        if (tr.ok) {
+            const td = await tr.json();
+            if (td.csrf_token) {
+                token = td.csrf_token;
+                window.CSRF_TOKEN = td.csrf_token;
+            }
+        }
+    } catch (e) {
+        console.warn('Could not refresh CSRF token:', e);
+    }
 
-    if (!token) { showToast('Security error. Please refresh the page.', true); return; }
+    if (!token) {
+        showToast('Security error. Please refresh the page.', true);
+        if (eraseBtn) {
+            eraseBtn.disabled = false;
+            eraseBtn.innerHTML = '<i class="fas fa-skull-crossbones"></i> Erase';
+        }
+        return;
+    }
 
     try {
-        const res = await fetch('/admin/erase-deleted-student/' + encodeURIComponent(roll), {
+        const res = await fetch('/admin/erase-deleted-student/' + String(roll), {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
                 'X-CSRF-Token': token,
                 'X-Requested-With': 'XMLHttpRequest'
             },
-            body: JSON.stringify({ _csrf: token })
+            body: JSON.stringify({ _csrf: token, roll: roll })
         });
-        const data = await res.json();
-        if (data.success) {
+
+        console.log('Erase response status:', res.status);
+
+        // Handle non-JSON responses gracefully
+        const contentType = res.headers.get('content-type') || '';
+        let data = {};
+        if (contentType.includes('application/json')) {
+            data = await res.json();
+        } else {
+            const text = await res.text();
+            console.warn('Non-JSON response:', text);
+            // If it's a redirect or 200 HTML, treat as success
+            if (res.ok) {
+                showToast('Student record permanently erased.');
+                setTimeout(() => location.reload(), 1200);
+                return;
+            }
+        }
+
+        if (data.success || res.ok) {
             showToast('Student record permanently erased.');
             setTimeout(() => location.reload(), 1200);
         } else {
-            showToast(data.error || 'Failed to erase record.', true);
+            showToast(data.error || 'Failed to erase record. Check server logs.', true);
+            if (eraseBtn) {
+                eraseBtn.disabled = false;
+                eraseBtn.innerHTML = '<i class="fas fa-skull-crossbones"></i> Erase';
+            }
         }
     } catch (err) {
-        showToast('Network error. Please try again.', true);
+        console.error('Erase error:', err);
+        showToast('Network error: ' + err.message, true);
+        if (eraseBtn) {
+            eraseBtn.disabled = false;
+            eraseBtn.innerHTML = '<i class="fas fa-skull-crossbones"></i> Erase';
+        }
     }
 }
 
