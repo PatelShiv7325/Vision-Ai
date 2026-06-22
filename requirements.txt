@@ -11,3 +11,4 @@ python-dotenv==1.0.1
 requests==2.32.3
 gunicorn==22.0.0
 cloudinary>=1.36.0
+bcrypt==4.2.0
