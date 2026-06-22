@@ -394,11 +394,15 @@
             {% endif %}
 
             <form method="POST" id="loginForm">
+                <form method="POST" id="loginForm">
+                    <input type="text" name="fakeusernameremembered" style="display:none" tabindex="-1" autocomplete="off">
+                    <input type="password" name="fakepasswordremembered" style="display:none" tabindex="-1" autocomplete="off">
+                    <input type="hidden" name="_csrf" value="{{ csrf_token }}">
                 <input type="hidden" name="_csrf" value="{{ csrf_token }}">
                 <div class="field-group">
                     <label class="field-label">Email Address</label>
                     <div class="field-wrap">
-                        <input type="email" name="email" class="field-input" placeholder="you@example.com" required autocomplete="off">
+                        <input type="email" name="email" class="field-input" placeholder="you@example.com" required autocomplete="email">
                         <i class="fas fa-envelope field-icon"></i>
                     </div>
                 </div>
@@ -406,7 +410,7 @@
                 <div class="field-group">
                     <label class="field-label">Password</label>
                     <div class="field-wrap">
-                        <input type="password" id="password" name="password" class="field-input" placeholder="Your password" required autocomplete="off">
+                        <input type="password" id="password" name="password" class="field-input" placeholder="Your password" required autocomplete="new-password">
                         <i class="fas fa-lock field-icon"></i>
                         <button type="button" class="pwd-toggle" id="pwdToggle" tabindex="-1">
                             <i class="fas fa-eye" id="pwdIcon"></i>
