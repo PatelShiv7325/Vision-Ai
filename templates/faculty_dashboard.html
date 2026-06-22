@@ -1260,7 +1260,7 @@
                     <button id="mark-stop-camera" class="btn" type="button" style="display:none;" onclick="stopMarkCameraUI()"><i class="fas fa-stop"></i> Stop</button>
                 </div>
                 <div id="mark-camera-container" style="display:none;margin-top:14px;border-radius:12px;overflow:hidden;border:1px solid var(--border-act);">
-                    <video id="mark-video" autoplay playsinline style="width:100%;display:block;max-height:320px;object-fit:cover;background:#000;"></video>
+                    <video id="mark-video" autoplay playsinline muted style="width:100%;display:block;max-height:320px;object-fit:cover;background:#000;"></video>
                     <canvas id="mark-canvas" style="display:none;"></canvas>
                 </div>
                 <div id="mark-processing" class="processing-status" style="display:none;"><i class="fas fa-spinner fa-spin"></i> Detecting faces… please wait</div>
@@ -1801,8 +1801,13 @@ async function captureAndProcess() {
     document.getElementById('mark-capture').style.display          = 'none';
     document.getElementById('mark-stop-camera').style.display      = 'none';
     document.getElementById('mark-start-camera').style.display     = 'inline-flex';
-    document.getElementById('mark-processing').style.display       = 'block';
+document.getElementById('mark-processing').style.display       = 'block';
     resetDetectionUI();
+
+    const slowTimer = setTimeout(() => {
+        const el = document.getElementById('mark-processing');
+        if (el) el.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Still detecting… this is taking longer than usual.';
+    }, 5000);
 
     try {
         const res = await fetch('/process-attendance', {
@@ -1810,6 +1815,7 @@ async function captureAndProcess() {
             headers: { 'Content-Type': 'application/json', 'X-CSRF-Token': CSRF_TOKEN, 'X-Requested-With': 'XMLHttpRequest' },
             body:    JSON.stringify({ image: imageData, subject, _csrf: CSRF_TOKEN })
         });
+        clearTimeout(slowTimer);
         document.getElementById('mark-processing').style.display = 'none';
         if (!res.ok) { const e = await res.json().catch(() => ({})); showToast('Server error: ' + (e.error || res.status), true); return; }
 
@@ -1840,6 +1846,7 @@ async function captureAndProcess() {
             pc + ' recognized in this photo. ' + total + ' total student' + (total !== 1 ? 's' : '') + ' across all photos. Click Confirm to save all.';
         document.getElementById('confirm-bar').style.display = 'flex';
     } catch (err) {
+        clearTimeout(slowTimer);
         document.getElementById('mark-processing').style.display = 'none';
         showToast('Network error. Please check connection and try again.', true);
     }

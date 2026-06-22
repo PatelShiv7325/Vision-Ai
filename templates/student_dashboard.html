@@ -1735,7 +1735,7 @@ window.CSRF_TOKEN = CSRF_TOKEN;
                         <div class="setting-desc">Get notified when attendance drops below 75%</div>
                     </div>
                     <label class="toggle-switch">
-                        <input type="checkbox" id="attendance-alerts-toggle" checked>
+                        <input type="checkbox" id="attendance-alerts-toggle" {% if student_settings.get('attendance_alerts', True) %}checked{% endif %}>
                         <span class="toggle-slider"></span>
                     </label>
                 </div>

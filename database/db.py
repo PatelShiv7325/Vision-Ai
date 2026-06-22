@@ -20,6 +20,7 @@ FIXES in this version:
 
 import sqlite3
 import os
+import numpy as np
 from datetime import datetime, timedelta
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
@@ -226,6 +227,14 @@ CREATE TABLE IF NOT EXISTS attendance_goals (
     target_pct   INTEGER  NOT NULL DEFAULT 75,
     alert_email  INTEGER  NOT NULL DEFAULT 1,
     updated_at   DATETIME DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE IF NOT EXISTS user_settings (
+    user_type  TEXT     NOT NULL,
+    user_id    TEXT     NOT NULL,
+    settings   TEXT     NOT NULL DEFAULT '{}',
+    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    PRIMARY KEY (user_type, user_id)
 );
 
 CREATE TABLE IF NOT EXISTS active_sessions (

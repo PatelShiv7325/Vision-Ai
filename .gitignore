@@ -1,11 +1,47 @@
-.venv/
-venv/
+# ── Python ───────────────────────────────────────────
 __pycache__/
-*.pyc
-*.pyo
-database/db.sqlite3
-static/faces/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+dist/
+*.egg-info/
+.eggs/
+
+# ── Virtual environments ──────────────────────────────
+venv/
+.venv/
+env/
+ENV/
+
+# ── Environment & secrets (NEVER commit these) ────────
 .env
+*.env
+!.env.example
+
+# email_config.py contains real keys — keep it local only
 email_config.py
-# Added by code-review-graph
-.code-review-graph/
+
+# ── Database (contains real student data) ─────────────
+*.sqlite3
+*.db
+database/db.sqlite3
+
+# ── Face images (personal biometric data) ─────────────
+static/faces/
+
+# ── IDE / OS ──────────────────────────────────────────
+.vscode/
+.idea/
+*.DS_Store
+Thumbs.db
+
+# ── Logs ─────────────────────────────────────────────
+*.log
+logs/
+
+# ── Pytest / coverage ─────────────────────────────────
+.pytest_cache/
+htmlcov/
+.coverage

@@ -29,8 +29,6 @@ from database.db import (
     check_account_locked, record_failed_login, record_successful_login,
     get_attendance_summary,
     delete_student_completely, clear_all_students,
-    delete_faculty_completely, verify_database_integrity,
-    detect_emotion, record_emotion_tracking, create_batch_attendance_record,
     get_batch_attendance_analytics, get_student_emotion_trends,
     validate_face_quality, detect_liveness,
     create_session_record,
@@ -42,6 +40,14 @@ from database.db import (
     update_session_last_seen,
     get_session_info,
     purge_ghost_student,
+)
+
+from face_engine import (
+    RecognizerCache,
+    enhanced_duplicate_check,
+    check_liveness,
+    dual_match,
+    detect_emotion,
 )
 
 import hashlib, hmac, base64, os, sqlite3, secrets, json
@@ -108,14 +114,6 @@ def _save_face_image(img_data: bytes, roll: str) -> str:
 
 
 try:
-    import bcrypt as _bcrypt
-    _USE_BCRYPT = True
-except ImportError:
-    _bcrypt = None
-    _USE_BCRYPT = False
-    print("[Security] WARNING: bcrypt not installed, falling back to SHA-256")
-
-try:
     from email_config import EMAIL_CONFIG, is_email_configured
 except ImportError:
     EMAIL_CONFIG = {
@@ -143,13 +141,16 @@ _TABLE_MAP = {"student": "students", "faculty": "faculty"}
 # ── App setup ─────────────────────────────────────────────────────────
 app = Flask(__name__)
 
-_SECRET = os.environ.get("SECRET_KEY", "").strip()
-if not _SECRET:
-    raise RuntimeError(
-        "SECRET_KEY environment variable must be set. "
-        "Generate one with: python -c \"import secrets; print(secrets.token_hex(32))\""
-    )
-app.secret_key = _SECRET
+if not os.environ.get('SECRET_KEY'):
+    if os.environ.get('FLASK_ENV') == 'production' or os.environ.get('RENDER'):
+        raise RuntimeError(
+            "SECRET_KEY environment variable must be set. Generate one with: python -c \"import secrets; print(secrets.token_hex(32))\""
+        )
+    else:
+        os.environ['SECRET_KEY'] = 'dev-fallback-secret-key-do-not-use-in-production'
+        print("[WARNING] SECRET_KEY not set — using insecure fallback for local development only")
+
+app.secret_key = os.environ["SECRET_KEY"].strip()
 
 app.config["SESSION_COOKIE_HTTPONLY"]    = True
 app.config["SESSION_COOKIE_SAMESITE"]    = "Lax"
@@ -190,14 +191,11 @@ STANDARD_SUBJECTS = {
 # HELPERS
 # =====================================================================
 
-_HASH_SECRET = "vision_ai_fixed_secret_key_2024_do_not_change"
-
-def hash_password(password: str, salt: str = "vision_ai_v2") -> str:
-    key = (_HASH_SECRET + salt + password).encode()
-    return hashlib.sha256(key).hexdigest()
-
-def verify_password(password_raw: str, stored_hash: str) -> bool:
-    return hash_password(password_raw) == stored_hash
+from security import (
+    hash_password, verify_password,
+    needs_password_upgrade, upgrade_password_on_login,
+    rate_limit, require_same_origin,
+)
 
 def get_client_ip() -> str:
     xff = request.headers.get("X-Forwarded-For", "")
@@ -491,106 +489,6 @@ def _send_low_attendance_alert(email: str, name: str,
 # =====================================================================
 # FACE RECOGNITION HELPERS
 # =====================================================================
-
-def _train_recognizer(all_students, use_encoding):
-    face_samples, roll_labels = [], []
-    clahe = cv2.createCLAHE(clipLimit=2.0, tileGridSize=(8, 8))
-
-    for student in all_students:
-        try:
-            if use_encoding and student.get("face_encoding"):
-                base = np.frombuffer(
-                    student["face_encoding"], dtype=np.uint8
-                ).reshape(100, 100)
-            else:
-                path   = os.path.join("static", student["face_image"])
-                stored = cv2.imread(path)
-                if stored is None:
-                    continue
-                base = cv2.resize(
-                    cv2.cvtColor(stored, cv2.COLOR_BGR2GRAY), (100, 100)
-                )
-            base     = clahe.apply(base)
-            variants = [
-                base,
-                np.clip(base.astype(np.int32) + 25, 0, 255).astype(np.uint8),
-                np.clip(base.astype(np.int32) - 25, 0, 255).astype(np.uint8),
-                cv2.flip(base, 1),
-                cv2.equalizeHist(base),
-                cv2.GaussianBlur(base, (3, 3), 0),
-            ]
-            for v in variants:
-                face_samples.append(cv2.resize(v, (100, 100)))
-                roll_labels.append(student["roll"])
-        except Exception as e:
-            print(f"[Train] Skipping {student.get('roll', '?')}: {e}")
-
-    if not face_samples:
-        return None, []
-
-    recognizer = cv2.face.LBPHFaceRecognizer_create(
-        radius=1, neighbors=8, grid_x=8, grid_y=8, threshold=100.0
-    )
-    label_indices = list(range(len(face_samples)))
-    recognizer.train(face_samples, np.array(label_indices))
-    return recognizer, roll_labels
-
-
-def _face_histogram(face_gray):
-    hist = cv2.calcHist([face_gray], [0], None, [256], [0, 256])
-    cv2.normalize(hist, hist)
-    return hist
-
-
-def _dual_match(face_roi, recognizer, roll_labels, all_students, use_encoding):
-    try:
-        idx, lbph_conf = recognizer.predict(face_roi)
-    except Exception:
-        return "", "", 999.0, 0.0, False
-
-    candidate_roll = roll_labels[idx] if 0 <= idx < len(roll_labels) else None
-
-    face_hist = _face_histogram(face_roi)
-    best_hist = 0.0
-    best_roll = None
-
-    for s in all_students:
-        enc = s.get("face_encoding")
-        if not enc:
-            continue
-        try:
-            stored    = np.frombuffer(enc, dtype=np.uint8).reshape(100, 100)
-            s_hist    = _face_histogram(stored)
-            corr      = cv2.compareHist(face_hist, s_hist, cv2.HISTCMP_CORREL)
-            intersect = cv2.compareHist(face_hist, s_hist, cv2.HISTCMP_INTERSECT)
-            combined  = corr * 0.7 + intersect * 0.3
-            if combined > best_hist:
-                best_hist = combined
-                best_roll = s["roll"]
-        except Exception:
-            continue
-
-    student_count = len(all_students)
-    LBPH_T  = max(55.0, 85.0 - (student_count * 1.5))
-    HIST_T  = 0.40
-    lbph_ok = lbph_conf < LBPH_T
-    hist_ok = best_hist > HIST_T
-    agree   = (candidate_roll == best_roll)
-
-    def _student_name(roll):
-        s = next((x for x in all_students if x["roll"] == roll), None)
-        return s["name"] if s else ""
-
-    if candidate_roll and best_roll and agree and lbph_ok and hist_ok:
-        return candidate_roll, _student_name(candidate_roll), lbph_conf, best_hist, True
-    if lbph_ok and lbph_conf < 60.0 and candidate_roll:
-        return candidate_roll, _student_name(candidate_roll), lbph_conf, best_hist, True
-    if hist_ok and best_hist > 0.65 and best_roll and lbph_conf < 95.0:
-        return best_roll, _student_name(best_roll), lbph_conf, best_hist, True
-
-    return "", "", lbph_conf, best_hist, False
-
-
 def _check_face_quality(gray_face, strict: bool = False):
     blur       = cv2.Laplacian(gray_face, cv2.CV_64F).var()
     brightness = float(gray_face.mean())
@@ -608,51 +506,6 @@ def _check_face_quality(gray_face, strict: bool = False):
     if h * w < 4900:
         return False, "Face too small. Move closer to the camera."
     return True, "OK"
-
-
-def _enhanced_duplicate_check(face_encoding, existing_students, exclude_roll: str = ""):
-    if not face_encoding or not existing_students:
-        return False, None, None, 0.0
-    try:
-        new_face = np.frombuffer(face_encoding, dtype=np.uint8).reshape(100, 100)
-        new_hist = _face_histogram(new_face)
-    except Exception:
-        return False, None, None, 0.0
-
-    best_score, best_roll, best_name = 0.0, None, None
-
-    for student in existing_students:
-        if student.get("roll") == exclude_roll:
-            continue
-        enc = student.get("face_encoding")
-        if not enc:
-            continue
-        try:
-            stored    = np.frombuffer(enc, dtype=np.uint8).reshape(100, 100)
-            s_hist    = _face_histogram(stored)
-            hist_corr = cv2.compareHist(new_hist, s_hist, cv2.HISTCMP_CORREL)
-            tmatch    = float(cv2.matchTemplate(
-                new_face.astype(np.float32),
-                stored.astype(np.float32),
-                cv2.TM_CCOEFF_NORMED,
-            )[0][0])
-            nf = new_face.astype(np.float64).flatten()
-            sf = stored.astype(np.float64).flatten()
-            nf -= nf.mean()
-            sf -= sf.mean()
-            denom      = np.linalg.norm(nf) * np.linalg.norm(sf)
-            pixel_corr = float(np.dot(nf, sf) / denom) if denom > 0 else 0.0
-            combined   = hist_corr * 0.40 + tmatch * 0.35 + pixel_corr * 0.25
-            if combined > best_score:
-                best_score = combined
-                best_roll  = student["roll"]
-                best_name  = student["name"]
-        except Exception:
-            continue
-
-    if best_score >= 0.55:
-        return True, best_roll, best_name, best_score
-    return False, None, None, best_score
 
 
 def _remove_overlapping_faces(faces):
@@ -892,7 +745,7 @@ def student_register():
             ]
 
             if existing_faces:
-                is_dup, dup_roll, dup_name, dup_score = _enhanced_duplicate_check(
+                is_dup, dup_roll, dup_name, dup_score = enhanced_duplicate_check(
                     face_encoding, existing_faces, exclude_roll=roll
                 )
                 if is_dup:
@@ -953,6 +806,7 @@ def student_register():
                  standard, division, gender, subject)
             )
             db.commit()
+            RecognizerCache.invalidate()
 
             new_row = db.execute(
                 "SELECT id FROM students WHERE roll=?", (roll,)
@@ -1040,6 +894,9 @@ def student_login():
                 if remaining > 0:
                     msg += f" {remaining} attempt(s) remaining before lockout."
                 return render_template("student_login.html", error=msg)
+
+            if needs_password_upgrade(student["password"]):
+                upgrade_password_on_login(db, "students", "email", email, password_raw)
 
             record_successful_login(db, "students", "email", email)
             log_security_event(db, "STUDENT_LOGIN", student["roll"],
@@ -1139,9 +996,7 @@ def student_face_login():
         if not all_students:
             return jsonify({"success": False, "error": "No student face data enrolled."})
 
-        recognizer, roll_labels = _train_recognizer(all_students, use_encoding)
-        if recognizer is None:
-            return jsonify({"success": False, "error": "No face data available for matching."})
+        recognizer, roll_labels = RecognizerCache.get(all_students, use_encoding)
 
         x, y, w, h = max(faces, key=lambda f: f[2] * f[3])
         clahe      = cv2.createCLAHE(clipLimit=2.0, tileGridSize=(8, 8))
@@ -1153,7 +1008,7 @@ def student_face_login():
         if not quality_ok:
             return jsonify({"success": False, "error": quality_msg})
 
-        roll, name, lbph_conf, hist_score, matched = _dual_match(
+        roll, name, lbph_conf, hist_score, matched = dual_match(
             face_roi, recognizer, roll_labels, all_students, use_encoding
         )
 
@@ -1385,6 +1240,17 @@ def student_dashboard():
         except Exception:
             pass
 
+        student_settings = {}
+        try:
+            srow = db.execute(
+                "SELECT settings FROM user_settings WHERE user_type='student' AND user_id=?",
+                (session["student_roll"],)
+            ).fetchone()
+            if srow:
+                student_settings = json.loads(srow["settings"])
+        except Exception:
+            student_settings = {}
+
         return render_template(
             "student_dashboard.html",
             student=student_dict,
@@ -1542,7 +1408,7 @@ def student_face_enroll():
                 (roll,)
             ).fetchall()
         ]
-        is_dup, dup_roll, dup_name, dup_score = _enhanced_duplicate_check(
+        is_dup, dup_roll, dup_name, dup_score = enhanced_duplicate_check(
             face_encoding, existing_faces
         )
         if is_dup:
@@ -1571,6 +1437,7 @@ def student_face_enroll():
             (face_filename, face_encoding, roll)
         )
         db.commit()
+        RecognizerCache.invalidate()
 
         if request.is_json:
             return jsonify({"success": True, "message": "Face enrolled successfully!"})
@@ -1787,6 +1654,9 @@ def faculty_login():
                     msg += f" {remaining} attempt(s) remaining."
                 return render_template("faculty_login.html", error=msg)
 
+            if needs_password_upgrade(faculty["password"]):
+                upgrade_password_on_login(db, "faculty", login_field, login_value, password)
+            
             record_successful_login(db, "faculty", login_field, login_value)
             log_security_event(db, "FACULTY_LOGIN", faculty["faculty_id"],
                                "faculty", get_client_ip())
@@ -2042,10 +1912,7 @@ def process_attendance():
                 "message":          "No faces detected. All students marked absent.",
             })
 
-        recognizer, roll_labels = _train_recognizer(all_students, use_encoding)
-        if recognizer is None:
-            return jsonify({"success": False,
-                            "error": "Could not build face recognition model."})
+        recognizer, roll_labels = RecognizerCache.get(all_students, use_encoding)
 
         from datetime import timezone, timedelta
         IST = timezone(timedelta(hours=5, minutes=30))
@@ -2065,7 +1932,7 @@ def process_attendance():
                                     "reason": quality_msg})
                 continue
 
-            roll, name, lbph_conf, hist_score, matched = _dual_match(
+            roll, name, lbph_conf, hist_score, matched = dual_match(
                 face_roi, recognizer, roll_labels, all_students, use_encoding
             )
 
@@ -2096,7 +1963,7 @@ def process_attendance():
             if not quality_ok:
                 color, label = (128, 128, 128), "Low Quality"
             else:
-                roll, name, lbph_conf, hist_score, matched = _dual_match(
+                roll, name, lbph_conf, hist_score, matched = dual_match(
                     face_roi, recognizer, roll_labels, all_students, use_encoding
                 )
                 if matched:
@@ -2137,6 +2004,7 @@ def process_attendance():
 # =====================================================================
 @app.route("/attendance", methods=["GET", "POST"])
 @login_required_student
+@rate_limit(max_requests=5, window_seconds=60)
 def attendance():
     if request.method == "POST":
         subject   = request.form.get("subject",    "").strip()
@@ -2193,11 +2061,7 @@ def attendance():
                     status="error"
                 )
 
-            recognizer, roll_labels = _train_recognizer(all_students, use_encoding)
-            if recognizer is None:
-                return render_template("attendance.html",
-                                       message="No student face data enrolled.",
-                                       status="error")
+            recognizer, roll_labels = RecognizerCache.get(all_students, use_encoding)
 
             x, y, w, h = max(faces, key=lambda f: f[2] * f[3])
             clahe      = cv2.createCLAHE(clipLimit=2.0, tileGridSize=(8, 8))
@@ -2210,7 +2074,7 @@ def attendance():
                 return render_template("attendance.html",
                                        message=quality_msg, status="error")
 
-            roll, name, lbph_conf, hist_score, matched = _dual_match(
+            roll, name, lbph_conf, hist_score, matched = dual_match(
                 face_roi, recognizer, roll_labels, all_students, use_encoding
             )
 
@@ -2220,6 +2084,18 @@ def attendance():
                     message="Face not recognized. Please register first or try in better lighting.",
                     status="error"
                 )
+
+            is_live, liveness_score, liveness_reason = check_liveness(face_roi, strict=False)
+            if not is_live:
+                log_security_event(db, "LIVENESS_FAILED", roll, "student",
+                                   get_client_ip(),
+                                   f"score={liveness_score:.2f} reason={liveness_reason}", "high")
+                db.commit()
+                return render_template(
+                    "attendance.html",
+                    message="Liveness check failed — please use your live camera, not a photo or screen.",
+                    status="error"
+                )    
 
             from datetime import timezone, timedelta
             IST = timezone(timedelta(hours=5, minutes=30))
@@ -2351,6 +2227,7 @@ def forgot_password():
 # VERIFY OTP
 # =====================================================================
 @app.route("/verify-otp", methods=["POST"])
+@require_same_origin
 def verify_otp():
     data  = request.get_json() if request.is_json else request.form
     email = (data.get("email") or "").strip().lower()
@@ -2380,6 +2257,7 @@ def verify_otp():
 # RESET PASSWORD
 # =====================================================================
 @app.route("/reset-password", methods=["POST"])
+@require_same_origin
 def reset_password():
     data         = request.get_json() if request.is_json else request.form
     email        = (data.get("email")        or "").strip().lower()
@@ -2484,6 +2362,7 @@ def delete_student(student_roll):
                 log_security_event(db, "STUDENT_DELETED", student_roll,
                                    "faculty", get_client_ip())
                 db.commit()
+                RecognizerCache.invalidate()
         finally:
             db.close()
 
@@ -2576,6 +2455,7 @@ def erase_deleted_student(student_roll):
             f"Erased by {session.get('faculty_id', 'unknown')}", "high"
         )
         db.commit()
+        RecognizerCache.invalidate()
 
         if is_ajax:
             return jsonify({"success": True, "message": f"Student {student_roll} permanently erased."})
@@ -2608,6 +2488,7 @@ def clear_all_students_route():
                 log_security_event(db, "ALL_STUDENTS_CLEARED",
                                    session["faculty_id"], "faculty", get_client_ip())
                 db.commit()
+                RecognizerCache.invalidate()
         finally:
             db.close()
         app.secret_key = secrets.token_hex(32)
@@ -2866,15 +2747,15 @@ def change_password():
             flash("New password must be at least 8 characters.", "error")
             return render_template("change_password.html")
 
-        old_pw = hash_password(old_pw_raw)
         new_pw = hash_password(new_pw_raw)
         db = get_db()
         try:
             if "student_roll" in session:
-                user = db.execute(
-                    "SELECT id FROM students WHERE roll=? AND password=?",
-                    (session["student_roll"], old_pw)
+                row = db.execute(
+                    "SELECT id, password FROM students WHERE roll=?",
+                    (session["student_roll"],)
                 ).fetchone()
+                user = row if row and verify_password(old_pw_raw, row["password"]) else None
                 if user:
                     db.execute(
                         "UPDATE students SET password=? WHERE roll=?",
@@ -2892,10 +2773,11 @@ def change_password():
                         return jsonify({"success": False, "error": "Current password is incorrect."})
                     flash("Current password is incorrect.", "error")
             else:
-                user = db.execute(
-                    "SELECT id FROM faculty WHERE faculty_id=? AND password=?",
-                    (session["faculty_id"], old_pw)
+                row = db.execute(
+                    "SELECT id, password FROM faculty WHERE faculty_id=?",
+                    (session["faculty_id"],)
                 ).fetchone()
+                user = row if row and verify_password(old_pw_raw, row["password"]) else None
                 if user:
                     db.execute(
                         "UPDATE faculty SET password=? WHERE faculty_id=?",
@@ -3354,18 +3236,32 @@ def confirm_attendance():
 
 @app.route('/api/save-student-settings', methods=['POST'])
 def save_student_settings():
+    if 'student_roll' not in session:
+        return jsonify({'success': False, 'error': 'Not logged in'}), 401
+
+    data = request.get_json(silent=True) or {}
+    allowed_keys = {
+        'attendance_alerts', 'class_reminders', 'email_reports',
+        'face_recognition', 'profile_visibility'
+    }
+    settings = {k: bool(v) for k, v in data.items() if k in allowed_keys}
+
+    db = get_db()
     try:
-        if 'student_roll' not in session:
-            return jsonify({'success': False, 'error': 'Not logged in'}), 401
-
-        data = request.get_json(force=True)
-        if data is None:
-            return jsonify({'success': False, 'error': 'Invalid data'}), 400
-
+        db.execute(
+            """INSERT INTO user_settings (user_type, user_id, settings, updated_at)
+               VALUES ('student', ?, ?, CURRENT_TIMESTAMP)
+               ON CONFLICT(user_type, user_id) DO UPDATE
+               SET settings=excluded.settings, updated_at=CURRENT_TIMESTAMP""",
+            (session['student_roll'], json.dumps(settings))
+        )
+        db.commit()
         return jsonify({'success': True, 'message': 'Settings saved'})
-
     except Exception as e:
+        db.rollback()
         return jsonify({'success': False, 'error': str(e)}), 500
+    finally:
+        db.close()
 
 
 # =====================================================================
