@@ -424,9 +424,9 @@
 
             <div class="or-divider">or</div>
 
-            <button class="btn-login" onclick="openFaceLogin()" style="margin-top:10px;">
-                 <i class="fas fa-camera"></i> Sign In with Face Recognition
-                </button>
+            <button class="btn-login" id="facLoginBtn" onclick="openFaceLogin()" style="margin-top:0;">
+                <i class="fas fa-camera"></i> Sign In with Face Recognition
+            </button>
 
             <div class="form-footer">
                 <span>Don't have an account? <a href="/student-register">Register</a></span>
@@ -479,27 +479,66 @@
         }
 
         function captureAndLogin() {
-            const video  = document.getElementById('camVideo');
-            const canvas = document.createElement('canvas');
-            canvas.width  = video.videoWidth  || 640;
-            canvas.height = video.videoHeight || 480;
-            canvas.getContext('2d').drawImage(video, 0, 0, canvas.width, canvas.height);
-            const dataURL = canvas.toDataURL('image/jpeg', 0.85);
-            closeCamera();
+    const video  = document.getElementById('camVideo');
 
-            // POST face image to a face-login endpoint
-            fetch('/student-face-login', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ face_image: dataURL })
-            })
-            .then(r => r.json())
-            .then(data => {
-                if (data.success) window.location.href = '/student-dashboard';
-                else alert('Face not recognized. Please use email/password login.');
-            })
-            .catch(() => alert('Server error. Please try email/password login.'));
+    if (!video.videoWidth || video.videoWidth === 0) {
+        showFaceError('Camera not ready. Please wait a moment and try again.');
+        return;
+    }
+
+    const canvas = document.createElement('canvas');
+    canvas.width  = video.videoWidth;
+    canvas.height = video.videoHeight;
+    canvas.getContext('2d').drawImage(video, 0, 0, canvas.width, canvas.height);
+    const dataURL = canvas.toDataURL('image/jpeg', 0.85);
+    closeCamera();
+
+    // Show loading state
+    const faceBtn = document.querySelector('.btn-face-login') || document.querySelectorAll('.btn-login')[1];
+    const origText = faceBtn ? faceBtn.innerHTML : '';
+    if (faceBtn) faceBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Identifying...';
+
+    fetch('/student-face-login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ face_image: dataURL })
+    })
+    .then(r => r.json())
+    .then(data => {
+        if (data.success) {
+            if (faceBtn) faceBtn.innerHTML = '<i class="fas fa-check"></i> Recognized! Redirecting...';
+            window.location.href = '/student-dashboard';
+        } else {
+            if (faceBtn) faceBtn.innerHTML = origText;
+            showFaceError(data.error || 'Face not recognized. Please use email/password login.');
         }
+    })
+    .catch(err => {
+        if (faceBtn) faceBtn.innerHTML = origText;
+        showFaceError('Server error. Please try email/password login.');
+        console.error('Face login error:', err);
+    });
+}
+
+function showFaceError(msg) {
+    // Remove existing error if any
+    const existing = document.getElementById('face-error-msg');
+    if (existing) existing.remove();
+
+    const div = document.createElement('div');
+    div.id = 'face-error-msg';
+    div.className = 'alert-error';
+    div.style.marginTop = '14px';
+    div.innerHTML = '<i class="fas fa-exclamation-circle"></i> ' + msg;
+
+    // Insert after the face login button
+    const btns = document.querySelectorAll('.btn-login');
+    const faceBtn = btns[btns.length - 1];
+    faceBtn.parentNode.insertBefore(div, faceBtn.nextSibling);
+
+    // Auto-remove after 5 seconds
+    setTimeout(() => { if (div.parentNode) div.remove(); }, 5000);
+}
         
     </script> 
     <script>
