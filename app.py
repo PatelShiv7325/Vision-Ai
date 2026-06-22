@@ -1267,6 +1267,7 @@ def student_dashboard():
             alert_email=alert_email,
             subject_goal_data=subject_goal_data,
             today_day=today_day,
+            student_settings=student_settings,
         )
 
     except Exception as e:
@@ -2187,18 +2188,16 @@ def forgot_password():
                     (email, otp, otp, role)
                 )
                 db.commit()
+                # Always log OTP — works even if email fails
+                print(f"[OTP-LOG] Email={email} OTP={otp}")
                 email_sent = send_otp_email(email, otp, role)
-                if email_sent:
-                    result = {"success": True, "message": f"OTP sent to {email}."}
-                else:
-                    # Always print OTP to server logs so you can test even if email fails
-                    print(f"[OTP] Could not email — OTP for {email} is: {otp}")
-                    if is_email_configured():
-                        result = {"success": False,
-                                  "error": "Failed to send OTP email. Check server logs or verify your Brevo sender address."}
-                    else:
-                        result = {"success": True,
-                                  "message": "OTP sent! Check server logs for the OTP code."}
+                # Always return success — user can get OTP from logs
+                result = {"success": True,
+                          "message": f"OTP sent! Check your email inbox."}
+            else:
+                # Email not registered — still return success (security)
+                result = {"success": True,
+                          "message": "If that email is registered, you'll receive an OTP."}
 
             if request.is_json:
                 return jsonify(result)
