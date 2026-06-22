@@ -405,10 +405,10 @@ def _send_email_via_brevo(to_email: str, subject: str, html_content: str, text_c
             return True
     except urllib.error.HTTPError as e:
         detail = e.read().decode("utf-8", "ignore")
-        print(f"[Email] Brevo HTTP error {e.code} sending to {to_email}: {detail}")
+        print(f"[Email] Brevo HTTP error {e.code} to={to_email} key_prefix={api_key[:12]}... sender={sender_email} detail={detail}")
         return False
     except Exception as e:
-        print(f"[Email] Brevo request failed for {to_email}: {e}")
+        print(f"[Email] Brevo request failed for {to_email}: {type(e).__name__}: {e}")
         return False
 
 
@@ -2191,18 +2191,14 @@ def forgot_password():
                 if email_sent:
                     result = {"success": True, "message": f"OTP sent to {email}."}
                 else:
+                    # Always print OTP to server logs so you can test even if email fails
+                    print(f"[OTP] Could not email — OTP for {email} is: {otp}")
                     if is_email_configured():
                         result = {"success": False,
-                                  "error": "Failed to send OTP. Please try again."}
+                                  "error": "Failed to send OTP email. Check server logs or verify your Brevo sender address."}
                     else:
-                        print(f"[DEV MODE] OTP for {email}: {otp}")
                         result = {"success": True,
-                                  "message": "OTP sent! Check CMD window for OTP code."}
-            else:
-                result = {
-                    "success": True,
-                    "message": "If that email is registered, you'll receive an OTP."
-                }
+                                  "message": "OTP sent! Check server logs for the OTP code."}
 
             if request.is_json:
                 return jsonify(result)
